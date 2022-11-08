@@ -1,0 +1,20 @@
+version: "3.7"
+
+services:
+  timescale:
+    image: timescale/timescaledb:latest-pg14
+    volumes: 
+      - timescale-volume:/home/postgres/pgdata/data
+    environment:
+      POSTGRES_PASSWORD: pgadmin
+    ports:
+      - 5432:5432
+
+  node:
+    image: node-app:latest
+    ports:
+      - 3000:3000
+     
+
+volumes:
+  timescale-volume:
