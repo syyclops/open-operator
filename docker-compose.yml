@@ -14,7 +14,8 @@ services:
     image: node-app:latest
     ports:
       - 3000:3000
-     
+    volumes:
+      - ./node:/usr/src/app
 
 volumes:
   timescale-volume:
