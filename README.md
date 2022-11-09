@@ -1,8 +1,3 @@
-## Open AFDD
+## Open Insights
 
-Automated Fault Diagnotics for Building Automation Systems and Beyond 🚀
-
-### Containers
-
-Postgres DB (Timescale extension)
-Node js express server
+Collect, Analayze, and Visualize time series data.
