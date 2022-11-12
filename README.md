@@ -1,4 +1,4 @@
-## Open AFDD
+## Open Building Insights
 
 Automated Fault Diagnotics for Building Automation Systems and Beyond 🚀
 
