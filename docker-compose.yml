@@ -35,6 +35,11 @@ services:
       - 7474:7474
       - 7687:7687
 
+  py_server:
+    image: py_server:latest
+    ports:
+      - 8000:8000
+
 
 volumes:
   timescale-volume:

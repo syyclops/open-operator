@@ -10,5 +10,7 @@ const routes_1 = __importDefault(require("./routes"));
 const app = (0, express_1.default)();
 const errorHandler = (err, req, res, next) => { };
 app.use(errorHandler);
+app.use(express_1.default.json());
+app.use(express_1.default.urlencoded({ extended: true }));
 app.use(routes_1.default);
 exports.default = app;

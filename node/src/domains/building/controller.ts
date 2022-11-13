@@ -23,9 +23,6 @@ const getBuilding = async (uri: string) => {
   } finally {
     await session.close()
   }
-
-  // // on application exit:
-  // await neo4j_driver.close()
 }
 
 export { getBuilding }

@@ -29,7 +29,5 @@ const getBuilding = (uri) => __awaiter(void 0, void 0, void 0, function* () {
     finally {
         yield session.close();
     }
-    // // on application exit:
-    // await neo4j_driver.close()
 });
 exports.getBuilding = getBuilding;

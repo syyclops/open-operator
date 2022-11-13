@@ -6,5 +6,5 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const building_1 = __importDefault(require("../domains/building"));
 const router = (0, express_1.Router)();
-router.use("/building", building_1.default);
+router.use('/building', building_1.default);
 exports.default = router;

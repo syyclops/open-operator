@@ -12,7 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const controller_1 = require("./controller");
 const router = (0, express_1.Router)();
-// Get Buildings
+// Get Building
+// @param: building uri
 router.get('/:uri', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const buildingUri = req.params.uri;
     try {

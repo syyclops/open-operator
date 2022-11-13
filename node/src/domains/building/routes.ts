@@ -3,7 +3,8 @@ import { getBuilding } from './controller'
 
 const router = Router()
 
-// Get Buildings
+// Get Building
+// @param: building uri
 router.get('/:uri', async (req, res) => {
   const buildingUri = req.params.uri
 
