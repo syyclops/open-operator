@@ -39,6 +39,9 @@ services:
     image: py_server:latest
     ports:
       - 8000:8000
+    volumes: 
+      - ./py_server:/usr/src/app
+    platform: linux/amd64
 
 
 volumes:
