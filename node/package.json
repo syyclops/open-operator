@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "concurrently \"npx tsc --watch\" \"nodemon -L -q dist/index.js\""
+    "start": "concurrently \"npx tsc --watch\" \"nodemon -L -q dist/server.js\""
   },
   "keywords": [],
   "author": "",
@@ -20,10 +20,12 @@
   },
   "devDependencies": {
     "@types/express": "^4.17.14",
+    "@types/glob": "^8.0.0",
     "@types/multer": "^1.4.7",
     "@types/node": "^18.11.9",
     "concurrently": "^7.5.0",
     "fs": "^0.0.1-security",
+    "glob": "^8.0.3",
     "nodemon": "^2.0.20",
     "typescript": "^4.8.4"
   }

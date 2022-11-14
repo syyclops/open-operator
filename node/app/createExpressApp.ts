@@ -1,8 +1,8 @@
-import express, { Express, Request, Response } from 'express'
+import express, { Express } from 'express'
 import dotenv from 'dotenv'
 dotenv.config()
 import type { ErrorRequestHandler } from 'express'
-import routes from './routes'
+import router from './routes/createRouter'
 
 const app: Express = express()
 
@@ -13,6 +13,6 @@ app.use(errorHandler)
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-app.use(routes)
+app.use('/api', router())
 
 export default app
