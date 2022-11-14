@@ -1,8 +1,10 @@
 ## Open Building Insights
 
-Automated Fault Diagnotics for Building Automation Systems and Beyond 🚀
+## Structure (Containers)
 
-### Containers
-
-- Postgres DB (Timescale extension)
-- Node js express server
+| Codebase                     |         Description          |
+| :--------------------------- | :--------------------------: |
+| [bim_to_brick](bim_to_brick) | IFC to Brickschema converter |
+| [node](node)                 |     Node Express Server      |
+| neo4j                        |           Graph DB           |
+| timescaledb                  |     Time Series Database     |
