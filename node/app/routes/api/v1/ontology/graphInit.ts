@@ -22,7 +22,7 @@ module.exports = Router({ mergeParams: true }).post(
         `call n10s.graphconfig.init({handleVocabUris: "IGNORE"})`,
       )
 
-      console.log(result.records[0])
+      //   console.log(result.records[0])
 
       res.json({
         status: 'SUCCESS',
