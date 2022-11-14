@@ -39,14 +39,13 @@ services:
       - 7474:7474
       - 7687:7687
 
-  bim_to_brick:
-    image: bim_to_brick:latest
-    ports:
-      - 8000:8000
+  bim_and_bricks:
+    image: bim_and_bricks:latest
     volumes: 
-      - ./bim_to_brick:/usr/src/app
+      - ./bim_and_bricks/:/usr/src/app
     platform: linux/amd64
-
+    tty: true
+    network_mode: host
 
 volumes:
   timescale-volume:
