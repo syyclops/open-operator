@@ -6,10 +6,10 @@ brontes is an open source system to gather and gain insights on all your buildin
 
 ## Roadmap
 
-- [ ] Tools to create brick models
-- [ ] Connect data sources for dynamic data
-- [ ] Open set of fault detection rules (Start with Ashrae guidline 36)
-- [ ] Run AFDD and store results
+- [ ] Connect/Load data sources for static and dynamic data (Cobie, BAS, CMMS, etc.) 
+- [ ] Align data sources
+- [ ] Fault detection with set of rules (Start with Ashrae guidline 36)
+- [ ] Fault diganosis 
 - [ ] Train ML models to run predictions and simulations
 - [ ] AI to autonomously make changes to the system
 
