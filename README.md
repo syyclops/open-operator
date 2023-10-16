@@ -1,15 +1,25 @@
 # 🧠 🤖 🏢 Brontes
 
-brontes is an open source system to gather and gain insights on your buildings data. It will pull all your different data sources together and align them
+brontes is a system to gather and gain insights on your buildings data. It will pull all your different data sources together and align them
 
 ## Roadmap
 
-- [ ] Connect/Load different data sources. Also generate vector embeddings if needed - [ ] Drawings and Plans - [ ] O&M Manuals + Cut Sheets - [ ] BIM Models - [ ] Cobie Sheets - [ ] Bacnet - [ ] Add an external api
+- [ ] Connect/Load different data sources. Also generate vector embeddings if needed
 - [ ] Automatically link all the different data sources together (Graph Alignment)
 - [ ] Fault detection rules (Start with Ashrae guidline 36)
-- [ ] Run AFDD and store results
+- [ ] Run fault detection starting at a given time and an interval
+- [ ] Fault diagnosis (Steps to take to fix the issue)
 - [ ] Train ML models to run predictions and simulations
 - [ ] AI to autonomously make changes to the system
+
+## Data Sources
+
+- [ ] Drawings and Plans
+- [ ] O&M Manuals + Cut Sheets
+- [ ] BIM Models
+- [ ] Cobie Sheets
+- [ ] Bacnet
+- [ ] Add an external api
 
 ## Licensing
 
