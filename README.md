@@ -1,10 +1,7 @@
-## Open Building Insights
+## 🧠 🤖 🌇 Open Insights
 
-## Structure (Containers)
+Smart building analytics, predictions, and simulations.
 
-| Codebase                     |         Description          |
-| :--------------------------- | :--------------------------: |
-| [bim_and_bricks](bim_and_bricks) | IFC to Brickschema converter |
-| [node](node)                 |     Node Express Server      |
-| neo4j                        |           Graph DB           |
-| timescaledb                  |     Time Series Database     |
+- Create brick models
+- Connect data sources
+- Open set of fault detection rules (Start with Ashrae guidline 36)
