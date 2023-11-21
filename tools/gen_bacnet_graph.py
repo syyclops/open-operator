@@ -83,7 +83,7 @@ def main():
                 g.add((point_uri, BACNET[key], Literal(str(value))))
 
     # Serialize the graph
-    g.serialize(output, format='turtle')
+    g.serialize(output, format='json-ld')
 
 if __name__ == '__main__':
     main()
