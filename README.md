@@ -16,10 +16,14 @@ A step-by-step series of examples that tell you how to get a development environ
 
 ```
 # Clone the repository
-$ git clone https://github.com/yourusername/open-insights.git
+$ git clone https://github.com/syyclops/open-insights.git
 
 # Navigate to the repository directory
 $ cd open-insights
+
+# Create and activate python virtual environment
+$ python3 -m venv venv
+$ source ./venv/bin/activate
 
 # Install dependencies
 $ pip install -r requirements.txt
