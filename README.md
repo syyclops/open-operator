@@ -7,6 +7,7 @@ Welcome to Open Insights – the open-source solution for fault detection and di
 - [ ] **Data Importation**: Simplify the ingestion of diverse IoT and BACnet data into a usable format.
 - [ ] **Brick Schema Modeling**: Utilize our tools to convert raw data into a Brick-compliant graph model for enhanced interoperability.
 - [ ] **Fault Detection Library**: Access and contribute to an open-source repository of fault detection rules.
+- [ ] **Automated Fault Detection**: Set up automatic, interval-based scans to detect and log faults, ensuring consistent system checks and maintenance alerts.
 - [ ] **Predictive Analytics**: Implement machine learning models to predict and simulate building system behaviors.
 
 ## Installation
