@@ -1,28 +1,29 @@
-# 🧠 🤖 🏢 Brontes
+# Open Insights
 
-brontes is a system to gather and gain insights on your buildings data. It will pull all your different data sources together and align them
+Welcome to Open Insights – the open-source solution for fault detection and diagnostics in building automation systems. Leveraging the power of IoT data and advanced analytics, Open Insights offers a comprehensive toolkit for importing messy data, creating clean Brick schema graph models, and developing a robust fault detection rules library. Dive into predictive modeling and simulations to streamline building operations and maintenance.
 
-## Roadmap
+## Features
 
-- [ ] Connect/Load different data sources. Also generate vector embeddings if needed
-- [ ] Automatically link all the different data sources together (Graph Alignment)
-- [ ] Fault detection rules (Start with Ashrae guidline 36)
-- [ ] Run fault detection starting at a given time and an interval
-- [ ] Fault diagnosis (Steps to take to fix the issue)
-- [ ] Train ML models to run predictions and simulations
-- [ ] AI to autonomously make changes to the system
+- [ ] **Data Importation**: Simplify the ingestion of diverse IoT and BACnet data into a usable format.
+- [ ] **Brick Schema Modeling**: Utilize our tools to convert raw data into a Brick-compliant graph model for enhanced interoperability.
+- [ ] **Fault Detection Library**: Access and contribute to an open-source repository of fault detection rules.
+- [ ] **Predictive Analytics**: Implement machine learning models to predict and simulate building system behaviors.
 
-## Data Sources
+## Installation
 
-- [ ] Drawings and Plans
-- [ ] O&M Manuals + Cut Sheets
-- [ ] BIM Models
-- [ ] Cobie Sheets
-- [ ] Bacnet
-- [ ] Add an external api
+A step-by-step series of examples that tell you how to get a development environment running:
 
-## Licensing
+```
+# Clone the repository
+$ git clone https://github.com/yourusername/open-insights.git
 
-brontes is released under the MIT license. Some parts of the software are released under other licenses as specified.
+# Navigate to the repository directory
+$ cd open-insights
 
-Any user of this software shall indemnify and hold harmless Syyclops, Inc. and its directors, officers, employees, agents, stockholders, affiliates, subcontractors and customers from and against all allegations, claims, actions, suits, demands, damages, liabilities, obligations, losses, settlements, judgments, costs and expenses (including without limitation attorneys’ fees and costs) which arise out of, relate to or result from any use of this software by user.
+# Install dependencies
+$ pip install -r requirements.txt
+```
+
+## License
+
+This project is licensed under the MIT License - see the [License](./LICENSE) file for details.
