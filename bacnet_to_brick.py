@@ -1,4 +1,5 @@
-from rdflib import Graph, Namespace
+from rdflib import Namespace
+from brickschema import Graph
 from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
@@ -134,7 +135,7 @@ def load_brick_point_types():
     return documents
 
 
-def classify_bacnet_device_cluster(cluster):
+def classify_bacnet_device_cluster(cluster, g):
     print("Classifying a cluster of devices...")
     device_names = []
     for document in cluster:
@@ -146,44 +147,35 @@ def classify_bacnet_device_cluster(cluster):
     # Get the page content for the similar brick classes
     similar_brick_classes = [result.page_content for result in results]
 
-    print("Similar Brick Classes:")
-    print(similar_brick_classes)
-
     # Create the prompt
-    device_classifier_prompt = """BRICK SCHEMA EQUIPMENT TYPES:\n\n"""
+    device_classifier_prompt = """You are a system that is given a cluster bacnet device names and you output whats its correct brick schema classification class is for the cluster. ONLY output the brick class. ONLY output one brick class. ONLY select a brick class from the provided brick equipment types. If the brick class is unknown output N/A.\n\n"""
+    device_classifier_prompt += """BRICK SCHEMA EQUIPMENT TYPES:\n\n"""
     device_classifier_prompt += "\n".join(similar_brick_classes) + "\n"
-    device_classifier_prompt += """\nYou are a system that is given a cluster bacnet device names and you output whats its correct brick schema classification class is for the cluster. ONLY output the brick class. ONLY output one brick class. ONLY select a brick class from the provided equipment types. If the brick class is unknown output N/A."""
 
     messages = [
         {
             "role": "system",
             "content": device_classifier_prompt
         },
-        {
-            "role": "user",
-            "content": "VAV-A1-12\nVAV-D2-12\nVAV-A2-14"
-        },
-        {
-            "role": "assistant",
-            "content": "VAV"
-        },
+        # {
+        #     "role": "user",
+        #     "content": "AHU-1\nAHU-2\nAHU-5"
+        # },
+        # {
+        #     "role": "assistant",
+        #     "content": "AHU"
+        # },
         {
             "role": "user",
             "content": "\n".join(device_names)
         }
     ]
-    print("Sending prompt to API...")
-    print(messages)
 
     # Send the prompt to the API
     res = client.chat.completions.create(messages=messages, model="gpt-4-1106-preview")
 
     # Get the response
     response = res.choices[0].message.content
-    print("Response:")
-    print(response)
-    print()
-    print()
 
     # Remove any whitespace at the beginning or end
     response = response.strip()
@@ -191,11 +183,10 @@ def classify_bacnet_device_cluster(cluster):
     if response != "N/A":
         # Replace all whitespace with _
         brick_class = BRICK[response.replace(" ", "_")]
-        # print("Brick Class: " + brick_class)
 
         # Add the brick class to the graph
-        # for document in documents:
-        #     g.add((document.metadata["uri"], A, brick_class))
+        for document in cluster:
+            g.add((document.metadata["uri"], A, brick_class))
 
 
 def main():
@@ -220,7 +211,7 @@ def main():
     g = Graph()
     g.bind('brick', BRICK)
     g.bind('rdf', RDF)
-    g.parse(path, format="turtle")
+    g.load_file(path, format="turtle")
 
     # Load the brick equipment types into the vector store
     load_brick_equipment_types()
@@ -249,7 +240,14 @@ def main():
 
     # Classify each cluster
     for cluster in clusters:
-        classify_bacnet_device_cluster(clusters[cluster])
+        classify_bacnet_device_cluster(clusters[cluster], g=g)
+
+    
+    # Save the graph
+    print(f"Before: {len(g)} triples")
+    g.expand("rdfs")
+    print(f"After: {len(g)} triples")
+    g.serialize(output, format="turtle")
         
     
     # Print the clusters
