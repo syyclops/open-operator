@@ -6,7 +6,7 @@ import re
 # Define namespaces for the graph
 RDF = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 SYYCLOPS = Namespace('https://syyclops.com/')
-BACNET = Namespace("http://data.ashrae.org/bacnet/2016#")
+BACNET = Namespace("http://data.ashrae.org/bacnet/#")
 A = RDF['type']
 
 def load_bacnet_json(path):
@@ -59,7 +59,17 @@ def main():
 
     # Loop through the bacnet json file
     for item in data:
+        if item['Bacnet Data'] == None:
+            continue
+        if item['Bacnet Data'] == "{}":
+            continue
         bacnet_data = json.loads(item['Bacnet Data'])[0]
+
+        # Check if the necessary keys are in bacnet_data
+        if not all(key in bacnet_data for key in ['device_address', 'device_id', 'device_name']):
+            print("Missing necessary key in bacnet_data, skipping this item.")
+            continue
+
         device_uri = facility_uri + '/device' + bacnet_data['device_address'] + "-" + bacnet_data['device_id'] + '/' + create_uri(bacnet_data['device_name'])
         # Check if its a bacnet device or a bacnet object
         if bacnet_data['object_type'] == "device":
@@ -82,8 +92,11 @@ def main():
                     continue
                 g.add((point_uri, BACNET[key], Literal(str(value))))
 
+            # Create relationship between the device and the point
+            g.add((point_uri, BACNET.objectOf, device_uri))
+
     # Serialize the graph
-    g.serialize(output, format='json-ld')
+    g.serialize(output, format='turtle')
 
 if __name__ == '__main__':
     main()
