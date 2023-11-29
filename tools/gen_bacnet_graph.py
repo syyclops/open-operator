@@ -70,7 +70,7 @@ def main():
             print("Missing necessary key in bacnet_data, skipping this item.")
             continue
 
-        device_uri = facility_uri + '/device' + bacnet_data['device_address'] + "-" + bacnet_data['device_id'] + '/' + create_uri(bacnet_data['device_name'])
+        device_uri = facility_uri + '/device/' + bacnet_data['device_address'] + "-" + bacnet_data['device_id'] + '/' + create_uri(bacnet_data['device_name'])
         # Check if its a bacnet device or a bacnet object
         if bacnet_data['object_type'] == "device":
            # Create the bacnet device and add it to the graph
