@@ -12,7 +12,6 @@ from sklearn.cluster import KMeans
 import argparse
 import numpy as np
 from langchain.embeddings.openai import OpenAIEmbeddings
-import time
 load_dotenv()
 
 # Create the OpenAI client
@@ -121,52 +120,54 @@ def vectorize_bacnet_graph(g):
                     bacnet:device_name ?device_name .
             }
         """
+    try:
+        # Run the query for devices
+        for row in g.query(query_for_devices):
+            device_uri = row[0]
+            device_name = row[1]
 
-    # Run the query for devices
-    for row in g.query(query_for_devices):
-        device_uri = row[0]
-        device_name = row[1]
+            # Create the document
+            content = device_name.value
+            device_documents.append(Document(page_content=content, metadata={"type": "bacnet_device", "uri": device_uri}))
 
-        # Create the document
-        content = device_name.value
-        device_documents.append(Document(page_content=content, metadata={"type": "bacnet_device", "uri": device_uri}))
-
-    # Load the documents into the vector store
-    langchain_chroma.add_documents(device_documents)
-    
-    points_documents = []
-
-    # Define query for bacnet_Point
-    query_for_points = """
-        PREFIX bacnet: <http://data.ashrae.org/bacnet/2016#>
-
-        SELECT ?point ?device_name ?point_name ?present_value ?unit
-        WHERE {
-        ?point a bacnet:bacnet_Point ;
-                bacnet:device_name ?device_name ;
-                bacnet:object_name ?point_name ;
-                bacnet:present_value ?present_value ;
-                bacnet:object_units ?unit .
-        }
-        """
-    
-    # Run the query for points
-    for row in g.query(query_for_points):
-        point, device_name, point_name, present_value, unit = row
+        # Load the documents into the vector store
+        langchain_chroma.add_documents(device_documents)
         
-        content = point_name.value + " " + present_value.value + " " + unit.value
-        points_documents.append(Document(page_content=content, metadata={"type": "bacnet_point", "uri": point}))
+        points_documents = []
 
-    # Load the documents into the vector store
-    langchain_chroma.add_documents(points_documents)
+        # Define query for bacnet_Point
+        query_for_points = """
+            PREFIX bacnet: <http://data.ashrae.org/bacnet/2016#>
 
-    return device_documents, points_documents
+            SELECT ?point ?device_name ?point_name ?present_value ?unit
+            WHERE {
+            ?point a bacnet:bacnet_Point ;
+                    bacnet:device_name ?device_name ;
+                    bacnet:object_name ?point_name ;
+                    bacnet:present_value ?present_value ;
+                    bacnet:object_units ?unit .
+            }
+            """
+        
+        # Run the query for points
+        for row in g.query(query_for_points):
+            point, device_name, point_name, present_value, unit = row
+            
+            content = point_name.value + " " + present_value.value + " " + unit.value
+            points_documents.append(Document(page_content=content, metadata={"type": "bacnet_point", "uri": point}))
+
+        # Load the documents into the vector store
+        langchain_chroma.add_documents(points_documents)
+
+        return device_documents, points_documents
+    except Exception as e:
+        print(f"Error while vectorizing bacnet graph: {e}")
 
 
 def load_brick_equipment_types():
     print("Loading brick schema equipment types into vector store...")
     # Load all the brick classes for equipment from brick_equipment_list.txt into the vector store
-    with open("./brick_equipment_list.txt", "r") as f:
+    with open("../brick_equipment_list.txt", "r") as f:
         brick_equipment_list = f.read()
 
     # Create the documents to load into the vector store
@@ -187,7 +188,7 @@ def load_brick_equipment_types():
 def load_brick_point_types():
     print("Loading brick schema point types into vector store...")
     # Load all the brick classes for points from brick_point_list.txt
-    with open("./brick_point_list.txt", "r") as f:
+    with open("../brick_point_list.txt", "r") as f:
         brick_point_list = f.read()
 
     # Create an array of all the brick classes for points by separating by commas
@@ -300,6 +301,7 @@ def main():
     assert output, 'Output file must be specified'
 
     # Load the graph
+    print("Loading graph...")
     g = Graph(load_brick=True)
     g.bind('brick', BRICK)
     g.bind('rdf', RDF)
