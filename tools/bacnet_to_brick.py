@@ -12,6 +12,9 @@ from sklearn.cluster import KMeans
 import argparse
 import numpy as np
 from langchain.embeddings.openai import OpenAIEmbeddings
+from sklearn.cluster import DBSCAN
+from sklearn.neighbors import NearestNeighbors
+from kneed import KneeLocator
 load_dotenv()
 
 # Create the OpenAI client
@@ -153,7 +156,7 @@ def vectorize_bacnet_graph(g):
         for row in g.query(query_for_points):
             point, device_name, point_name, present_value, unit = row
             
-            content = point_name.value + " " + present_value.value + " " + unit.value
+            content = point_name.value
             points_documents.append(Document(page_content=content, metadata={"type": "bacnet_point", "uri": point}))
 
         # Load the documents into the vector store
@@ -256,7 +259,7 @@ If the brick class is unknown output N/A."""
             ]
 
             # Send the prompt to the API
-            res = client.chat.completions.create(messages=messages, model="gpt-3.5-turbo-1106", temperature=0, max_tokens=100)
+            res = client.chat.completions.create(messages=messages, model="gpt-4-1106-preview", temperature=0, max_tokens=100)
 
             # Get the response
             response = res.choices[0].message.content
@@ -280,6 +283,32 @@ If the brick class is unknown output N/A."""
             # time.sleep(25)
     except Exception as e:
         print(f"An error occurred: {e}")
+
+
+def dbscan_cluster(X):
+    print("Clustering...")
+    # Find the optimal epsilon
+    nbrs = NearestNeighbors(n_neighbors=5).fit(X)
+
+    distances, indices = nbrs.kneighbors(X)
+
+    distances = np.sort(distances, axis=0)
+
+    kneedle = KneeLocator(
+        range(1, distances.shape[0] + 1), distances[:, 1], curve="convex", direction="increasing"
+    )
+
+    db = DBSCAN(eps=kneedle.knee_y, min_samples=3).fit(X)
+    labels = db.labels_
+
+    # Number of clusters in labels, ignoring noise if present.
+    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    n_noise_ = list(labels).count(-1)
+
+    print(f"Estimated number of clusters: {n_clusters_}")
+    print(f"Estimated number of noise points: {n_noise_}")
+
+    return labels
 
 
 def main():
@@ -319,12 +348,8 @@ def main():
     device_embds = device_embds["embeddings"]
     device_embds = np.vstack(device_embds)
 
-    # Find the optimal number of clusters for the bacnet devices
-    optimal_clusters = find_optimal_k(device_embds, kmin=2, kmax=40, step_size=1)
-    print("Optimal number of clusters of bacnet devices: " + str(optimal_clusters))
-
     # Cluster the bacnet devices
-    cluster_assignments, labels = kmeans_clustering(device_embds, optimal_clusters)
+    cluster_assignments = dbscan_cluster(device_embds)
 
     # Create a dictionary of clusters, with the key being the cluster number and the value being the list of documents and metadata
     clusters = {}
@@ -342,12 +367,8 @@ def main():
     points_embds = points_embds["embeddings"]
     points_embds = np.vstack(points_embds)
 
-    # Find the optimal number of clusters for the bacnet points
-    optimal_clusters = find_optimal_k(points_embds, kmin=260, kmax=360, step_size=5)
-    print("Optimal number of clusters of bacnet points: " + str(optimal_clusters))
-
     # Cluster the bacnet points
-    cluster_assignments, labels = kmeans_clustering(points_embds, optimal_clusters)
+    cluster_assignments = dbscan_cluster(points_embds)
 
     # Create a dictionary of clusters, with the key being the cluster number and the value being the list of documents and metadata
     clusters = {}
