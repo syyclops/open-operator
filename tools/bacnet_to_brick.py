@@ -6,15 +6,14 @@ from tqdm import tqdm
 from langchain.vectorstores import Chroma
 import chromadb
 from langchain.schema import Document
-from sklearn.cluster import MiniBatchKMeans
-from sklearn.metrics import silhouette_score
-from sklearn.cluster import KMeans
 import argparse
 import numpy as np
 from langchain.embeddings.openai import OpenAIEmbeddings
 from sklearn.cluster import DBSCAN
 from sklearn.neighbors import NearestNeighbors
 from kneed import KneeLocator
+import json
+import time
 load_dotenv()
 
 # Create the OpenAI client
@@ -35,66 +34,34 @@ BRICK = Namespace("https://brickschema.org/schema/Brick#")
 BACNET = Namespace("http://data.ashrae.org/bacnet/2016#")
 A = RDF['type']
 
+logs = []
 
-"""
-This function finds the optimal number of clusters for KMeans clustering.
-It uses the silhouette score to determine the optimal number of clusters.
 
-Parameters:
-    X (np.array): The data to be clustered.
-    kmin (int, optional): The minimum number of clusters to test. Defaults to 2.
-    kmax (int, optional): The maximum number of clusters to test. Defaults to 200.
-    batch_size (int, optional): The batch size to use for MiniBatchKMeans. Defaults to 1000.
-    patience (int, optional): The number of iterations to wait for the silhouette score to improve before stopping. Defaults to 5.
-    step_size (int, optional): The step size to use when iterating through the number of clusters. Defaults to 10.
+def clean_bacnet_point_name(name):
+    prompt = """As the Bacnet Point Name Optimizer AI, your job is to streamline Bacnet point names. Remove any device, building, floor, or space details, leaving only the key descriptors. Your output should be a clear, concise point name, free of unnecessary noise. Your task is to provide only the optimized point name. The end result should be a more precise and descriptive point representation."""
 
-Returns:
-    int: The optimal number of clusters.
-"""
-def find_optimal_k(X, kmin=2, kmax=200, batch_size=1000, patience=5, step_size=10):
-    print("Finding optimal number of clusters...")
-    sil = [] # list of silhouette scores
-    counter = 0
-    best_score = -1
-    k_values = []
+    input = name
 
-    for k in tqdm(range(kmin, kmax+1, step_size)):
-        kmeans = MiniBatchKMeans(n_clusters=k, n_init=10, random_state=0, batch_size=batch_size).fit(X) # adjust batch_size as needed
-        labels = kmeans.labels_
-        score = silhouette_score(X, labels, metric='euclidean')
-        sil.append(score)
-        k_values.append(k)
+    print(f"Generating cleaned name for {name}...")
 
-        # Early stopping with patience
-        if score > best_score:
-            best_score = score
-            counter = 0  # reset counter when score improves
-        else:
-            counter += 1  # increment counter when score does not improve
-            if counter >= patience:
-                break
+    response = client.chat.completions.create(messages=[
+        {
+            "role": "system",
+            "content": prompt
+        },
+        {
+            "role": "user",
+            "content": input
+        }
+        ], 
+        model="gpt-3.5-turbo-1106", temperature=0)
 
-    optimal_clusters = k_values[np.argmax(sil)]  # get the optimal number of clusters
+    response = response.choices[0].message.content
 
-    return optimal_clusters
+    print(response)
+    print()
 
-"""
-This function performs KMeans clustering on the given data.
-
-Parameters:
-    X (np.array): The data to be clustered.
-    k (int): The number of clusters.
-
-Returns:
-    tuple: A tuple containing the cluster assignments and the labels.
-"""
-def kmeans_clustering(X: np.array, k: int):
-    print("Clustering...")
-    kmeans = KMeans(n_clusters=k, random_state=0, n_init=10)
-    cluster_assignments = kmeans.fit_predict(X)
-    labels = kmeans.labels_
-
-    return cluster_assignments, labels
+    return response
 
 
 """
@@ -110,6 +77,11 @@ Returns:
 """
 def vectorize_bacnet_graph(g):
     print("Vectorizing bacnet graph...")
+    time_start = time.time()
+    logs.append({
+        "content": "Vectorizing bacnet graph...",
+        "start_time": time_start
+    })
     # Create the documents to load into the vector store
     device_documents = []
 
@@ -125,6 +97,7 @@ def vectorize_bacnet_graph(g):
         """
     try:
         # Run the query for devices
+        print("Vectorizing bacnet devices...")
         for row in g.query(query_for_devices):
             device_uri = row[0]
             device_name = row[1]
@@ -153,14 +126,36 @@ def vectorize_bacnet_graph(g):
             """
         
         # Run the query for points
+        print("Vectorizing bacnet points...")
+        point_names = []
+        point_uris = []
         for row in g.query(query_for_points):
             point, device_name, point_name, present_value, unit = row
-            
-            content = point_name.value
-            points_documents.append(Document(page_content=content, metadata={"type": "bacnet_point", "uri": point}))
+
+            point_names.append(point_name.value)
+            point_uris.append(point)
+
+        # Chunk the point names into groups of 100
+        chunked_point_names = [point_names[i:i + 100] for i in range(0, len(point_names), 100)]
+        chunked_point_uris = [point_uris[i:i + 100] for i in range(0, len(point_uris), 100)]
+        for chunk_names, chunk_uris in tqdm(zip(chunked_point_names, chunked_point_uris)):
+            # Clean the point names
+            cleaned_point_names = clean_bacnet_point_name("\n".join(chunk_names)).split("\n")
+
+            # Create the documents
+            for point_name, point_uri in zip(cleaned_point_names, chunk_uris):
+                content = point_name
+                points_documents.append(Document(page_content=content, metadata={"type": "bacnet_point", "uri": point_uri}))
 
         # Load the documents into the vector store
         langchain_chroma.add_documents(points_documents)
+
+        end_time = time.time()
+        logs.append({
+            "content": "Vectorized bacnet graph",
+            "end_time": end_time,
+            "elapsed_time": end_time - time_start
+        })
 
         return device_documents, points_documents
     except Exception as e:
@@ -270,6 +265,11 @@ If the brick class is unknown output N/A."""
 
             # Remove any whitespace at the beginning or end
             response = response.strip()
+
+            logs.append({
+                input: input,
+                response: response
+            })
 
             if response != "N/A":
                 # Replace all whitespace with _
@@ -386,6 +386,10 @@ def main():
     g.expand("rdfs")
     print(f"After: {len(g)} triples")
     g.serialize(output, format="turtle")
+
+    # Save the logs
+    with open("logs.json", "w") as f:
+        f.write(json.dumps(logs, indent=4))
     
 if __name__ == "__main__":
     main()
