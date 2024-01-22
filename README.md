@@ -10,21 +10,33 @@
 
 ## What is Open Operator?
 
-Open Operator is an open source AI Assitant that specialized in building operations and maintenance. It has access to all the tools it needs to help the building run efficently.
+Open Operator is an open source AI Assitant that specialized in building operations and maintenance. It has access to all the tools it needs to help facility owners, managers, and operators run their buildings more efficetly.
 
 ![Ai](./docs/images/As%20Assistant%20Diagram.png)
 
 ## Problem
 
-Today in building operations information sits in different data siloes which makes it hard to get a good idea about how the building is operating. For example, most of the asset information is stuck inside hard copy building documents that managers need to manually search through. A lot of the work for this project involves extracting information from these different data siloes and aligning the systems.
+Today in building operations information sits in different data siloes which makes it hard to access information or get a good idea about how the building is operating quickly. For example, asset information is stuck inside hard copy building documents that managers need to manually search through, while work orders are in a CMMS system, and building performance data is inside a BAS.
 
-## Features
+A lot of the work for this project involves extracting information from these different data siloes and aligning the systems.
 
-- [ ] **Data Importation**: Simplify the ingestion of information
-- [ ] **Brick Schema Modeling**: Utilize our tools to convert raw data into a Brick-compliant graph model for enhanced interoperability.
-- [ ] **Fault Detection Rules Library**: Access and contribute to an open-source repository of fault detection rules.
-- [ ] **Automated Fault Detection**: Set up automatic, interval-based scans to detect and log faults, ensuring consistent system checks and maintenance alerts.
-- [ ] **Predictive Analytics**: Implement machine learning models to predict and simulate building system behaviors.
+## ETL Pipeline
+
+In order to have an AI Assistant that has access to the tools it needs, there is a lot of work that needs to be done to make those tools available.
+
+Extract information from the different data sources, transform it into a clean data model based on open standards.
+
+![etl](./docs/images/etil_process.png)
+
+## What is COBie and Brick?
+
+**[COBie](https://www.thenbs.com/knowledge/what-is-cobie)**:
+
+Construction Operations Building Information Exchange (COBie) is a standard format for delivering asset information as a part of the handover process from consutrction to operations.
+
+**[Brick](https://brickschema.org/)**:
+
+Brick is a standard data model for Building Automation Systems. This standard has been created because every building calls their devices and sensors different names which makes it difficult to create smart building applications.
 
 ## Get Started
 
