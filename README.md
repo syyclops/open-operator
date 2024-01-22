@@ -1,25 +1,41 @@
-# Open Insights
+<div>
+<a href="https://syyclops.com"><p align="center">
+<img height=100 src="https://live.syyclops.com/logo192.png"/>
+</a>
 
-Welcome to Open Insights – the open-source solution for fault detection and diagnostics in building automation systems. Leveraging the power of IoT data and advanced analytics, Open Insights offers a comprehensive toolkit for importing messy data, creating clean Brick schema graph models, and developing a robust fault detection rules library. Dive into predictive modeling and simulations to streamline building operations and maintenance.
+<h3 align="center">
+  <strong>Open Operator</strong>
+</h3>
+</div>
+
+## What is Open Operator?
+
+Open Operator is an open source AI Assitant that specialized in building operations and maintenance. It has access to all the tools it needs to help the building run efficently.
+
+![Ai](./docs/images/As%20Assistant%20Diagram.png)
+
+## Problem
+
+Today in building operations information sits in different data siloes which makes it hard to get a good idea about how the building is operating. For example, most of the asset information is stuck inside hard copy building documents that managers need to manually search through. A lot of the work for this project involves extracting information from these different data siloes and aligning the systems.
 
 ## Features
 
-- [ ] **Data Importation**: Simplify the ingestion of diverse IoT and BACnet data into a usable format.
+- [ ] **Data Importation**: Simplify the ingestion of information
 - [ ] **Brick Schema Modeling**: Utilize our tools to convert raw data into a Brick-compliant graph model for enhanced interoperability.
-- [ ] **Fault Detection Library**: Access and contribute to an open-source repository of fault detection rules.
+- [ ] **Fault Detection Rules Library**: Access and contribute to an open-source repository of fault detection rules.
 - [ ] **Automated Fault Detection**: Set up automatic, interval-based scans to detect and log faults, ensuring consistent system checks and maintenance alerts.
 - [ ] **Predictive Analytics**: Implement machine learning models to predict and simulate building system behaviors.
 
-## Installation
+## Get Started
 
 A step-by-step series of examples that tell you how to get a development environment running:
 
 ```
 # Clone the repository
-$ git clone https://github.com/syyclops/open-insights.git
+$ git clone https://github.com/syyclops/open-operator.git
 
 # Navigate to the repository directory
-$ cd open-insights
+$ cd open-operator
 
 # Create and activate python virtual environment
 $ python3 -m venv venv
