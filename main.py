@@ -1,7 +1,5 @@
 from core.assistant import assistant
 
-
-
 def main():
     # Get input from user
     user_input = input("Enter input: ")
