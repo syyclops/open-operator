@@ -20,14 +20,6 @@ Today in building operations information sits in different data siloes which mak
 
 A lot of the work for this project involves extracting information from these different data siloes and aligning the systems.
 
-## ETL Pipeline
-
-In order to have an AI Assistant that has access to the tools it needs, there is a lot of work that needs to be done to make those tools available.
-
-Extract information from the different data sources, transform it into a clean data model based on open standards.
-
-![etl](./docs/images/etil_process.png)
-
 ## What is COBie and Brick?
 
 **[COBie](https://www.thenbs.com/knowledge/what-is-cobie)**:
@@ -37,6 +29,15 @@ Construction Operations Building Information Exchange (COBie) is a standard form
 **[Brick](https://brickschema.org/)**:
 
 Brick is a standard data model for Building Automation Systems. This standard has been created because every building calls their devices and sensors different names which makes it difficult to create smart building applications.
+
+## 🏗️ Project Structure
+
+| Codebase                                |               Description               |
+| :-------------------------------------- | :-------------------------------------: |
+| [ETL](./etl/)                           |    Extract, Transform, Load pipeline    |
+| [FDD](./fdd/)                           | Automated Fault Detection & Diagnostics |
+| [Domain Knowledge](./domain-knowledge/) |            Domain Knowledge             |
+| [docs](./docs)                          |              Documentation              |
 
 ## Get Started
 
