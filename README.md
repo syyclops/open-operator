@@ -10,6 +10,15 @@ Today in building operations information sits in different data siloes which mak
 
 A lot of the work for this project involves extracting information from these different data siloes and aligning the systems.
 
+## Tools
+
+1. Building Documents: Drawings/Plans, O&M Manuals, submittals, etc.
+2. Memory: History of all conversations and everything that occurred in the building
+3. Real time and historical performance data of the building
+4. API Integrations: Work Order System, Energy Bills
+5. Domain Knowledge: Industry Standards and guidlines
+6. Simulation & Prediction Models: Ability to run simulations to see how the building might react
+
 ## Get Started
 
 A step-by-step series of examples that tell you how to get a development environment running:
