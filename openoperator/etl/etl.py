@@ -1,4 +1,4 @@
-from ..database import vector_store
+from ..db import vector_store
 from unstructured_client import UnstructuredClient
 from unstructured_client.models import shared
 from unstructured_client.models.errors import SDKError

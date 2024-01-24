@@ -1,4 +1,4 @@
-from core.database import vector_store
+from openoperator.db import vector_store
 
 
 

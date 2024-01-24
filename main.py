@@ -1,4 +1,4 @@
-from core.assistant import assistant
+from openoperator.assistant import assistant
 
 def main():
     # Get input from user

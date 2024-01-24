@@ -1,4 +1,4 @@
-from ..database import vector_store
+from ..db import vector_store
 from openai import OpenAI
 import json
 
@@ -41,6 +41,7 @@ Always responsd with markdown formatted text."""
                 },
             }
         ]
+
     
     def search_building_documents(self, query: str) -> str:
         """Search building documents for metadata. These documents are drawings/plans, O&M manuals, etc."""
