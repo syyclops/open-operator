@@ -26,23 +26,25 @@ class VectorStore():
             if not exists:
                 cur.execute(f'CREATE TABLE {collection_name} (id bigserial PRIMARY KEY, content text, metadata jsonb, embedding vector(1536));')
 
-
     def add_documents(self, documents: list) -> None:
         with self.conn as cur:
-            for doc in documents:
-                # Create text embedding
+            # Create the embeddings
+            docs = [doc['text'] for doc in documents]
+            embeddings = self.openai.embeddings.create(
+                            model="text-embedding-ada-002",
+                            input=docs,
+                            encoding_format="float"
+                        )
+            
+            # Insert into postgres
+            for i, doc in enumerate(documents):
                 text = doc['text']
-                embeddings = self.openai.embeddings.create(
-                                model="text-embedding-ada-002",
-                                input=text,
-                                encoding_format="float"
-                            )
-                embedding = np.array(embeddings.data[0].embedding)
                 metadata = json.dumps(doc['metadata'])
-                
-                # Insert into postgres
-                cur.execute(f'INSERT INTO {self.collection_name} (content, metadata, embedding) VALUES (%s, %s, %s)', (text, metadata, embedding))
+                embedding = np.array(embeddings.data[i].embedding)
 
+                cur.execute(f'INSERT INTO {self.collection_name} (content, metadata, embedding) VALUES (%s, %s, %s)', (text, metadata, embedding))
+        
+        
     def similarity_search(self, query: str, limit: int) -> list:
         # Get embedding from OpenAI
         embeddings = self.openai.embeddings.create(

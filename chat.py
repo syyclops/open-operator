@@ -1,9 +1,16 @@
 from openoperator import OpenOperator
+import argparse
 from dotenv import load_dotenv
 load_dotenv()
 
 
 def main():
+    # Create the argument parser
+    parser = argparse.ArgumentParser(description='Chat with the OpenAI API')
+    parser.add_argument('--verbose', type=bool, default=False, help='Print verbose output') 
+    args = parser.parse_args()
+    verbose = args.verbose
+
     operator = OpenOperator()
 
     messages = []
@@ -21,7 +28,7 @@ def main():
             "content": user_input
         })
 
-        content = operator.chat(messages, verbose=True)
+        content = operator.chat(messages, verbose=verbose)
 
         messages.append({
             "role": "assistant",
