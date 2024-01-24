@@ -10,11 +10,11 @@ def main():
 
     assert args.file_path, "Please provide a file path"
 
-    openoperator = OpenOperator()
+    operator = OpenOperator()
 
     file_path = args.file_path
 
-    openoperator.files.upload_file(file_path)
+    operator.files.upload_file(file_path)
 
 
 if __name__ == "__main__":

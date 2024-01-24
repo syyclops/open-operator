@@ -4,7 +4,7 @@ load_dotenv()
 
 
 def main():
-    openoperator = OpenOperator()
+    operator = OpenOperator()
 
     messages = []
 
@@ -21,7 +21,7 @@ def main():
             "content": user_input
         })
 
-        content = openoperator.chat(messages, verbose=True)
+        content = operator.chat(messages, verbose=True)
 
         messages.append({
             "role": "assistant",

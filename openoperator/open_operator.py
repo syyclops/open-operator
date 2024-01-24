@@ -5,9 +5,17 @@ import json
 import tiktoken
 import os
 from typing import List
+from unstructured_client import UnstructuredClient
 
 class OpenOperator: 
-    def __init__(self, postgres_connection_string: str | None = None, postgres_embeddings_table: str | str = None, openai_api_key: str | None = None) -> None:
+    def __init__(
+        self, 
+        postgres_connection_string: str | None = None, 
+        postgres_embeddings_table: str | str = None, 
+        openai_api_key: str | None = None,
+        unstructured_api_key: str | None = None,
+        unstructured_api_url: str | None = None,
+    ) -> None:
         # Create the vector store
         if postgres_connection_string is None:
             postgres_connection_string = os.environ['POSTGRES_CONNECTION_STRING']
@@ -15,12 +23,17 @@ class OpenOperator:
             postgres_embeddings_table = os.environ['POSTGRES_EMBEDDINGS_TABLE']
         vector_store = VectorStore(collection_name=postgres_embeddings_table, connection_string=postgres_connection_string)
 
-        # Create the files class
-        self.files = Files(vector_store=vector_store)
+        # Create the files object
+        if unstructured_api_key is None:
+            unstructured_api_key = os.environ['UNSTRUCTURED_API_KEY']
+        if unstructured_api_url is None:
+            unstructured_api_url = os.environ['UNSTRUCTURED_URL']
+        s = UnstructuredClient(api_key_auth=unstructured_api_key, server_url=unstructured_api_url)
+        self.files = Files(vector_store=vector_store, unstructured_client=s)
 
+        # Create openai client
         if openai_api_key is None:
             openai_api_key = os.environ['OPENAI_API_KEY']
-
         self.openai = OpenAI(api_key=openai_api_key)
 
         self.system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
@@ -63,7 +76,6 @@ Always respond with markdown formatted text."""
         }
 
         while True:
-
             # Send the conversation and available functions to the model
             stream = self.openai.chat.completions.create(
                 model="gpt-4",
@@ -110,22 +122,20 @@ Always respond with markdown formatted text."""
 
                     for tool_call in tool_calls:
                         function_name = tool_call['function']['name']
-                        if verbose:
-                            print("Tool Selected: " + function_name)
-
+                        if verbose: print("Tool Selected: " + function_name)
                         function_to_call = available_functions[function_name]
                         function_args = json.loads(tool_call['function']['arguments'])
+                        if verbose: print("Tool args: " + str(function_args))
                         function_response = function_to_call(
                             function_args['query'],
                             5
                         )
 
-                        # Convert function response to string and limit to 4000 tokens
+                        # Convert function response to string and limit to 5000 tokens
                         encoding = tiktoken.get_encoding("cl100k_base")
-                        texts = split_string_with_limit(str(function_response), 4000, encoding)
+                        texts = split_string_with_limit(str(function_response), 5000, encoding)
 
-                        if verbose:
-                            print("Tool response: " + texts[0])
+                        if verbose: print("Tool response: " + texts[0])
 
                         # Extend conversation with function response
                         messages.append(

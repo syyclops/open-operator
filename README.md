@@ -1,43 +1,14 @@
-<div>
-<a href="https://syyclops.com"><p align="center">
-<img height=100 src="https://live.syyclops.com/logo192.png"/>
-</a>
-
-<h3 align="center">
-  <strong>Open Operator</strong>
-</h3>
+<div align="center">
+  <img height="400" src="./docs/images/Futuristic%20Robot%20HVAC.png" style="border-radius: 8px;"/>
 </div>
 
 ## What is Open Operator?
 
 Open Operator is an open source AI Assitant that specialized in building operations and maintenance. It has access to all the tools it needs to help facility owners, managers, and operators run their buildings more efficetly.
 
-![Ai](./docs/images/As%20Assistant%20Diagram.png)
-
-## Problem
-
 Today in building operations information sits in different data siloes which makes it hard to access information or get a good idea about how the building is operating quickly. For example, asset information is stuck inside hard copy building documents that managers need to manually search through, while work orders are in a CMMS system, and building performance data is inside a BAS.
 
 A lot of the work for this project involves extracting information from these different data siloes and aligning the systems.
-
-## What is COBie and Brick?
-
-**[COBie](https://www.thenbs.com/knowledge/what-is-cobie)**:
-
-Construction Operations Building Information Exchange (COBie) is a standard format for delivering asset information as a part of the handover process from consutrction to operations.
-
-**[Brick](https://brickschema.org/)**:
-
-Brick is a standard data model for Building Automation Systems. This standard has been created because every building calls their devices and sensors different names which makes it difficult to create smart building applications.
-
-## 🏗️ Project Structure
-
-| Codebase                                |               Description               |
-| :-------------------------------------- | :-------------------------------------: |
-| [ETL](./etl/)                           |    Extract, Transform, Load pipeline    |
-| [FDD](./fdd/)                           | Automated Fault Detection & Diagnostics |
-| [Domain Knowledge](./domain-knowledge/) |            Domain Knowledge             |
-| [docs](./docs)                          |              Documentation              |
 
 ## Get Started
 
@@ -57,6 +28,11 @@ $ source ./venv/bin/activate
 # Install dependencies
 $ pip install -r requirements.txt
 ```
+
+## Resources
+
+**[What is COBie](https://www.thenbs.com/knowledge/what-is-cobie)**:
+**[What is Brick](https://brickschema.org/)**:
 
 ## License
 
