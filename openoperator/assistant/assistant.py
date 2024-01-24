@@ -1,11 +1,12 @@
-from ..db import vector_store
+from .files.files import Files
 from openai import OpenAI
 import json
 
 class Assistant: 
     def __init__(self) -> None:
-        # State
-        self.client = OpenAI(api_key="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")
+        self.files = Files(self)
+
+        self.client = OpenAI()
 
         self.system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
 Your goal is to help facility owners, managers, and operators manage their facilities and buildings more efficiently.
@@ -13,13 +14,6 @@ Make sure to always follow ASHRAE guildelines.
 Don't be too wordy. Don't be too short. Be just right.
 Don't make up information. If you don't know, say you don't know.
 Always responsd with markdown formatted text."""
-
-        self.messages = [
-            {
-                "role": "system",
-                "content": self.system_prompt,
-            }
-        ]
 
         # Define tools to give model
         self.tools = [
@@ -42,59 +36,100 @@ Always responsd with markdown formatted text."""
             }
         ]
 
-    
-    def search_building_documents(self, query: str) -> str:
-        """Search building documents for metadata. These documents are drawings/plans, O&M manuals, etc."""
-        docs = vector_store.similarity_search(query, 8)
 
-        return str(docs)
-    
-    def chat(self, input: str):
-        print(input)
-        # Add user input to messages
-        self.messages.append({"role": "user", "content": input})
+    def chat(self, messages, verbose: bool = False):
+        # Add the system message to be the first message
+        messages.insert(0, {
+            "role": "system",
+            "content": self.system_prompt
+        })
 
-        # Step 1: send the conversation and available functions to the model
-        response = self.client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=self.messages,
-            tools=self.tools,
-            tool_choice="auto",  # auto is default, but we'll be explicit
-        )
-        response_message = response.choices[0].message
-        tool_calls = response_message.tool_calls
-        # Step 2: check if the model wanted to call a function
-        if tool_calls:
-            # Step 3: call the function
-            # Note: the JSON response may not always be valid; be sure to handle errors
-            available_functions = {
-                "search_building_documents": self.search_building_documents,
-            }  # only one function in this example, but you can have multiple
-            self.messages.append(response_message)  # extend conversation with assistant's reply
-            # Step 4: send the info for each function call and function response to the model
-            for tool_call in tool_calls:
-                function_name = tool_call.function.name
-                function_to_call = available_functions[function_name]
-                function_args = json.loads(tool_call.function.arguments)
-                function_response = function_to_call(
-                    function_args['query'],
-                )
-                self.messages.append(
-                    {
-                        "tool_call_id": tool_call.id,
-                        "role": "tool",
-                        "name": function_name,
-                        "content": function_response,
-                    }
-                )  # extend conversation with function response
+        available_functions = {
+            "search_building_documents": self.files.similarity_search,
+        }
 
+        while True:
+
+            # Send the conversation and available functions to the model
             stream = self.client.chat.completions.create(
-                model="gpt-4-1106-preview",
-                messages=self.messages,
+                model="gpt-4",
+                messages=messages,
+                tools=self.tools,
+                tool_choice="auto",
                 stream=True
-            )  # get a new response from the model where it can see the function response
+            )
+
+            tool_calls = []
+            content = ""
 
             for chunk in stream:
-                print(chunk.choices[0].delta.content or "", end="")
-        else:
-            return response_message.content
+                delta = chunk.choices[0].delta
+                finish_reason = chunk.choices[0].finish_reason
+
+                # If delta has tool calls add them to the list
+                if delta.tool_calls:
+                    for tool_call in delta.tool_calls:
+                        # If tool_calls is empty then add the first tool call
+                        if not tool_calls:
+                            tool_calls.append({
+                                "function": {
+                                    "name": tool_call.function.name,
+                                    "arguments": tool_call.function.arguments,
+                                },
+                                "id": tool_call.id,
+                                "type": tool_call.type
+                            })
+                            continue
+        
+                    # If tool_calls is not empty then update the tool call if it already exists
+                    tool_calls[0]['function']['arguments'] += tool_call.function.arguments
+
+                    
+                # If the stream is done and is ready to use tools
+                if finish_reason == "tool_calls":
+                    # Extend the conversation with the assistant's reply
+                    messages.append({
+                        "role": "assistant",
+                        "content": content,
+                        "tool_calls": tool_calls
+                    })
+
+                    for tool_call in tool_calls:
+                        function_name = tool_call['function']['name']
+                        if verbose:
+                            print("Tool Selected: " + function_name)
+
+                        function_to_call = available_functions[function_name]
+                        function_args = json.loads(tool_call['function']['arguments'])
+                        function_response = function_to_call(
+                            function_args['query'],
+                            5
+                        )
+
+                        # Convert function response to string and limit to 4000 characters
+                        function_response = str(function_response)[:4000]
+
+                        if verbose:
+                            print("Tool response: " + function_response)
+
+                        # Extend conversation with function response
+                        messages.append(
+                            {
+                                "tool_call_id": tool_call['id'],
+                                "role": "tool",
+                                "name": function_name,
+                                "content": function_response 
+                            }
+                        )
+
+                # If the stream is done because its the end of the conversation then return
+                if finish_reason == "stop":
+                    return content
+
+                # Update the content with the delta content
+                if delta.content:
+                    content += delta.content
+
+                # If there are no tool calls and just streaming a normal response then print the chunks
+                if not tool_calls:
+                    print(delta.content or "", end="", flush=True)

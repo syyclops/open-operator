@@ -1,13 +1,25 @@
 from openoperator.assistant import assistant
 
 def main():
-    # Get input from user
-    user_input = input("Enter input: ")
+    messages = []
 
-    response = assistant.chat(user_input)
+    while True:
+        # Get input from user
+        user_input = input("Enter input: ")
 
-    print(response)
+        messages.append({
+            "role": "user",
+            "content": user_input
+        })
 
+        content = assistant.chat(messages, verbose=True)
+
+        messages.append({
+            "role": "assistant",
+            "content": content
+        })
+
+        print()
 
 
 if __name__ == "__main__":

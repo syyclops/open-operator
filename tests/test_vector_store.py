@@ -1,4 +1,4 @@
-from openoperator.db import vector_store
+from openoperator.vector_store import vector_store
 
 
 
