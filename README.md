@@ -31,8 +31,8 @@ $ pip install -r requirements.txt
 
 ## Resources
 
-**[What is COBie](https://www.thenbs.com/knowledge/what-is-cobie)**:
-**[What is Brick](https://brickschema.org/)**:
+1. [COBie](https://www.thenbs.com/knowledge/what-is-cobie)
+2. [Brick Schema](https://brickschema.org/)
 
 ## License
 

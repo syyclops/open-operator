@@ -27,9 +27,9 @@ class Files():
 
         try:
             res = self.unstructured_client.general.partition(req)
-            for element in res.elements:
-                print(element)
-                print()
+            
+            # Upload to vector store
+            self.vector_store.add_documents(res.elements)
         except SDKError as e:
             print(e)
 

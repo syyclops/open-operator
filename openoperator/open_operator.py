@@ -16,12 +16,17 @@ class OpenOperator:
         unstructured_api_key: str | None = None,
         unstructured_api_url: str | None = None,
     ) -> None:
+        # Create openai client
+        if openai_api_key is None:
+            openai_api_key = os.environ['OPENAI_API_KEY']
+        self.openai = OpenAI(api_key=openai_api_key)
+
         # Create the vector store
         if postgres_connection_string is None:
             postgres_connection_string = os.environ['POSTGRES_CONNECTION_STRING']
         if postgres_embeddings_table is None:
             postgres_embeddings_table = os.environ['POSTGRES_EMBEDDINGS_TABLE']
-        vector_store = VectorStore(collection_name=postgres_embeddings_table, connection_string=postgres_connection_string)
+        vector_store = VectorStore(openai=self.openai, collection_name=postgres_embeddings_table, connection_string=postgres_connection_string)
 
         # Create the files object
         if unstructured_api_key is None:
@@ -31,10 +36,6 @@ class OpenOperator:
         s = UnstructuredClient(api_key_auth=unstructured_api_key, server_url=unstructured_api_url)
         self.files = Files(vector_store=vector_store, unstructured_client=s)
 
-        # Create openai client
-        if openai_api_key is None:
-            openai_api_key = os.environ['OPENAI_API_KEY']
-        self.openai = OpenAI(api_key=openai_api_key)
 
         self.system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
 Your goal is to help facility owners, managers, and operators manage their facilities and buildings more efficiently.
@@ -128,7 +129,7 @@ Always respond with markdown formatted text."""
                         if verbose: print("Tool args: " + str(function_args))
                         function_response = function_to_call(
                             function_args['query'],
-                            5
+                            10
                         )
 
                         # Convert function response to string and limit to 5000 tokens
