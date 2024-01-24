@@ -1,6 +1,6 @@
 from ...vector_store import vector_store
 from langchain_community.document_loaders import UnstructuredAPIFileLoader
-
+import os
 
 class Files():
     def __init__(self, assistant) -> None:
@@ -9,7 +9,8 @@ class Files():
     def upload_file(self, file_path: str) -> None:
         loader = UnstructuredAPIFileLoader(
             file_path=file_path,
-            api_key="FAKE_API_KEY",
+            api_key=os.environ.get("UNSTRUCTURED_API_KEY"),
+            url=os.environ.get("UNSTRUCTURED_URL")
         )
 
         docs = loader.load()

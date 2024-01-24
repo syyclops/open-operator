@@ -1,6 +1,8 @@
 from .files.files import Files
 from openai import OpenAI
 import json
+import tiktoken
+
 
 class Assistant: 
     def __init__(self) -> None:
@@ -14,6 +16,7 @@ Make sure to always follow ASHRAE guildelines.
 Don't be too wordy. Don't be too short. Be just right.
 Don't make up information. If you don't know, say you don't know.
 Always responsd with markdown formatted text."""
+
 
         # Define tools to give model
         self.tools = [
@@ -106,11 +109,12 @@ Always responsd with markdown formatted text."""
                             5
                         )
 
-                        # Convert function response to string and limit to 4000 characters
-                        function_response = str(function_response)[:4000]
+                        # Convert function response to string and limit to 4000 tokens
+                        encoding = tiktoken.get_encoding("cl100k_base")
+                        texts = split_string_with_limit(str(function_response), 4000, encoding)
 
                         if verbose:
-                            print("Tool response: " + function_response)
+                            print("Tool response: " + texts)
 
                         # Extend conversation with function response
                         messages.append(
@@ -118,7 +122,7 @@ Always responsd with markdown formatted text."""
                                 "tool_call_id": tool_call['id'],
                                 "role": "tool",
                                 "name": function_name,
-                                "content": function_response 
+                                "content": texts 
                             }
                         )
 
@@ -133,3 +137,28 @@ Always responsd with markdown formatted text."""
                 # If there are no tool calls and just streaming a normal response then print the chunks
                 if not tool_calls:
                     print(delta.content or "", end="", flush=True)
+
+
+
+
+def split_string_with_limit(text: str, limit: int, encoding) -> str:
+    tokens = encoding.encode(text)
+    parts = []
+    current_part = []
+    current_count = 0
+
+    for token in tokens:
+        current_part.append(token)
+        current_count += 1
+
+        if current_count >= limit:
+            parts.append(current_part)
+            current_part = []
+            current_count = 0
+
+    if current_part:
+        parts.append(current_part)
+
+    text_parts = [encoding.decode(part) for part in parts]
+
+    return ''.join(text_parts)
