@@ -1,18 +1,27 @@
-from openoperator.assistant import assistant
+from openoperator import OpenOperator
+from dotenv import load_dotenv
+load_dotenv()
+
 
 def main():
+    openoperator = OpenOperator()
+
     messages = []
 
     while True:
         # Get input from user
         user_input = input("Enter input: ")
 
+        # If the user enters "exit" then exit the program
+        if user_input == "exit":
+            break
+
         messages.append({
             "role": "user",
             "content": user_input
         })
 
-        content = assistant.chat(messages, verbose=True)
+        content = openoperator.chat(messages, verbose=True)
 
         messages.append({
             "role": "assistant",

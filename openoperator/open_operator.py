@@ -1,22 +1,34 @@
 from .files.files import Files
+from .vector_store import VectorStore
 from openai import OpenAI
 import json
 import tiktoken
+import os
+from typing import List
 
+class OpenOperator: 
+    def __init__(self, postgres_connection_string: str | None = None, postgres_embeddings_table: str | str = None, openai_api_key: str | None = None) -> None:
+        # Create the vector store
+        if postgres_connection_string is None:
+            postgres_connection_string = os.environ['POSTGRES_CONNECTION_STRING']
+        if postgres_embeddings_table is None:
+            postgres_embeddings_table = os.environ['POSTGRES_EMBEDDINGS_TABLE']
+        vector_store = VectorStore(collection_name=postgres_embeddings_table, connection_string=postgres_connection_string)
 
-class Assistant: 
-    def __init__(self) -> None:
-        self.files = Files(self)
+        # Create the files class
+        self.files = Files(vector_store=vector_store)
 
-        self.client = OpenAI()
+        if openai_api_key is None:
+            openai_api_key = os.environ['OPENAI_API_KEY']
+
+        self.openai = OpenAI(api_key=openai_api_key)
 
         self.system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
 Your goal is to help facility owners, managers, and operators manage their facilities and buildings more efficiently.
 Make sure to always follow ASHRAE guildelines.
 Don't be too wordy. Don't be too short. Be just right.
 Don't make up information. If you don't know, say you don't know.
-Always responsd with markdown formatted text."""
-
+Always respond with markdown formatted text."""
 
         # Define tools to give model
         self.tools = [
@@ -39,7 +51,6 @@ Always responsd with markdown formatted text."""
             }
         ]
 
-
     def chat(self, messages, verbose: bool = False):
         # Add the system message to be the first message
         messages.insert(0, {
@@ -54,7 +65,7 @@ Always responsd with markdown formatted text."""
         while True:
 
             # Send the conversation and available functions to the model
-            stream = self.client.chat.completions.create(
+            stream = self.openai.chat.completions.create(
                 model="gpt-4",
                 messages=messages,
                 tools=self.tools,
@@ -114,7 +125,7 @@ Always responsd with markdown formatted text."""
                         texts = split_string_with_limit(str(function_response), 4000, encoding)
 
                         if verbose:
-                            print("Tool response: " + texts)
+                            print("Tool response: " + texts[0])
 
                         # Extend conversation with function response
                         messages.append(
@@ -122,7 +133,7 @@ Always responsd with markdown formatted text."""
                                 "tool_call_id": tool_call['id'],
                                 "role": "tool",
                                 "name": function_name,
-                                "content": texts 
+                                "content": texts[0]
                             }
                         )
 
@@ -141,7 +152,10 @@ Always responsd with markdown formatted text."""
 
 
 
-def split_string_with_limit(text: str, limit: int, encoding) -> str:
+def split_string_with_limit(text: str, limit: int, encoding) -> List[str]:
+    """
+    Splits a string into multiple parts with a limit on the number of tokens in each part.
+    """
     tokens = encoding.encode(text)
     parts = []
     current_part = []
@@ -161,4 +175,4 @@ def split_string_with_limit(text: str, limit: int, encoding) -> str:
 
     text_parts = [encoding.decode(part) for part in parts]
 
-    return ''.join(text_parts)
+    return text_parts
