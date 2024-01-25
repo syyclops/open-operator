@@ -12,24 +12,32 @@ A = RDF.type
 expected_sheets = ['Facility', 'Floor', 'Space', 'Type', 'Component', 'Attribute', 'System']
 
 class CobieGraph:
+    """
+    This class handles everything related to the COBie graph.
+
+    Its repsonsibilities are to:
+
+    1. COBie spreadsheet validation
+    2. Spreadsheet to RDF conversion
+    """
     def __init__(self) -> None:
         pass
 
     def create_uri(self, name: str) -> str:
         """
-            Create a URI from a name.
+        Create a URI from string.
         """
         return re.sub(r'[^a-zA-Z0-9]', '', str(name).lower())
 
     def validate_spreadsheet(self, df) -> list:
         """
-            Validate a COBie spreadsheet. Refer to COBie_validation.pdf in docs/ for more information.
+        Validate a COBie spreadsheet. Refer to COBie_validation.pdf in docs/ for more information.
 
-            Args:
-                df (pandas.DataFrame): The COBie spreadsheet as a dataframe.
+        Args:
+            df (pandas.DataFrame): The COBie spreadsheet as a dataframe.
 
-            Returns:
-                list: A list of errors found in the spreadsheet.
+        Returns:
+            list: A list of errors found in the spreadsheet.
         """
         errors = []
 
@@ -79,6 +87,9 @@ class CobieGraph:
         return errors
 
     def upload_spreadsheet(self, file_path: str, namespace: Namespace) -> None:
+        """
+        Converts a valid COBie spreadsheet to RDF and uploads it to graph db.
+        """
         # Open COBie spreadsheet
         df = pd.read_excel(file_path, engine='openpyxl', sheet_name=None)
 
@@ -100,26 +111,45 @@ class CobieGraph:
             for sheet in expected_sheets:
                 print(f"Processing {sheet} sheet...")
                 predicates = df[sheet].keys()
+                predicates = [predicate[0].lower() + predicate[1:] for predicate in predicates] # Make first letter lowercase
+
                 # Iterate over all rows in the sheet, skipping the first row
                 for _, row in df[sheet].iterrows():
                     # The name field is used as the subject
                     subject = row['Name']
-                    subject_uri = self.create_uri(subject)
+                    subject_uri = namespace[sheet.lower() + "/" + self.create_uri(subject)]
 
                     # Get the values of the row
                     objects = row.values
 
                     # Create the node
-                    g.add((namespace[subject_uri], A, COBIE[sheet]))
+                    g.add((subject_uri, A, COBIE[sheet]))
 
                     # Add objects
                     i = 0
                     for obj in objects:
                         predicate = predicates[i]
-                        g.add((namespace[subject_uri], COBIE[predicate], Literal(obj)))
-                        i += 1
 
-                
+                        # Check if it should be a relationship or a literal
+                        if (sheet == "Component" and predicate == "typeName") or (sheet == "Space" and predicate == "floorName") or (sheet == "System" and predicate == "componentNames"):
+                            # The target sheet is the one where the relationship is pointing to 
+                            target_sheet = None
+                            if sheet == "Component":
+                                target_sheet = "Type"
+                            elif sheet == "Space":
+                                target_sheet = "Floor"
+                            elif sheet == "System":
+                                target_sheet = "Component"
+
+                            g.add((subject_uri, COBIE[predicate], namespace[target_sheet.lower() + "/" + self.create_uri(obj)]))
+                        elif sheet == "Component" and predicate == "space":
+                            # Split by "," to get all spaces and remove whitespace
+                            spaces = [space.strip() for space in obj.split(",")]
+                            for space in spaces:
+                                g.add((subject_uri, COBIE[predicate], namespace["space" + "/" + self.create_uri(space)]))
+                        else:
+                            g.add((subject_uri, COBIE[predicate], Literal(obj)))
+                        i += 1                
 
             # Serialize the graph to a file
             g.serialize(destination='cobie_graph.ttl', format='turtle')
