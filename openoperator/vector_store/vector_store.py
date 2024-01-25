@@ -31,7 +31,7 @@ class VectorStore():
             # Create the embeddings
             docs = [doc['text'] for doc in documents]
             embeddings = self.openai.embeddings.create(
-                            model="text-embedding-ada-002",
+                            model="text-embedding-3-small",
                             input=docs,
                             encoding_format="float"
                         )
@@ -48,7 +48,7 @@ class VectorStore():
     def similarity_search(self, query: str, limit: int) -> list:
         # Get embedding from OpenAI
         embeddings = self.openai.embeddings.create(
-                        model="text-embedding-ada-002",
+                        model="text-embedding-3-small",
                         input=query,
                         encoding_format="float"
                     )

@@ -1,7 +1,7 @@
 
 import pandas as pd
 import rdflib
-from rdflib import Namespace, Literal, RDFS
+from rdflib import Namespace, Literal
 import re
 
 # Define common namespaces
@@ -9,7 +9,6 @@ COBIE = Namespace("http://example.org/cobie#")
 RDF = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 A = RDF.type
 
-expected_sheets = ['Facility', 'Floor', 'Space', 'Type', 'Component', 'Attribute', 'System']
 
 class CobieGraph:
     """
@@ -32,15 +31,11 @@ class CobieGraph:
     def validate_spreadsheet(self, df) -> list:
         """
         Validate a COBie spreadsheet. Refer to COBie_validation.pdf in docs/ for more information.
-
-        Args:
-            df (pandas.DataFrame): The COBie spreadsheet as a dataframe.
-
-        Returns:
-            list: A list of errors found in the spreadsheet.
+        Returns a list of errors. If no errors are found, the list will be empty.
         """
         errors = []
 
+        expected_sheets = ['Facility', 'Floor', 'Space', 'Type', 'Component', 'Attribute', 'System']
         # Check to make sure the spreadsheet has the correct sheets     
         for sheet in expected_sheets:
             if sheet not in df.keys():
@@ -77,18 +72,22 @@ class CobieGraph:
             if component not in df['Type']['Name'].values:
                 errors.append(f"Component {component} is not linked to an existing Type.")
         # Every record is linked a to existing Space
-        for component in df['Component']['Space'].unique():
+        for space_name in df['Component']['Space'].unique():
+            # Check if cell is valid
+            if pd.isnull(space_name):
+                errors.append("Not every record is linked to an existing Space.")
+                continue
             # Split by "," to get all spaces and remove whitespace
-            spaces = [space.strip() for space in component.split(",")]
+            spaces = [space.strip() for space in space_name.split(",")]
             for space in spaces:
                 if space not in df['Space']['Name'].values:
-                    errors.append(f"Component {component} is not linked to an existing Space.")
+                    errors.append(f"Space {space_name} is not linked to an existing Space.")
         
         return errors
 
-    def upload_spreadsheet(self, file_path: str, namespace: Namespace) -> None:
+    def upload_spreadsheet(self, file_path: str, namespace: Namespace) -> list | None:
         """
-        Converts a valid COBie spreadsheet to RDF and uploads it to graph db.
+        Converts a valid COBie spreadsheet to RDF and uploads it to graph db
         """
         # Open COBie spreadsheet
         df = pd.read_excel(file_path, engine='openpyxl', sheet_name=None)
@@ -97,8 +96,7 @@ class CobieGraph:
 
         if errors:
             print("Errors found in the spreadsheet:")
-            for error in errors:
-                print(error)
+            return errors
         else:
             print("No errors found in the spreadsheet.")
 
@@ -108,7 +106,7 @@ class CobieGraph:
             g.bind("COBIE", COBIE)
             g.bind("Namespace", namespace)
 
-            for sheet in expected_sheets:
+            for sheet in ['Facility', 'Floor', 'Space', 'Type', 'Component', 'System']:
                 print(f"Processing {sheet} sheet...")
                 predicates = df[sheet].keys()
                 predicates = [predicate[0].lower() + predicate[1:] for predicate in predicates] # Make first letter lowercase
@@ -149,7 +147,22 @@ class CobieGraph:
                                 g.add((subject_uri, COBIE[predicate], namespace["space" + "/" + self.create_uri(space)]))
                         else:
                             g.add((subject_uri, COBIE[predicate], Literal(obj)))
-                        i += 1                
+                        i += 1      
+
+            # Create the attributes
+            print("Processing Attribute sheet...")
+            for _, row in df['Attribute'].iterrows():
+                target_sheet = row['SheetName']
+                target_row_name = row['RowName']
+                target_uri = namespace[target_sheet.lower() + "/" + self.create_uri(target_row_name)]
+
+                attribute_uri = target_uri + "/attribute/" + self.create_uri(row['Name'])
+
+                g.add((attribute_uri, A, COBIE['Attribute']))
+                g.add((attribute_uri, COBIE['name'], Literal(row['Name'])))
+                g.add((attribute_uri, COBIE['value'], Literal(row['Value'])))
+                g.add((attribute_uri, COBIE['unit'], Literal(row['Unit'])))
+                g.add((attribute_uri, COBIE['attributeTo'], target_uri))
 
             # Serialize the graph to a file
             g.serialize(destination='cobie_graph.ttl', format='turtle')

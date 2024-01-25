@@ -82,7 +82,7 @@ Always respond with markdown formatted text."""
         while True:
             # Send the conversation and available functions to the model
             stream = self.openai.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4-turbo-preview",
                 messages=messages,
                 tools=self.tools,
                 tool_choice="auto",
