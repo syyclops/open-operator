@@ -1,5 +1,5 @@
 <div align="center">
-  <img height="400" src="./docs/images/Futuristic%20Robot%20HVAC.png" style="border-radius: 8px;"/>
+  <img height="400" src="./docs/assets/Futuristic%20Robot%20HVAC.png" style="border-radius: 8px;"/>
 </div>
 
 ## What is Open Operator?
