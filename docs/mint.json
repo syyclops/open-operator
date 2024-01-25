@@ -1,7 +1,7 @@
 {
   "name": "Open Operator",
-  "logo": "logo192.png",
-  "favicon": "/assets/favicon.ico",
+  "logo": "/assets/logo192.png",
+  "favicon": "/assets/logo192.png",
   "colors": {
     "primary": "#000000",
     "light": "#FFFFFF",
