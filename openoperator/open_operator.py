@@ -1,5 +1,6 @@
 from .files.files import Files
 from .vector_store import VectorStore
+from .cobie_graph.cobie_graph import CobieGraph
 from openai import OpenAI
 import json
 import tiktoken
@@ -35,6 +36,8 @@ class OpenOperator:
             unstructured_api_url = os.environ['UNSTRUCTURED_URL']
         s = UnstructuredClient(api_key_auth=unstructured_api_key, server_url=unstructured_api_url)
         self.files = Files(vector_store=vector_store, unstructured_client=s)
+
+        self.cobie_graph = CobieGraph()
 
 
         self.system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.

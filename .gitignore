@@ -5,3 +5,4 @@ data/*
 logs*
 .postgresql/
 __pycache__/
+.pytest_cache/

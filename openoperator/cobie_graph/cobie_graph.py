@@ -1,0 +1,127 @@
+
+import pandas as pd
+import rdflib
+from rdflib import Namespace, Literal, RDFS
+import re
+
+# Define common namespaces
+COBIE = Namespace("http://example.org/cobie#")
+RDF = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
+A = RDF.type
+
+expected_sheets = ['Facility', 'Floor', 'Space', 'Type', 'Component', 'Attribute', 'System']
+
+class CobieGraph:
+    def __init__(self) -> None:
+        pass
+
+    def create_uri(self, name: str) -> str:
+        """
+            Create a URI from a name.
+        """
+        return re.sub(r'[^a-zA-Z0-9]', '', str(name).lower())
+
+    def validate_spreadsheet(self, df) -> list:
+        """
+            Validate a COBie spreadsheet. Refer to COBie_validation.pdf in docs/ for more information.
+
+            Args:
+                df (pandas.DataFrame): The COBie spreadsheet as a dataframe.
+
+            Returns:
+                list: A list of errors found in the spreadsheet.
+        """
+        errors = []
+
+        # Check to make sure the spreadsheet has the correct sheets     
+        for sheet in expected_sheets:
+            if sheet not in df.keys():
+                errors.append(f"Expected sheet {sheet} not found in spreadsheet.")
+
+        # Make sure there is only one record in the Facility sheet
+        if len(df['Facility']) > 1:
+            errors.append("More than one record found in Facility sheet.")
+
+        # No empty or N/A cells are present in column A of any sheet
+        for sheet in expected_sheets:
+            if df[sheet]['Name'].isnull().values.any():
+                errors.append(f"Empty or N/A cells found in column A of {sheet} sheet.")
+
+        # Check Floor, Space, Type, Component sheets for duplicate names in column A
+        for sheet in ['Floor', 'Space', 'Type', 'Component']:
+            if df[sheet]['Name'].duplicated().any():
+                errors.append(f"Duplicate names found in column A of {sheet} sheet.")
+
+        # Space Tab
+        # Every value is linked to a value in the first column of the Floor tab
+        for space in df['Space']['FloorName'].unique():
+            if space not in df['Floor']['Name'].values:
+                errors.append(f"Space {space} is not linked to a value in the first column of the Floor tab.")
+
+        # Type Tab
+        # Every record has a category
+        if df['Type']['Category'].isnull().values.any():
+            errors.append("Not every record has a category.")
+
+        # Component Tab
+        # Every record is linked to a existing Type
+        for component in df['Component']['TypeName'].unique():
+            if component not in df['Type']['Name'].values:
+                errors.append(f"Component {component} is not linked to an existing Type.")
+        # Every record is linked a to existing Space
+        for component in df['Component']['Space'].unique():
+            # Split by "," to get all spaces and remove whitespace
+            spaces = [space.strip() for space in component.split(",")]
+            for space in spaces:
+                if space not in df['Space']['Name'].values:
+                    errors.append(f"Component {component} is not linked to an existing Space.")
+        
+        return errors
+
+    def upload_spreadsheet(self, file_path: str, namespace: Namespace) -> None:
+        # Open COBie spreadsheet
+        df = pd.read_excel(file_path, engine='openpyxl', sheet_name=None)
+
+        errors = self.validate_spreadsheet(df)
+
+        if errors:
+            print("Errors found in the spreadsheet:")
+            for error in errors:
+                print(error)
+        else:
+            print("No errors found in the spreadsheet.")
+
+            # Create an rdflib Graph to store the RDF data
+            g = rdflib.Graph()
+            g.bind("RDF", RDF)
+            g.bind("COBIE", COBIE)
+            g.bind("Namespace", namespace)
+
+            for sheet in expected_sheets:
+                print(f"Processing {sheet} sheet...")
+                predicates = df[sheet].keys()
+                # Iterate over all rows in the sheet, skipping the first row
+                for _, row in df[sheet].iterrows():
+                    # The name field is used as the subject
+                    subject = row['Name']
+                    subject_uri = self.create_uri(subject)
+
+                    # Get the values of the row
+                    objects = row.values
+
+                    # Create the node
+                    g.add((namespace[subject_uri], A, COBIE[sheet]))
+
+                    # Add objects
+                    i = 0
+                    for obj in objects:
+                        predicate = predicates[i]
+                        g.add((namespace[subject_uri], COBIE[predicate], Literal(obj)))
+                        i += 1
+
+                
+
+            # Serialize the graph to a file
+            g.serialize(destination='cobie_graph.ttl', format='turtle')
+                    
+
