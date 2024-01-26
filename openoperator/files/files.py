@@ -46,6 +46,16 @@ class Files():
                 self.vector_store.add_documents(res.elements, portfolio_id, building_id, file_url)
             except SDKError as e:
                 print(e)
+    
+    def list_files(self, portfolio_id: str, building_id: str = None) -> list:
+        """
+        List all files in a portfolio or building.
+        """
+        path = f"{portfolio_id}"
+        if building_id is not None:
+            path += f"/{building_id}"
+        blobs = self.container_client.list_blob_names(name_starts_with=path)
+        return [blob for blob in blobs]
 
     def similarity_search(self, query: str, limit: int, portfolio_id: str, building_id: str = None) -> list:
         return self.vector_store.similarity_search(query, limit, portfolio_id, building_id)
