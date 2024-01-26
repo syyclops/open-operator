@@ -4,6 +4,11 @@ from .cobie.cobie import COBie
 class KnowledgeGraph:
     """
     This class handles everything related to the knowledge graph.
+
+    Responsibilities:
+    
+    1. Set up Neo4j constrains and graph config
+    2. Import RDF data into the graph
     """
     def __init__(
             self, 
@@ -39,7 +44,7 @@ class KnowledgeGraph:
             else:
                 query = f'call n10s.rdf.import.fetch("{url}", "{format}") yield terminationStatus, triplesLoaded, triplesParsed, namespaces, extraInfo'
                 result = session.run(query)
-            
+
             termination_status = result.data()[0]['terminationStatus'] 
             if termination_status != "OK":
                 raise Exception(f"Error importing RDF data: {result.data()[0]}")

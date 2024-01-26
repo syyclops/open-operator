@@ -22,6 +22,7 @@ class OpenOperator:
         neo4j_user: str | None = None,
         neo4j_password: str | None = None,
         container_client_connection_string: str | None = None,
+        container_name: str | None = None,
     ) -> None:
         # Create openai client
         if openai_api_key is None:
@@ -58,7 +59,14 @@ class OpenOperator:
         # Create the container client
         if container_client_connection_string is None:
             container_client_connection_string = os.environ['AZURE_STORAGE_CONNECTION_STRING']
-        self.container_client = ContainerClient.from_connection_string(container_client_connection_string, container_name="test")
+        if container_name is None:
+            container_name = os.environ['AZURE_CONTAINER_NAME']
+        self.container_client = ContainerClient.from_connection_string(container_client_connection_string, container_name=container_name)
+
+        # Check if the container exists
+        if not self.container_client.exists():
+            # Create the container
+            self.container_client.create_container(public_access="blob")
 
         # Create the knowledge graph
         self.knowledge_graph = KnowledgeGraph(self, neo4j_driver)
