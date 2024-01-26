@@ -3,12 +3,12 @@ import pandas as pd
 import rdflib
 from rdflib import Namespace, Literal
 import urllib.parse
+from azure.storage.blob import ContainerClient
 
 # Define common namespaces
 COBIE = Namespace("http://checksem.u-bourgogne.fr/ontology/cobie24#")
 RDF = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 A = RDF.type
-
 
 class COBie:
     """
@@ -19,9 +19,9 @@ class COBie:
     1. COBie spreadsheet validation
     2. Spreadsheet to RDF conversion
     """
-    def __init__(self, knowledge_graph) -> None:
+    def __init__(self, knowledge_graph, container_client: ContainerClient) -> None:
         self.knowledge_graph = knowledge_graph
-        self.container_client = self.knowledge_graph.operator.container_client
+        self.container_client = container_client
 
     def create_uri(self, name: str) -> str:
         """
@@ -89,10 +89,18 @@ class COBie:
         
         return errors
 
-    def upload_spreadsheet(self, file_path: str, namespace: Namespace) -> list | None:
+    def upload_spreadsheet(self, file_path: str, portfolio_namespace: str) -> list | None:
         """
-        Converts a valid COBie spreadsheet to RDF and uploads it to graph db
+        Converts a valid COBie spreadsheet to RDF and uploads it to knowledge graph.
+
+        Portfolio namespace is the namespace to represent a group of buildings. For example, https://departmentOfEnergy.com/ could be the namespace for all the buildings owned by the Department of Energy.
+        The portfolio namespace is used to create a URI for the facility. For example, if the portfolio namespace is https://departmentOfEnergy.com/ and the facility name is "Building 1", then the facility URI will be https://departmentOfEnergy.com/building_1.
+        The facility name comes from the Facility sheet in the COBie spreadsheet.
         """
+        # Make sure the portfolio namespace is a valid URI
+        assert urllib.parse.urlparse(portfolio_namespace).scheme != ""
+        portfolio_namespace = Namespace(portfolio_namespace)
+
         # Open COBie spreadsheet
         df = pd.read_excel(file_path, engine='openpyxl', sheet_name=None)
 
@@ -108,9 +116,9 @@ class COBie:
             g = rdflib.Graph()
             g.bind("RDF", RDF)
             g.bind("COBIE", COBIE)
-            g.bind("Namespace", namespace)
+            g.bind("Namespace", portfolio_namespace)
 
-            facility_uri = namespace[self.create_uri(df['Facility']['Name'][0])] # All the nodes in the graph will extend this uri
+            facility_uri = portfolio_namespace[self.create_uri(df['Facility']['Name'][0])] # All the nodes in the graph will extend this uri
 
             for sheet in ['Facility', 'Floor', 'Space', 'Type', 'Component', 'System']:
                 print(f"Processing {sheet} sheet...")
@@ -171,9 +179,9 @@ class COBie:
                 g.add((attribute_uri, COBIE['attributeTo'], target_uri))
 
             # Serialize the graph to a file
-            g.serialize(format='turtle', destination="cobie_graph.ttl")
+            graph_string = g.serialize(format='turtle', encoding='utf-8').decode()
 
             # Open the file and read it as a string, then upload it to the graph db
-            with open("cobie_graph.ttl", "r") as f:
-                blob_client = self.container_client.upload_blob("cobie_graph_test.ttl", data=f.read(), overwrite=True)
-                self.knowledge_graph.import_rdf_data(blob_client.url)
+            # with open("cobie_graph.ttl", "r") as f:
+            blob_client = self.container_client.upload_blob("cobie_graph_test_2.ttl", data=graph_string, overwrite=True)
+            self.knowledge_graph.import_rdf_data(blob_client.url)

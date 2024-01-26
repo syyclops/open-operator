@@ -1,7 +1,6 @@
 import argparse
 from openoperator import OpenOperator
 from dotenv import load_dotenv
-from rdflib import Namespace
 load_dotenv()
 
 def main():
@@ -12,8 +11,8 @@ def main():
 
     operator = OpenOperator()
 
-    operator.knowledge_graph.cobie.upload_spreadsheet(args.file_path, Namespace(args.namespace))
-
+    operator.files.upload_file(args.file_path, portfolio_id="test", building_id="test", extract_meta=False)
+    operator.knowledge_graph.cobie.upload_spreadsheet(args.file_path, portfolio_namespace=args.namespace)
 
 if __name__ == "__main__":
     main()

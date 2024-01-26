@@ -1,6 +1,7 @@
 from openoperator import OpenOperator
 from openoperator.open_operator import split_string_with_limit 
 import tiktoken
+import pandas as pd
 
 def test_split_string_with_limit():
     text = 'Space: The final frontier'
@@ -9,6 +10,8 @@ def test_split_string_with_limit():
     encoding = tiktoken.get_encoding("cl100k_base")
     split_text = split_string_with_limit(text, limit, encoding)
     assert split_text == ['Space: The final', ' frontier']
+
+operator = None
 
 def test_open_operator_init(mocker):
     # Mock environment variables and dependencies
@@ -31,3 +34,17 @@ def test_open_operator_init(mocker):
     assert operator.system_prompt is not None
     assert operator.files is not None
 
+
+
+def test_create_uri():
+    assert operator.cobie_graph.create_uri("Hello World") == "helloworld"
+    assert operator.cobie_graph.create_uri("!hello_world  %%!") == "helloworld"
+
+
+def test_validate_spreadsheet():
+    df = pd.read_excel("./invalid_cobie.xlsx", sheet_name=None)
+    assert operator.cobie_graph.validate_spreadsheet(df) == [
+        "Empty or N/A cells found in column A of Component sheet.",
+        "Not every record is linked to an existing Space."
+    ]
+    

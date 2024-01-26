@@ -36,14 +36,24 @@ class OpenOperator:
             postgres_embeddings_table = os.environ['POSTGRES_EMBEDDINGS_TABLE']
         vector_store = VectorStore(openai=self.openai, collection_name=postgres_embeddings_table, connection_string=postgres_connection_string)
 
+        # Create the container client
+        if container_client_connection_string is None:
+            container_client_connection_string = os.environ['AZURE_STORAGE_CONNECTION_STRING']
+        if container_name is None:
+            container_name = os.environ['AZURE_CONTAINER_NAME']
+        self.container_client = ContainerClient.from_connection_string(container_client_connection_string, container_name=container_name)
+        # Check if the container exists
+        if not self.container_client.exists():
+            # Create the container
+            self.container_client.create_container(public_access="blob")
+
         # Create the files object
         if unstructured_api_key is None:
             unstructured_api_key = os.environ['UNSTRUCTURED_API_KEY']
         if unstructured_api_url is None:
             unstructured_api_url = os.environ['UNSTRUCTURED_URL']
         s = UnstructuredClient(api_key_auth=unstructured_api_key, server_url=unstructured_api_url)
-        self.files = Files(vector_store=vector_store, unstructured_client=s)
-
+        self.files = Files(container_client=self.container_client, vector_store=vector_store, unstructured_client=s)
 
         # Create the neo4j driver
         if neo4j_uri is None:
@@ -55,18 +65,6 @@ class OpenOperator:
         
         neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
         neo4j_driver.verify_connectivity()
-
-        # Create the container client
-        if container_client_connection_string is None:
-            container_client_connection_string = os.environ['AZURE_STORAGE_CONNECTION_STRING']
-        if container_name is None:
-            container_name = os.environ['AZURE_CONTAINER_NAME']
-        self.container_client = ContainerClient.from_connection_string(container_client_connection_string, container_name=container_name)
-
-        # Check if the container exists
-        if not self.container_client.exists():
-            # Create the container
-            self.container_client.create_container(public_access="blob")
 
         # Create the knowledge graph
         self.knowledge_graph = KnowledgeGraph(self, neo4j_driver)

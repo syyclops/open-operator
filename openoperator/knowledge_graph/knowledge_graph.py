@@ -18,7 +18,7 @@ class KnowledgeGraph:
         self.operator = operator
         self.neo4j_driver = neo4j_driver
 
-        self.cobie = COBie(self)
+        self.cobie = COBie(self, container_client=self.operator.container_client)
 
         with self.neo4j_driver.session() as session:
             # Check if the graph is already configured
@@ -48,5 +48,3 @@ class KnowledgeGraph:
             termination_status = result.data()[0]['terminationStatus'] 
             if termination_status != "OK":
                 raise Exception(f"Error importing RDF data: {result.data()[0]}")
-
-    
