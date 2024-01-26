@@ -14,7 +14,7 @@ def main():
 
     file_path = args.file_path
 
-    operator.files.upload_file(file_path)
+    operator.files.upload_file(file_path, "test", "test")
 
 
 if __name__ == "__main__":

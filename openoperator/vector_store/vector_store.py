@@ -24,9 +24,9 @@ class VectorStore():
 
             # Create table if it doesn't exist
             if not exists:
-                cur.execute(f'CREATE TABLE {collection_name} (id bigserial PRIMARY KEY, content text, metadata jsonb, embedding vector(1536));')
+                cur.execute(f'CREATE TABLE {collection_name} (id bigserial PRIMARY KEY, file_url text, portfolio_id text, building_id text, content text, metadata jsonb, embedding vector(1536));')
 
-    def add_documents(self, documents: list) -> None:
+    def add_documents(self, documents: list, portfolio_id: str, building_id: str, file_url: str) -> None:
         with self.conn as cur:
             # Create the embeddings
             docs = [doc['text'] for doc in documents]
@@ -42,10 +42,10 @@ class VectorStore():
                 metadata = json.dumps(doc['metadata'])
                 embedding = np.array(embeddings.data[i].embedding)
 
-                cur.execute(f'INSERT INTO {self.collection_name} (content, metadata, embedding) VALUES (%s, %s, %s)', (text, metadata, embedding))
+                cur.execute(f'INSERT INTO {self.collection_name} (content, metadata, embedding, portfolio_id, building_id, file_url) VALUES (%s, %s, %s, %s, %s, %s)', (text, metadata, embedding, portfolio_id, building_id, file_url))
         
         
-    def similarity_search(self, query: str, limit: int) -> list:
+    def similarity_search(self, query: str, limit: int, portfolio_id: str, building_id: str = None) -> list:
         # Get embedding from OpenAI
         embeddings = self.openai.embeddings.create(
                         model="text-embedding-3-small",
@@ -53,11 +53,24 @@ class VectorStore():
                         encoding_format="float"
                     )
         embedding = np.array(embeddings.data[0].embedding)
-        
+
+        # Prepare base SQL query
+        query  = f"SELECT content, metadata FROM {self.collection_name} WHERE portfolio_id = %s"
+        params = [portfolio_id]
+
+        # Add building_id condition if provided
+        if building_id:
+            query += " AND building_id = %s"
+            params.append(building_id)
+
+        # Add order by and limit clause
+        query += " ORDER BY embedding <-> %s LIMIT %s"
+        params.extend([embedding, limit])
+
         # Query postgres
         with self.conn as cur:
             register_vector(self.conn)
-            records = cur.execute(f'SELECT content, metadata FROM {self.collection_name} ORDER BY embedding <-> %s LIMIT {limit}', (embedding,)).fetchall()
+            records = cur.execute(query, params).fetchall()
             
             # Convert the list of tuples to a list of dicts
             data = [{"content": record[0], "metadata": record[1]} for record in records]

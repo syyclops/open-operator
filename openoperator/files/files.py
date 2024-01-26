@@ -20,7 +20,8 @@ class Files():
         file_name = file.name.split("/")[-1]
 
         # Upload blob
-        self.container_client.upload_blob(name=f"{portfolio_id}/{building_id}/{file_name}", data=file_content, overwrite=True)
+        blob_client = self.container_client.upload_blob(name=f"{portfolio_id}/{building_id}/{file_name}", data=file_content, overwrite=True)
+        file_url = blob_client.url
 
         if extract_meta:
             try:
@@ -42,9 +43,9 @@ class Files():
                 res = self.unstructured_client.general.partition(req)
 
                 # Upload to vector store
-                self.vector_store.add_documents(res.elements)
+                self.vector_store.add_documents(res.elements, portfolio_id, building_id, file_url)
             except SDKError as e:
                 print(e)
 
-    def similarity_search(self, query: str, k: int) -> list:
-        return self.vector_store.similarity_search(query, k)
+    def similarity_search(self, query: str, limit: int, portfolio_id: str, building_id: str = None) -> list:
+        return self.vector_store.similarity_search(query, limit, portfolio_id, building_id)

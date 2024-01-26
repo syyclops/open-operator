@@ -97,7 +97,7 @@ Always respond with markdown formatted text."""
             }
         ]
 
-    def chat(self, messages, verbose: bool = False):
+    def chat(self, messages, portfolio_id: str, building_id: bool = False, verbose: bool = False):
         # Add the system message to be the first message
         messages.insert(0, {
             "role": "system",
@@ -161,7 +161,9 @@ Always respond with markdown formatted text."""
                         if verbose: print("Tool args: " + str(function_args))
                         function_response = function_to_call(
                             function_args['query'],
-                            10
+                            10,
+                            portfolio_id,
+                            building_id
                         )
 
                         # Convert function response to string and limit to 5000 tokens

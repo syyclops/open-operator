@@ -28,7 +28,7 @@ def main():
             "content": user_input
         })
 
-        content = operator.chat(messages, verbose=verbose)
+        content = operator.chat(messages, portfolio_id="test", verbose=verbose)
 
         messages.append({
             "role": "assistant",
