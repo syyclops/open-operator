@@ -11,6 +11,15 @@ from .knowledge_graph.knowledge_graph import KnowledgeGraph
 from azure.storage.blob import ContainerClient
 
 class OpenOperator: 
+    """
+    This class (one instance is called 'operator') is the center of this project.
+
+    Its responsibilities are:
+
+    - Provide a chat method that can be used to interact with the assistant
+    - Provide a files object that can be used to upload files to the assistant
+    - Provide a knowledge graph object that can be used to interact with the knowledge graph of the assistant
+    """
     def __init__(
         self, 
         postgres_connection_string: str | None = None, 
@@ -30,11 +39,18 @@ class OpenOperator:
         self.openai = OpenAI(api_key=openai_api_key)
 
         # Create the vector store
+        if unstructured_api_key is None:
+            unstructured_api_key = os.environ['UNSTRUCTURED_API_KEY']
+        if unstructured_api_url is None:
+            unstructured_api_url = os.environ['UNSTRUCTURED_URL']
+        s = UnstructuredClient(api_key_auth=unstructured_api_key, server_url=unstructured_api_url)
+
         if postgres_connection_string is None:
             postgres_connection_string = os.environ['POSTGRES_CONNECTION_STRING']
         if postgres_embeddings_table is None:
             postgres_embeddings_table = os.environ['POSTGRES_EMBEDDINGS_TABLE']
-        vector_store = VectorStore(openai=self.openai, collection_name=postgres_embeddings_table, connection_string=postgres_connection_string)
+        vector_store = VectorStore(openai=self.openai, collection_name=postgres_embeddings_table, connection_string=postgres_connection_string, unstructured_client=s)
+        self.vector_store = vector_store
 
         # Create the container client
         if container_client_connection_string is None:
@@ -48,12 +64,7 @@ class OpenOperator:
             self.container_client.create_container(public_access="blob")
 
         # Create the files object
-        if unstructured_api_key is None:
-            unstructured_api_key = os.environ['UNSTRUCTURED_API_KEY']
-        if unstructured_api_url is None:
-            unstructured_api_url = os.environ['UNSTRUCTURED_URL']
-        s = UnstructuredClient(api_key_auth=unstructured_api_key, server_url=unstructured_api_url)
-        self.files = Files(container_client=self.container_client, vector_store=vector_store, unstructured_client=s)
+        self.files = Files(container_client=self.container_client, vector_store=vector_store)
 
         # Create the neo4j driver
         if neo4j_uri is None:
@@ -105,7 +116,7 @@ Always respond with markdown formatted text."""
         })
 
         available_functions = {
-            "search_building_documents": self.files.similarity_search,
+            "search_building_documents": self.vector_store.similarity_search,
         }
 
         while True:

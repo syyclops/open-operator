@@ -1,51 +1,29 @@
 from ..vector_store import VectorStore
-from unstructured_client import UnstructuredClient
-from unstructured_client.models import shared
-from unstructured_client.models.errors import SDKError
 from azure.storage.blob import ContainerClient
 
 class Files():
-    def __init__(self, container_client: ContainerClient, vector_store: VectorStore, unstructured_client: UnstructuredClient) -> None:
+    """
+    This class is focused on managing files in the blob storage.
+    """
+    def __init__(self, container_client: ContainerClient, vector_store: VectorStore) -> None:
         self.vector_store = vector_store
-        self.unstructured_client = unstructured_client
         self.container_client = container_client  
 
     def upload_file(self, file_path: str, portfolio_id: str, building_id: str, extract_meta: bool = True) -> None:
         """
         Upload a file to the blob storage and extract metadata.
         """
-        # Read the file
-        file = open(file_path, "rb")
-        file_content = file.read()
-        file_name = file.name.split("/")[-1]
+        with open(file_path, "rb") as file:
+            file_content = file.read()
+            file_name = file.name.split("/")[-1]
 
-        # Upload blob
-        blob_client = self.container_client.upload_blob(name=f"{portfolio_id}/{building_id}/{file_name}", data=file_content, overwrite=True)
-        file_url = blob_client.url
+            # Upload blob
+            blob_client = self.container_client.upload_blob(name=f"{portfolio_id}/{building_id}/{file_name}", data=file_content, overwrite=True)
+            file_url = blob_client.url
 
-        if extract_meta:
-            try:
-                # Extract metadata
-                req = shared.PartitionParameters(
-                    # Note that this currently only supports a single file
-                    files=shared.Files(
-                        content=file_content,
-                        file_name=file_path,
-                    ),
-                    # Other partition params
-                    strategy="fast",
-                    pdf_infer_table_structure=True,
-                    skip_infer_table_types=[],
-                    chunking_strategy="by_title",
-                    multipage_sections=True,
-                )
+            if extract_meta:
+                self.vector_store.extract_and_upload(file_content, file_path, file_url, portfolio_id, building_id)
 
-                res = self.unstructured_client.general.partition(req)
-
-                # Upload to vector store
-                self.vector_store.add_documents(res.elements, portfolio_id, building_id, file_url)
-            except SDKError as e:
-                print(e)
     
     def list_files(self, portfolio_id: str, building_id: str = None) -> list:
         """
@@ -57,5 +35,3 @@ class Files():
         blobs = self.container_client.list_blob_names(name_starts_with=path)
         return [blob for blob in blobs]
 
-    def similarity_search(self, query: str, limit: int, portfolio_id: str, building_id: str = None) -> list:
-        return self.vector_store.similarity_search(query, limit, portfolio_id, building_id)

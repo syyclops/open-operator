@@ -3,10 +3,17 @@ from pgvector.psycopg import register_vector
 from openai import OpenAI
 import json
 import numpy as np
+from unstructured_client import UnstructuredClient
+from unstructured_client.models import shared
+from unstructured_client.models.errors import SDKError
 
 class VectorStore():
-    def __init__(self, openai: OpenAI, collection_name: str, connection_string: str) -> None:
+    """
+    This class handles extracting metadata from files, uploading them to storage, and performing fast search.
+    """
+    def __init__(self, openai: OpenAI, collection_name: str, connection_string: str, unstructured_client: UnstructuredClient) -> None:
         self.openai = openai
+        self.unstructured_client = unstructured_client 
 
         # Connect to postgres
         self.conn = psycopg.connect(connection_string)
@@ -27,6 +34,9 @@ class VectorStore():
                 cur.execute(f'CREATE TABLE {collection_name} (id bigserial PRIMARY KEY, file_url text, portfolio_id text, building_id text, content text, metadata jsonb, embedding vector(1536));')
 
     def add_documents(self, documents: list, portfolio_id: str, building_id: str, file_url: str) -> None:
+        """
+        Convert a list of documents into embeddings and insert into postgres.
+        """
         with self.conn as cur:
             # Create the embeddings
             docs = [doc['text'] for doc in documents]
@@ -45,7 +55,38 @@ class VectorStore():
                 cur.execute(f'INSERT INTO {self.collection_name} (content, metadata, embedding, portfolio_id, building_id, file_url) VALUES (%s, %s, %s, %s, %s, %s)', (text, metadata, embedding, portfolio_id, building_id, file_url))
         
         
+    def extract_and_upload(self, file_content, file_path: str, file_url: str, portfolio_id: str, building_id: str) -> None:
+        """
+        Use unstructured client to extract metadata from a file and upload to vector store.
+        """
+        try:
+            # Extract metadata
+            req = shared.PartitionParameters(
+                # Note that this currently only supports a single file
+                files=shared.Files(
+                    content=file_content,
+                    file_name=file_path,
+                ),
+                # Other partition params
+                strategy="fast",
+                pdf_infer_table_structure=True,
+                skip_infer_table_types=[],
+                chunking_strategy="by_title",
+                multipage_sections=True,
+            )
+
+            res = self.unstructured_client.general.partition(req)
+
+            # Upload to vector store
+            self.add_documents(res.elements, portfolio_id, building_id, file_url)
+        except SDKError as e:
+            print(e)
+
+
     def similarity_search(self, query: str, limit: int, portfolio_id: str, building_id: str = None) -> list:
+        """
+        Search for similar documents in the vector store.
+        """
         # Get embedding from OpenAI
         embeddings = self.openai.embeddings.create(
                         model="text-embedding-3-small",
