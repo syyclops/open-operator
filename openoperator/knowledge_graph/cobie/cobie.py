@@ -2,15 +2,15 @@
 import pandas as pd
 import rdflib
 from rdflib import Namespace, Literal
-import re
+import urllib.parse
 
 # Define common namespaces
-COBIE = Namespace("http://example.org/cobie#")
+COBIE = Namespace("http://checksem.u-bourgogne.fr/ontology/cobie24#")
 RDF = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 A = RDF.type
 
 
-class CobieGraph:
+class COBie:
     """
     This class handles everything related to the COBie graph.
 
@@ -19,14 +19,18 @@ class CobieGraph:
     1. COBie spreadsheet validation
     2. Spreadsheet to RDF conversion
     """
-    def __init__(self) -> None:
-        pass
+    def __init__(self, knowledge_graph) -> None:
+        self.knowledge_graph = knowledge_graph
+        self.container_client = self.knowledge_graph.operator.container_client
 
     def create_uri(self, name: str) -> str:
         """
         Create a URI from string.
         """
-        return re.sub(r'[^a-zA-Z0-9]', '', str(name).lower())
+        # name = re.sub(r'[^a-zA-Z0-9]', '', str(name).lower())
+        # name = name.replace("'", "_")  # Replace ' with _
+        name = urllib.parse.quote(name.lower())
+        return name
 
     def validate_spreadsheet(self, df) -> list:
         """
@@ -106,6 +110,8 @@ class CobieGraph:
             g.bind("COBIE", COBIE)
             g.bind("Namespace", namespace)
 
+            facility_uri = namespace[self.create_uri(df['Facility']['Name'][0])] # All the nodes in the graph will extend this uri
+
             for sheet in ['Facility', 'Floor', 'Space', 'Type', 'Component', 'System']:
                 print(f"Processing {sheet} sheet...")
                 predicates = df[sheet].keys()
@@ -115,7 +121,7 @@ class CobieGraph:
                 for _, row in df[sheet].iterrows():
                     # The name field is used as the subject
                     subject = row['Name']
-                    subject_uri = namespace[sheet.lower() + "/" + self.create_uri(subject)]
+                    subject_uri = facility_uri + "/" + sheet.lower() + "/" + self.create_uri(subject)
 
                     # Get the values of the row
                     objects = row.values
@@ -139,14 +145,14 @@ class CobieGraph:
                             elif sheet == "System":
                                 target_sheet = "Component"
 
-                            g.add((subject_uri, COBIE[predicate], namespace[target_sheet.lower() + "/" + self.create_uri(obj)]))
+                            g.add((subject_uri, COBIE[predicate], facility_uri + "/" + target_sheet.lower() + "/" + self.create_uri(obj)))
                         elif sheet == "Component" and predicate == "space":
                             # Split by "," to get all spaces and remove whitespace
                             spaces = [space.strip() for space in obj.split(",")]
                             for space in spaces:
-                                g.add((subject_uri, COBIE[predicate], namespace["space" + "/" + self.create_uri(space)]))
+                                g.add((subject_uri, COBIE[predicate], facility_uri + "/" + "space" + "/" + self.create_uri(space)))
                         else:
-                            g.add((subject_uri, COBIE[predicate], Literal(obj)))
+                            g.add((subject_uri, COBIE[predicate], Literal(str(obj).replace('"', '\\"'))))
                         i += 1      
 
             # Create the attributes
@@ -154,7 +160,7 @@ class CobieGraph:
             for _, row in df['Attribute'].iterrows():
                 target_sheet = row['SheetName']
                 target_row_name = row['RowName']
-                target_uri = namespace[target_sheet.lower() + "/" + self.create_uri(target_row_name)]
+                target_uri = facility_uri + "/" + target_sheet.lower() + "/" + self.create_uri(target_row_name)
 
                 attribute_uri = target_uri + "/attribute/" + self.create_uri(row['Name'])
 
@@ -165,6 +171,9 @@ class CobieGraph:
                 g.add((attribute_uri, COBIE['attributeTo'], target_uri))
 
             # Serialize the graph to a file
-            g.serialize(destination='cobie_graph.ttl', format='turtle')
-                    
+            g.serialize(format='turtle', destination="cobie_graph.ttl")
 
+            # Open the file and read it as a string, then upload it to the graph db
+            with open("cobie_graph.ttl", "r") as f:
+                blob_client = self.container_client.upload_blob("cobie_graph_test.ttl", data=f.read(), overwrite=True)
+                self.knowledge_graph.import_rdf_data(blob_client.url)

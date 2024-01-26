@@ -12,7 +12,7 @@ def main():
 
     operator = OpenOperator()
 
-    operator.cobie_graph.upload_spreadsheet(args.file_path, Namespace(args.namespace))
+    operator.knowledge_graph.cobie.upload_spreadsheet(args.file_path, Namespace(args.namespace))
 
 
 if __name__ == "__main__":

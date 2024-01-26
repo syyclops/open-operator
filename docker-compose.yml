@@ -17,21 +17,20 @@ services:
     ports:
       - 5432:5432
 
-  # neo4j:
-  #   image: neo4j:5.16-community
-  #   volumes:
-  #     - $HOME/neo4j/data:/data
-  #     - $HOME/neo4j/logs:/logs
-  #     - $HOME/neo4j/import:/var/lib/neo4j/import
-  #     - $HOME/neo4j/plugins:/plugins
-  #     - ./dev-ops/beta/neo4j-certificates:/ssl
-  #   environment:
-  #     NEO4J_AUTH: neo4j/test
-  #     NEO4J_apoc_export_file_enabled: true
-  #     NEO4J_apoc_import_file_enabled: true
-  #     NEO4J_apoc_import_file_use__neo4j__config: true
-  #     NEO4J_dbms_security_procedures_unrestricted: apoc.*,semantics.*
-  #     NEO4JLABS_PLUGINS: '["apoc", "n10s"]'
-  #   ports:
-  #     - 7474:7474
-  #     - 7687:7687
+  neo4j:
+    image: neo4j:5.15
+    volumes:
+      - $HOME/neo4j/data:/data
+      - $HOME/neo4j/logs:/logs
+      - $HOME/neo4j/import:/var/lib/neo4j/import
+      - $HOME/neo4j/plugins:/plugins
+    environment:
+      NEO4J_AUTH: neo4j/neo4j-password
+      NEO4J_apoc_export_file_enabled: true
+      NEO4J_apoc_import_file_enabled: true
+      NEO4J_apoc_import_file_use__neo4j__config: true
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*,semantics.*
+      NEO4J_PLUGINS: '["apoc", "n10s"]'
+    ports:
+      - 7474:7474
+      - 7687:7687

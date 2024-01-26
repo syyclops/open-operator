@@ -1,12 +1,14 @@
 from .files.files import Files
 from .vector_store import VectorStore
-from .cobie_graph.cobie_graph import CobieGraph
 from openai import OpenAI
 import json
 import tiktoken
 import os
 from typing import List
 from unstructured_client import UnstructuredClient
+from neo4j import GraphDatabase
+from .knowledge_graph.knowledge_graph import KnowledgeGraph
+from azure.storage.blob import ContainerClient
 
 class OpenOperator: 
     def __init__(
@@ -16,6 +18,10 @@ class OpenOperator:
         openai_api_key: str | None = None,
         unstructured_api_key: str | None = None,
         unstructured_api_url: str | None = None,
+        neo4j_uri: str | None = None,
+        neo4j_user: str | None = None,
+        neo4j_password: str | None = None,
+        container_client_connection_string: str | None = None,
     ) -> None:
         # Create openai client
         if openai_api_key is None:
@@ -37,8 +43,25 @@ class OpenOperator:
         s = UnstructuredClient(api_key_auth=unstructured_api_key, server_url=unstructured_api_url)
         self.files = Files(vector_store=vector_store, unstructured_client=s)
 
-        self.cobie_graph = CobieGraph()
 
+        # Create the neo4j driver
+        if neo4j_uri is None:
+            neo4j_uri = os.environ['NEO4J_URI']
+        if neo4j_user is None:
+            neo4j_user = os.environ['NEO4J_USER']
+        if neo4j_password is None:
+            neo4j_password = os.environ['NEO4J_PASSWORD']
+        
+        neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
+        neo4j_driver.verify_connectivity()
+
+        # Create the container client
+        if container_client_connection_string is None:
+            container_client_connection_string = os.environ['AZURE_STORAGE_CONNECTION_STRING']
+        self.container_client = ContainerClient.from_connection_string(container_client_connection_string, container_name="test")
+
+        # Create the knowledge graph
+        self.knowledge_graph = KnowledgeGraph(self, neo4j_driver)
 
         self.system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
 Your goal is to help facility owners, managers, and operators manage their facilities and buildings more efficiently.
