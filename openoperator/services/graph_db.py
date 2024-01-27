@@ -1,25 +1,27 @@
-from neo4j import Driver
-from .cobie.cobie import COBie 
+import os
+from neo4j import GraphDatabase
 
-class KnowledgeGraph:
-    """
-    This class handles everything related to the knowledge graph.
 
-    Responsibilities:
-    
-    1. Set up Neo4j constrains and graph config
-    2. Import RDF data into the graph
-    """
+class GraphDB():
     def __init__(
-            self, 
-            operator, 
-            neo4j_driver: Driver,
+            self,
+            neo4j_uri: str | None = None,
+            neo4j_user: str | None = None,
+            neo4j_password: str | None = None,        
     ) -> None:
-        self.operator = operator
+        # Create the neo4j driver
+        if neo4j_uri is None:
+            neo4j_uri = os.environ['NEO4J_URI']
+        if neo4j_user is None:
+            neo4j_user = os.environ['NEO4J_USER']
+        if neo4j_password is None:
+            neo4j_password = os.environ['NEO4J_PASSWORD']
+        
+        neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
+        neo4j_driver.verify_connectivity()
         self.neo4j_driver = neo4j_driver
-
-        self.cobie = COBie(self, container_client=self.operator.container_client)
-
+    
+        # Set up the graph
         with self.neo4j_driver.session() as session:
             # Check if the graph is already configured
             result = session.run("MATCH (n:`_GraphConfig`) RETURN n")
@@ -32,7 +34,6 @@ class KnowledgeGraph:
             preixes = session.run("call n10s.nsprefixes.list()")
             if "cobie" not in preixes:
                 session.run("call n10s.nsprefixes.add('cobie', 'http://checksem.u-bourgogne.fr/ontology/cobie24#')")
-    
 
     def import_rdf_data(self, url: str, format: str = "Turtle", inline: bool = False):
         """

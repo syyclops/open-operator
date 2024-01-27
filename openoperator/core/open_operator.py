@@ -1,14 +1,15 @@
 from .files.files import Files
-from .vector_store import VectorStore
 from openai import OpenAI
 import json
 import tiktoken
 import os
 from typing import List
-from unstructured_client import UnstructuredClient
-from neo4j import GraphDatabase
-from .knowledge_graph.knowledge_graph import KnowledgeGraph
-from azure.storage.blob import ContainerClient
+from ..services.graph_db import GraphDB
+from ..services.blob_store import BlobStore
+from ..services.embeddings import Embeddings
+from ..services.document_loader import DocumentLoader
+from ..services.vector_store import VectorStore
+from .cobie.cobie import COBie
 
 class OpenOperator: 
     """
@@ -33,52 +34,22 @@ class OpenOperator:
         container_client_connection_string: str | None = None,
         container_name: str | None = None,
     ) -> None:
+        # Services
+        blob_store = BlobStore(container_client_connection_string=container_client_connection_string, container_name=container_name)
+        graph_db = GraphDB(neo4j_uri=neo4j_uri, neo4j_user=neo4j_user, neo4j_password=neo4j_password)
+        embeddings = Embeddings(openai_api_key=openai_api_key)
+        document_loader = DocumentLoader(unstructured_api_key=unstructured_api_key, unstructured_api_url=unstructured_api_url)
+        vector_store = VectorStore(embeddings=embeddings, document_loader=document_loader, collection_name=postgres_embeddings_table, connection_string=postgres_connection_string)
+        self.vector_store = vector_store
+        
+        # Core modules
+        self.files = Files(blob_store=blob_store, vector_store=vector_store)
+        self.cobie = COBie(graph_db=graph_db, blob_store=blob_store)
+
         # Create openai client
         if openai_api_key is None:
             openai_api_key = os.environ['OPENAI_API_KEY']
         self.openai = OpenAI(api_key=openai_api_key)
-
-        # Create the vector store
-        if unstructured_api_key is None:
-            unstructured_api_key = os.environ['UNSTRUCTURED_API_KEY']
-        if unstructured_api_url is None:
-            unstructured_api_url = os.environ['UNSTRUCTURED_URL']
-        s = UnstructuredClient(api_key_auth=unstructured_api_key, server_url=unstructured_api_url)
-
-        if postgres_connection_string is None:
-            postgres_connection_string = os.environ['POSTGRES_CONNECTION_STRING']
-        if postgres_embeddings_table is None:
-            postgres_embeddings_table = os.environ['POSTGRES_EMBEDDINGS_TABLE']
-        vector_store = VectorStore(openai=self.openai, collection_name=postgres_embeddings_table, connection_string=postgres_connection_string, unstructured_client=s)
-        self.vector_store = vector_store
-
-        # Create the container client
-        if container_client_connection_string is None:
-            container_client_connection_string = os.environ['AZURE_STORAGE_CONNECTION_STRING']
-        if container_name is None:
-            container_name = os.environ['AZURE_CONTAINER_NAME']
-        self.container_client = ContainerClient.from_connection_string(container_client_connection_string, container_name=container_name)
-        # Check if the container exists
-        if not self.container_client.exists():
-            # Create the container
-            self.container_client.create_container(public_access="blob")
-
-        # Create the files object
-        self.files = Files(container_client=self.container_client, vector_store=vector_store)
-
-        # Create the neo4j driver
-        if neo4j_uri is None:
-            neo4j_uri = os.environ['NEO4J_URI']
-        if neo4j_user is None:
-            neo4j_user = os.environ['NEO4J_USER']
-        if neo4j_password is None:
-            neo4j_password = os.environ['NEO4J_PASSWORD']
-        
-        neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
-        neo4j_driver.verify_connectivity()
-
-        # Create the knowledge graph
-        self.knowledge_graph = KnowledgeGraph(self, neo4j_driver)
 
         self.system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
 Your goal is to help facility owners, managers, and operators manage their facilities and buildings more efficiently.

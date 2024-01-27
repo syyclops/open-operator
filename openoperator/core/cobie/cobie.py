@@ -3,7 +3,8 @@ import pandas as pd
 import rdflib
 from rdflib import Namespace, Literal
 import urllib.parse
-from azure.storage.blob import ContainerClient
+from ...services.blob_store import BlobStore
+from ...services.graph_db import GraphDB
 
 # Define common namespaces
 COBIE = Namespace("http://checksem.u-bourgogne.fr/ontology/cobie24#")
@@ -19,9 +20,9 @@ class COBie:
     1. COBie spreadsheet validation
     2. Spreadsheet to RDF conversion
     """
-    def __init__(self, knowledge_graph, container_client: ContainerClient) -> None:
-        self.knowledge_graph = knowledge_graph
-        self.container_client = container_client
+    def __init__(self, graph_db: GraphDB, blob_store: BlobStore) -> None:
+        self.graph_db = graph_db
+        self.blob_store = blob_store
 
     def create_uri(self, name: str) -> str:
         """
@@ -182,6 +183,5 @@ class COBie:
             graph_string = g.serialize(format='turtle', encoding='utf-8').decode()
 
             # Open the file and read it as a string, then upload it to the graph db
-            # with open("cobie_graph.ttl", "r") as f:
-            blob_client = self.container_client.upload_blob("cobie_graph_test_2.ttl", data=graph_string, overwrite=True)
-            self.knowledge_graph.import_rdf_data(blob_client.url)
+            blob_client = self.blob_store.upload_blob("cobie_graph_test_2.ttl", data=graph_string, overwrite=True)
+            self.graph_db.import_rdf_data(blob_client.url)
