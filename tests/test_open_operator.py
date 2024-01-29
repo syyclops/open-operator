@@ -1,5 +1,5 @@
 from openoperator import OpenOperator
-from openoperator.open_operator import split_string_with_limit 
+from openoperator import split_string_with_limit 
 import tiktoken
 import pandas as pd
 

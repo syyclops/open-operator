@@ -1,9 +1,9 @@
 <div align="center">
   <img height="400" src="./docs/assets/Futuristic%20Robot%20HVAC.png" style="border-radius: 8px;"/>
 
-<p align="center">
-  <a href="https://syyclops.mintlify.app/">Documentation</a>
-</p>
+  <p align="center">
+    <a href="https://syyclops.mintlify.app/">Documentation</a>
+  </p>
 </div>
 
 ## What is Open Operator?

@@ -180,8 +180,6 @@ Always respond with markdown formatted text."""
                     print(delta.content or "", end="", flush=True)
 
 
-
-
 def split_string_with_limit(text: str, limit: int, encoding) -> List[str]:
     """
     Splits a string into multiple parts with a limit on the number of tokens in each part.

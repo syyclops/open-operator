@@ -46,7 +46,7 @@ class DocumentLoader():
 
             return [Document(text=element['text'], metadata=element['metadata']) for element in res.elements]
         except SDKError as e:
-            print(e)
+            print("Error extracting metadata")
 
 
 

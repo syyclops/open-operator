@@ -18,7 +18,7 @@ def main():
         file_content = file.read()
         file_name = file.name.split("/")[-1]
 
-        operator.files.upload_file(file_content=file_content, file_name=file_name, portfolio_id="test", building_id="test")
+        operator.files.upload_file(file_content=file_content, file_name=file_name, portfolio_id="test", building_id="test10")
 
 
 if __name__ == "__main__":

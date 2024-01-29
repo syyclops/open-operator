@@ -10,9 +10,8 @@ class BlobStore():
             container_name = os.environ['AZURE_CONTAINER_NAME']
         self.container_client = ContainerClient.from_connection_string(container_client_connection_string, container_name=container_name)
 
-        # Check if the container exists
+        # Check if the container exists, if it doesn't create it
         if not self.container_client.exists():
-            # Create the container
             self.container_client.create_container(public_access="blob")
 
     def upload_file(self, file_content: bytes, file_name: str) -> str:
@@ -20,9 +19,7 @@ class BlobStore():
         Upload a file to the blob storage.
         """
         blob_client = self.container_client.upload_blob(name=file_name, data=file_content, overwrite=True)
-        file_url = blob_client.url
-
-        return file_url
+        return blob_client.url
         
     def list_files(self, path: str) -> list:
         """

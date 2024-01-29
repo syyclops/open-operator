@@ -56,7 +56,6 @@ class VectorStore():
 
                 cur.execute(f'INSERT INTO {self.collection_name} (content, metadata, embedding) VALUES (%s, %s, %s)', (text, metadata, embedding))
 
-
     def similarity_search(self, query: str, limit: int, filter: dict | None = None) -> list:
         """
         Search for similar documents in the vector store.
