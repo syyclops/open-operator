@@ -5,6 +5,7 @@ from rdflib import Namespace, Literal
 import urllib.parse
 from ...services.blob_store import BlobStore
 from ...services.graph_db import GraphDB
+from io import BytesIO
 
 # Define common namespaces
 COBIE = Namespace("http://checksem.u-bourgogne.fr/ontology/cobie24#")
@@ -90,20 +91,18 @@ class COBie:
         
         return errors
 
-    def upload_spreadsheet(self, file_path: str, portfolio_namespace: str) -> list | None:
+    def upload_spreadsheet(self, file_content: bytes, portfolio_namespace: str) -> list | None:
         """
         Converts a valid COBie spreadsheet to RDF and uploads it to knowledge graph.
 
-        Portfolio namespace is the namespace to represent a group of buildings. For example, https://departmentOfEnergy.com/ could be the namespace for all the buildings owned by the Department of Energy.
-        The portfolio namespace is used to create a URI for the facility. For example, if the portfolio namespace is https://departmentOfEnergy.com/ and the facility name is "Building 1", then the facility URI will be https://departmentOfEnergy.com/building_1.
-        The facility name comes from the Facility sheet in the COBie spreadsheet.
+        portfolio_namespace: The namespace to represent a group of buildings and is used to create the URI of the facility. Ex. https://departmentOfEnergy.com/ could be the namespace for all the buildings owned by the Department of Energy. 
         """
         # Make sure the portfolio namespace is a valid URI
         assert urllib.parse.urlparse(portfolio_namespace).scheme != ""
         portfolio_namespace = Namespace(portfolio_namespace)
 
         # Open COBie spreadsheet
-        df = pd.read_excel(file_path, engine='openpyxl', sheet_name=None)
+        df = pd.read_excel(BytesIO(file_content), engine='openpyxl', sheet_name=None)
 
         errors = self.validate_spreadsheet(df)
 
@@ -183,5 +182,5 @@ class COBie:
             graph_string = g.serialize(format='turtle', encoding='utf-8').decode()
 
             # Open the file and read it as a string, then upload it to the graph db
-            blob_client = self.blob_store.upload_blob("cobie_graph_test_2.ttl", data=graph_string, overwrite=True)
-            self.graph_db.import_rdf_data(blob_client.url)
+            url = self.blob_store.upload_file(graph_string, "cobie_graph_test_2.ttl")
+            self.graph_db.import_rdf_data(url)

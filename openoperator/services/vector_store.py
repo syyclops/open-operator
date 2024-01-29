@@ -4,20 +4,22 @@ import json
 import numpy as np
 import os
 from .embeddings import Embeddings
-from .document_loader import DocumentLoader
+from .document_loader import Document
 
 class VectorStore():
     """
-    This class handles extracting metadata from files, uploading them to storage, and performing fast search.
+    This class is focused on managing the vector store for the assistant.
+    Its responsibilities are:
+    - Create text embeddings for documents and upload to the vector store
+    - Search the vector store for similar documents
     """
-    def __init__(self, embeddings: Embeddings, document_loader: DocumentLoader, collection_name: str, connection_string: str) -> None:
+    def __init__(self, embeddings: Embeddings, collection_name: str, connection_string: str) -> None:
         if connection_string is None:
             connection_string = os.environ['POSTGRES_CONNECTION_STRING']
         if collection_name is None:
             collection_name = os.environ['POSTGRES_EMBEDDINGS_TABLE']
 
         self.embeddings = embeddings
-        self.document_loader = document_loader
 
         # Connect to postgres
         self.conn = psycopg.connect(connection_string)
@@ -37,35 +39,25 @@ class VectorStore():
             if not exists:
                 cur.execute(f'CREATE TABLE {collection_name} (id bigserial PRIMARY KEY, content text, metadata jsonb, embedding vector(1536));')
 
-    def add_documents(self, documents: list) -> None:
+    def add_documents(self, documents: list[Document]) -> None:
         """
-        Convert a list of documents into embeddings and insert into postgres.
+        Creates text embeddings for a list of documents and uploads them to the vector store.
         """
         with self.conn as cur:
             # Create the embeddings
-            docs = [doc['text'] for doc in documents]
+            docs = [doc.text for doc in documents]
             embeddings = self.embeddings.create_embeddings(texts=docs)
             
             # Insert into postgres
             for i, doc in enumerate(documents):
-                text = doc['text']
-                metadata = json.dumps(doc['metadata'])
+                text = doc.text
+                metadata = json.dumps(doc.metadata)
                 embedding = np.array(embeddings[i].embedding)
 
                 cur.execute(f'INSERT INTO {self.collection_name} (content, metadata, embedding) VALUES (%s, %s, %s)', (text, metadata, embedding))
-        
-        
-    def extract_and_upload(self, file_content, file_path: str, file_url: str, portfolio_id: str, building_id: str) -> None:
-        """
-        Use unstructured client to extract metadata from a file and upload to vector store.
-        """
-        res = self.document_loader.extract_metadata(file_content=file_content, file_path=file_path)
-
-        # Upload to vector store
-        self.add_documents(res.elements, portfolio_id, building_id, file_url)
 
 
-    def similarity_search(self, query: str, limit: int) -> list:
+    def similarity_search(self, query: str, limit: int, filter: dict | None = None) -> list:
         """
         Search for similar documents in the vector store.
         """
@@ -74,9 +66,24 @@ class VectorStore():
         embedding = np.array(embeddings[0].embedding)
 
         # Prepare base SQL query
-        query  = f"SELECT content, metadata FROM {self.collection_name} ORDER BY embedding <-> %s LIMIT %s"
-        params = [embedding, limit]
+        query  = f"SELECT content, metadata FROM {self.collection_name} "
+        params = []
 
+        # Add filter to query
+        if filter is not None:
+            query += " WHERE "
+            for i, (key, value) in enumerate(filter.items()):
+                # Ensure the value is a string
+                value_str = str(value)
+                query += f"metadata->>'{key}' = %s"
+                params.append(value_str)
+                if i != len(filter) - 1:
+                    query += " AND "
+
+        query += f" ORDER BY embedding <-> %s LIMIT %s"
+        params.append(embedding)
+        params.append(limit)
+        
         # Query postgres
         with self.conn as cur:
             register_vector(self.conn)

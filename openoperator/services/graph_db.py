@@ -1,7 +1,6 @@
 import os
 from neo4j import GraphDatabase
 
-
 class GraphDB():
     def __init__(
             self,

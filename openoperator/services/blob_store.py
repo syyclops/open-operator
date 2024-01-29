@@ -1,7 +1,6 @@
 from azure.storage.blob import ContainerClient
 import os
 
-
 class BlobStore():
     def __init__(self, container_client_connection_string: str | None = None, container_name: str | None = None) -> None:
         # Create the container client
@@ -16,19 +15,14 @@ class BlobStore():
             # Create the container
             self.container_client.create_container(public_access="blob")
 
-    def upload_file(self, file_path: str) -> str:
+    def upload_file(self, file_content: bytes, file_name: str) -> str:
         """
         Upload a file to the blob storage.
         """
-        with open(file_path, "rb") as file:
-            file_content = file.read()
-            file_name = file.name.split("/")[-1]
+        blob_client = self.container_client.upload_blob(name=file_name, data=file_content, overwrite=True)
+        file_url = blob_client.url
 
-            # Upload blob
-            blob_client = self.container_client.upload_blob(name=file_name, data=file_content, overwrite=True)
-            file_url = blob_client.url
-
-            return file_url
+        return file_url
         
     def list_files(self, path: str) -> list:
         """

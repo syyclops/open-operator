@@ -14,7 +14,11 @@ def main():
 
     file_path = args.file_path
 
-    operator.files.upload_file(file_path, portfolio_id="test", building_id="test")
+    with open(file_path, "rb") as file:
+        file_content = file.read()
+        file_name = file.name.split("/")[-1]
+
+        operator.files.upload_file(file_content=file_content, file_name=file_name, portfolio_id="test", building_id="test")
 
 
 if __name__ == "__main__":

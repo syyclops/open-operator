@@ -3,6 +3,11 @@ from unstructured_client.models import shared
 from unstructured_client.models.errors import SDKError
 import os
 
+class Document:
+    def __init__(self, text: str, metadata):
+        self.text = text
+        self.metadata = metadata
+
 class DocumentLoader():
     def __init__(
             self,
@@ -17,7 +22,7 @@ class DocumentLoader():
 
         self.unstructured_client = s
     
-    def extract_metadata(self, file_content, file_path: str):
+    def load(self, file_content: bytes, file_path: str) -> list[Document]:
         """
         Use unstructured client to extract metadata from a file and upload to vector store.
         """
@@ -39,6 +44,9 @@ class DocumentLoader():
 
             res = self.unstructured_client.general.partition(req)
 
-            return res
+            return [Document(text=element['text'], metadata=element['metadata']) for element in res.elements]
         except SDKError as e:
             print(e)
+
+
+

@@ -39,11 +39,10 @@ class OpenOperator:
         graph_db = GraphDB(neo4j_uri=neo4j_uri, neo4j_user=neo4j_user, neo4j_password=neo4j_password)
         embeddings = Embeddings(openai_api_key=openai_api_key)
         document_loader = DocumentLoader(unstructured_api_key=unstructured_api_key, unstructured_api_url=unstructured_api_url)
-        vector_store = VectorStore(embeddings=embeddings, document_loader=document_loader, collection_name=postgres_embeddings_table, connection_string=postgres_connection_string)
-        self.vector_store = vector_store
+        vector_store = VectorStore(embeddings=embeddings, collection_name=postgres_embeddings_table, connection_string=postgres_connection_string)
         
         # Core modules
-        self.files = Files(blob_store=blob_store, vector_store=vector_store)
+        self.files = Files(blob_store=blob_store, vector_store=vector_store, document_loader=document_loader)
         self.cobie = COBie(graph_db=graph_db, blob_store=blob_store)
 
         # Create openai client
@@ -87,13 +86,13 @@ Always respond with markdown formatted text."""
         })
 
         available_functions = {
-            "search_building_documents": self.vector_store.similarity_search,
+            "search_building_documents": self.files.search_metadata,
         }
 
         while True:
             # Send the conversation and available functions to the model
             stream = self.openai.chat.completions.create(
-                model="gpt-4-turbo-preview",
+                model="gpt-4",
                 messages=messages,
                 tools=self.tools,
                 tool_choice="auto",
@@ -141,11 +140,15 @@ Always respond with markdown formatted text."""
                         function_to_call = available_functions[function_name]
                         function_args = json.loads(tool_call['function']['arguments'])
                         if verbose: print("Tool args: " + str(function_args))
+                        filter = {
+                            "portfolio_id": portfolio_id
+                        }
+                        if building_id:
+                            filter["building_id"] = building_id
                         function_response = function_to_call(
                             function_args['query'],
-                            10,
-                            portfolio_id,
-                            building_id
+                            8,
+                            filter=filter
                         )
 
                         # Convert function response to string and limit to 5000 tokens

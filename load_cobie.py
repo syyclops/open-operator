@@ -11,8 +11,9 @@ def main():
 
     operator = OpenOperator()
 
-    operator.files.upload_file(args.file_path, portfolio_id="test", building_id="test", extract_meta=False)
-    operator.knowledge_graph.cobie.upload_spreadsheet(args.file_path, portfolio_namespace=args.namespace)
+    with open(args.file_path, "rb") as file:
+        file_content = file.read()
+        operator.cobie.upload_spreadsheet(file_content, portfolio_namespace=args.namespace)
 
 if __name__ == "__main__":
     main()
