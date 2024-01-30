@@ -2,7 +2,7 @@ from openoperator import OpenOperator
 
 from typing import Generator, Literal
 from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import StreamingResponse, Response
+from fastapi.responses import StreamingResponse, Response, FileResponse, JSONResponse
 from pydantic import BaseModel
 import uvicorn
 
@@ -37,16 +37,20 @@ async def upload_file(file: UploadFile, portfolio_id: str, building_id: str | No
         return Response(content=str(e), status_code=500) 
     
 @app.post("/cobie/validate_spreadsheet", tags=['cobie'])
-async def validate_spreadsheet(file: UploadFile):
+async def validate_spreadsheet(file: UploadFile, download_update_file: bool):
     try:
         file_content = await file.read()
-        errors_founds, errors = operator.cobie.validate_spreadsheet(file_content)
+        errors_founds, errors, updated_file_path = operator.cobie.validate_spreadsheet(file_content)
         if errors_founds:
-            return errors
+            if download_update_file:
+                return FileResponse(updated_file_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename="updated_cobie.xlsx")
+            else:
+                return JSONResponse(content=errors)
         else:
             return {"message": "No errors found"}
     except Exception as e:
-        return Response(content="Could not validate spreadsheet", status_code=500)
+        print(e)
+        return Response(content="Unable to validate spreadsheet", status_code=500)
 
 
 if __name__ == "__main__":

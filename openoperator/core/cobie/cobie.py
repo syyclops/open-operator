@@ -6,6 +6,9 @@ import urllib.parse
 from ...services.blob_store import BlobStore
 from ...services.graph_db import GraphDB
 from io import BytesIO
+import openpyxl
+from openpyxl.styles import PatternFill
+from tempfile import NamedTemporaryFile
 
 # Define common namespaces
 COBIE = Namespace("http://checksem.u-bourgogne.fr/ontology/cobie24#")
@@ -34,7 +37,7 @@ class COBie:
         name = urllib.parse.quote(name.lower())
         return name
 
-    def validate_spreadsheet(self, spread_sheet_file: bytes) -> (bool, dict):
+    def validate_spreadsheet(self, spread_sheet_file: bytes) -> (bool, dict, bytes):
         """
         Validate a COBie spreadsheet. Refer to COBie_validation.pdf in docs/ for more information.
         
@@ -57,6 +60,7 @@ class COBie:
 
         # Open COBie spreadsheet
         df = pd.read_excel(BytesIO(spread_sheet_file), engine='openpyxl', sheet_name=None) 
+        wb = openpyxl.load_workbook(BytesIO(spread_sheet_file))
 
         expected_sheets = ['Facility', 'Floor', 'Space', 'Type', 'Component', 'Attribute', 'System']
         # Check to make sure the spreadsheet has the correct sheets     
@@ -67,6 +71,10 @@ class COBie:
                 })
                 errors_found = True
 
+                # highlight the sheet in red
+                cell = wb[sheet].cell(row=1, column=1)
+                cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type = "solid")
+
         # Make sure there is only one record in the Facility sheet
         if len(df['Facility']) > 1:
             errors["More than one record found in Facility sheet."].append({
@@ -75,6 +83,10 @@ class COBie:
                 "column": 1
             })
             errors_found = True
+
+            # highlight the sheet in red
+            cell = wb['Facility'].cell(row=1, column=1)
+            cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type = "solid")
 
         # No empty or N/A cells are present in column A of any sheet
         for sheet in expected_sheets:
@@ -86,6 +98,10 @@ class COBie:
                         "column": 1
                     })
                     errors_found = True
+
+                    # highlight the cell in red
+                    cell = wb[sheet].cell(row=idx + 2, column=1)
+                    cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type = "solid")
 
         # Check Floor, Space, Type, Component sheets for duplicate names in column A
         for sheet in ['Floor', 'Space', 'Type', 'Component']:
@@ -155,8 +171,11 @@ class COBie:
 
         # Remove all the empty lists from the errors dict
         errors = {key: value for key, value in errors.items() if value}
-        
-        return errors_found, errors
+
+        # Save the workbook
+        wb.save("test.xlsx")
+
+        return errors_found, errors, "test.xlsx"
 
     def upload_spreadsheet(self, file_content: bytes, portfolio_namespace: str) -> list | None:
         """
