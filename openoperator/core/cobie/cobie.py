@@ -8,7 +8,6 @@ from ...services.graph_db import GraphDB
 from io import BytesIO
 import openpyxl
 from openpyxl.styles import PatternFill
-from tempfile import NamedTemporaryFile
 
 # Define common namespaces
 COBIE = Namespace("http://checksem.u-bourgogne.fr/ontology/cobie24#")
@@ -43,7 +42,9 @@ class COBie:
         
         Returns: 
 
-        - errors: A list of errors found in the spreadsheet. Errors a 
+        - errors_found: A boolean indicating whether or not errors were found in the spreadsheet.
+        - errors: A dictionary containing all the errors found in the spreadsheet.
+        - updated_file: The file path of the updated spreadsheet with the errors highlighted in red.
         """
         errors = {
             "Expected sheet not found in spreadsheet.": [],
@@ -111,8 +112,11 @@ class COBie:
                         "sheet": sheet,
                         "row": idx + 2,
                         "column": 1
-                    })
+                    })  
                     errors_found = True
+
+                    cell = wb[sheet].cell(row=idx + 2, column=1)
+                    cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type = "solid")
 
         # Space Tab
         # Every value is linked to a value in the first column of the Floor tab
@@ -121,9 +125,12 @@ class COBie:
                 errors["Space is not linked to a value in the first column of the Floor tab."].append({
                     "sheet": "Space",
                     "row": idx + 2,
-                    "column": 2
+                    "column": 5
                 })  
                 errors_found = True
+
+                cell = wb['Space'].cell(row=idx + 2, column=5)
+                cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type = "solid")
 
         # Type Tab
         # Every record has a category
@@ -132,9 +139,12 @@ class COBie:
                 errors["Not every Type record has a category."].append({
                     "sheet": "Type",
                     "row": idx + 2,
-                    "column": 2
+                    "column": 4
                 })
                 errors_found = True
+
+                cell = wb['Type'].cell(row=idx + 2, column=4)
+                cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type = "solid")
             
         # Component Tab
         # Every record is linked to a existing Type
@@ -143,9 +153,12 @@ class COBie:
                 errors["Component is not linked to an existing Type."].append({
                     "sheet": "Component",
                     "row": idx + 2,
-                    "column": 2
+                    "column": 4
                 })
                 errors_found = True
+
+                cell = wb['Component'].cell(row=idx + 2, column=4)
+                cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type = "solid")
 
         # Every record is linked a to existing Space
         for idx, space_name in enumerate(df['Component']['Space']):
@@ -154,9 +167,12 @@ class COBie:
                 errors["Component is not linked to an existing Space."].append({
                     "sheet": "Component",
                     "row": idx + 2,
-                    "column": 3
+                    "column": 5
                 })
                 errors_found = True
+
+                cell = wb['Component'].cell(row=idx + 2, column=5)
+                cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type = "solid")
                 continue
             # Split by "," to get all spaces and remove whitespace
             spaces = [space.strip() for space in space_name.split(",")]
@@ -165,9 +181,12 @@ class COBie:
                     errors["Component is not linked to an existing Space."].append({
                         "sheet": "Component",
                         "row": idx + 2,
-                        "column": 3
+                        "column": 5
                     })
                     errors_found = True
+
+                    cell = wb['Component'].cell(row=idx + 2, column=5)
+                    cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type = "solid")
 
         # Remove all the empty lists from the errors dict
         errors = {key: value for key, value in errors.items() if value}

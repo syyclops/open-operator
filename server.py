@@ -1,7 +1,7 @@
 from openoperator import OpenOperator
 
 from typing import Generator, Literal
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile
 from fastapi.responses import StreamingResponse, Response, FileResponse, JSONResponse
 from pydantic import BaseModel
 import uvicorn
@@ -31,7 +31,7 @@ async def chat(messages: list[Message], portfolio_id: str, building_id: str | No
 async def upload_file(file: UploadFile, portfolio_id: str, building_id: str | None = None):
     try:
         file_content = await file.read()
-        operator.files.upload_file(file_content=file_content, file_name=file.filename, portfolio_id=portfolio_id, building_id=building_id)
+        operator.files.upload_file(file_content=file_content, file_name=file.filename, portfolio_idA=portfolio_id, building_id=building_id)
         return "File uploaded successfully"
     except Exception as e:
         return Response(content=str(e), status_code=500) 
