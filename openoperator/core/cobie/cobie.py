@@ -34,62 +34,129 @@ class COBie:
         name = urllib.parse.quote(name.lower())
         return name
 
-    def validate_spreadsheet(self, df) -> list:
+    def validate_spreadsheet(self, spread_sheet_file: bytes) -> (bool, dict):
         """
         Validate a COBie spreadsheet. Refer to COBie_validation.pdf in docs/ for more information.
-        Returns a list of errors. If no errors are found, the list will be empty.
+        
+        Returns: 
+
+        - errors: A list of errors found in the spreadsheet. Errors a 
         """
-        errors = []
+        errors = {
+            "Expected sheet not found in spreadsheet.": [],
+            "More than one record found in Facility sheet.": [],
+            "Empty or N/A cells found in column A of sheet.": [],
+            "Duplicate names found in column A of sheet.": [],
+            "Space is not linked to a value in the first column of the Floor tab.": [],
+            "Not every Type record has a category.": [],
+            "Component is not linked to an existing Type.": [],
+            "Component is not linked to an existing Space.": []
+        }
+
+        errors_found = False
+
+        # Open COBie spreadsheet
+        df = pd.read_excel(BytesIO(spread_sheet_file), engine='openpyxl', sheet_name=None) 
 
         expected_sheets = ['Facility', 'Floor', 'Space', 'Type', 'Component', 'Attribute', 'System']
         # Check to make sure the spreadsheet has the correct sheets     
         for sheet in expected_sheets:
             if sheet not in df.keys():
-                errors.append(f"Expected sheet {sheet} not found in spreadsheet.")
+                errors["Expected sheet not found in spreadsheet."].append({
+                    "sheet": sheet,
+                })
+                errors_found = True
 
         # Make sure there is only one record in the Facility sheet
         if len(df['Facility']) > 1:
-            errors.append("More than one record found in Facility sheet.")
+            errors["More than one record found in Facility sheet."].append({
+                "sheet": "Facility",
+                "row": 1,
+                "column": 1
+            })
+            errors_found = True
 
         # No empty or N/A cells are present in column A of any sheet
         for sheet in expected_sheets:
-            if df[sheet]['Name'].isnull().values.any():
-                errors.append(f"Empty or N/A cells found in column A of {sheet} sheet.")
+            for idx, value in enumerate(df[sheet]['Name']):
+                if pd.isnull(value):
+                    errors["Empty or N/A cells found in column A of sheet."].append({
+                        "sheet": sheet,
+                        "row": idx + 2,
+                        "column": 1
+                    })
+                    errors_found = True
 
         # Check Floor, Space, Type, Component sheets for duplicate names in column A
         for sheet in ['Floor', 'Space', 'Type', 'Component']:
-            if df[sheet]['Name'].duplicated().any():
-                errors.append(f"Duplicate names found in column A of {sheet} sheet.")
+            for idx, name in enumerate(df[sheet]['Name']):
+                if name in df[sheet]['Name'][idx + 1:]:
+                    errors["Duplicate names found in column A of sheet."].append({
+                        "sheet": sheet,
+                        "row": idx + 2,
+                        "column": 1
+                    })
+                    errors_found = True
 
         # Space Tab
         # Every value is linked to a value in the first column of the Floor tab
-        for space in df['Space']['FloorName'].unique():
+        for idx, space in enumerate(df['Space']['FloorName']):
             if space not in df['Floor']['Name'].values:
-                errors.append(f"Space {space} is not linked to a value in the first column of the Floor tab.")
+                errors["Space is not linked to a value in the first column of the Floor tab."].append({
+                    "sheet": "Space",
+                    "row": idx + 2,
+                    "column": 2
+                })  
+                errors_found = True
 
         # Type Tab
         # Every record has a category
-        if df['Type']['Category'].isnull().values.any():
-            errors.append("Not every record has a category.")
-
+        for idx, type in enumerate(df['Type']['Category']):
+            if pd.isnull(type):
+                errors["Not every Type record has a category."].append({
+                    "sheet": "Type",
+                    "row": idx + 2,
+                    "column": 2
+                })
+                errors_found = True
+            
         # Component Tab
         # Every record is linked to a existing Type
-        for component in df['Component']['TypeName'].unique():
+        for idx, component in enumerate(df['Component']['TypeName']):
             if component not in df['Type']['Name'].values:
-                errors.append(f"Component {component} is not linked to an existing Type.")
+                errors["Component is not linked to an existing Type."].append({
+                    "sheet": "Component",
+                    "row": idx + 2,
+                    "column": 2
+                })
+                errors_found = True
+
         # Every record is linked a to existing Space
-        for space_name in df['Component']['Space'].unique():
+        for idx, space_name in enumerate(df['Component']['Space']):
             # Check if cell is valid
             if pd.isnull(space_name):
-                errors.append("Not every record is linked to an existing Space.")
+                errors["Component is not linked to an existing Space."].append({
+                    "sheet": "Component",
+                    "row": idx + 2,
+                    "column": 3
+                })
+                errors_found = True
                 continue
             # Split by "," to get all spaces and remove whitespace
             spaces = [space.strip() for space in space_name.split(",")]
             for space in spaces:
                 if space not in df['Space']['Name'].values:
-                    errors.append(f"Space {space_name} is not linked to an existing Space.")
+                    errors["Component is not linked to an existing Space."].append({
+                        "sheet": "Component",
+                        "row": idx + 2,
+                        "column": 3
+                    })
+                    errors_found = True
+
+        # Remove all the empty lists from the errors dict
+        errors = {key: value for key, value in errors.items() if value}
         
-        return errors
+        return errors_found, errors
 
     def upload_spreadsheet(self, file_content: bytes, portfolio_namespace: str) -> list | None:
         """
@@ -104,9 +171,14 @@ class COBie:
         # Open COBie spreadsheet
         df = pd.read_excel(BytesIO(file_content), engine='openpyxl', sheet_name=None)
 
-        errors = self.validate_spreadsheet(df)
+        errors_found, errors = self.validate_spreadsheet(file_content)
 
-        if errors:
+        for key, value in errors.items():
+            if len(value) > 0:
+                print(key)
+                print(value)
+
+        if errors_found:
             print("Errors found in the spreadsheet:")
             return errors
         else:

@@ -35,7 +35,7 @@ class DocumentLoader():
                     file_name=file_path,
                 ),
                 # Other partition params
-                strategy="fast",
+                strategy="auto",
                 pdf_infer_table_structure=True,
                 skip_infer_table_types=[],
                 chunking_strategy="by_title",
@@ -47,6 +47,3 @@ class DocumentLoader():
             return [Document(text=element['text'], metadata=element['metadata']) for element in res.elements]
         except SDKError as e:
             print("Error extracting metadata")
-
-
-

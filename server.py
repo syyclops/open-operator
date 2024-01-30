@@ -15,9 +15,9 @@ class Message(BaseModel):
 
 operator = OpenOperator()
 
-app = FastAPI()
+app = FastAPI(title="Open Operator API")
 
-@app.post("/chat")
+@app.post("/chat", tags=["assistant"])
 async def chat(messages: list[Message], portfolio_id: str, building_id: str | None = None) -> StreamingResponse:
     messages_dict_list = [message.model_dump() for message in messages]
 
@@ -27,14 +27,26 @@ async def chat(messages: list[Message], portfolio_id: str, building_id: str | No
     
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
-@app.post("/files/upload")
+@app.post("/files/upload", tags=['files'])
 async def upload_file(file: UploadFile, portfolio_id: str, building_id: str | None = None):
     try:
         file_content = await file.read()
         operator.files.upload_file(file_content=file_content, file_name=file.filename, portfolio_id=portfolio_id, building_id=building_id)
         return "File uploaded successfully"
     except Exception as e:
-        return {"message": "There was an error uploading the file"}
+        return Response(content=str(e), status_code=500) 
+    
+@app.post("/cobie/validate_spreadsheet", tags=['cobie'])
+async def validate_spreadsheet(file: UploadFile):
+    try:
+        file_content = await file.read()
+        errors_founds, errors = operator.cobie.validate_spreadsheet(file_content)
+        if errors_founds:
+            return errors
+        else:
+            return {"message": "No errors found"}
+    except Exception as e:
+        return Response(content="Could not validate spreadsheet", status_code=500)
 
 
 if __name__ == "__main__":
