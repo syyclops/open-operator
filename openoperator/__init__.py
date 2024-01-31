@@ -5,3 +5,4 @@ from .services.embeddings import Embeddings
 from .services.knowledge_graph import KnowledgeGraph
 from .services.vector_store import VectorStore
 from .services.llm import LLM
+from .core.cobie.cobie import COBie

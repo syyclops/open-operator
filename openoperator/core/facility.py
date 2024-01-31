@@ -3,6 +3,7 @@ from ..services.blob_store import BlobStore
 from ..services.vector_store import VectorStore
 from ..services.document_loader import DocumentLoader
 from .cobie.cobie import COBie
+from neo4j.exceptions import Neo4jError
 
 class Facility:
     def __init__(self, 
@@ -11,8 +12,7 @@ class Facility:
                  facility_id: str, 
                  blob_store: BlobStore,
                  vector_store: VectorStore,
-                 document_loader: DocumentLoader,
-                 uri: str
+                 document_loader: DocumentLoader
         ) -> None:
         self.portfolio = portfolio
         self.knowledge_graph = knowledge_graph
@@ -21,7 +21,14 @@ class Facility:
         self.blob_store = blob_store
         self.vector_store = vector_store
         self.document_loader = document_loader
-        self.uri = uri
+        
+        # Fetch the facility from the knowledge graph
+        try:
+            with self.neo4j_driver.session() as session:
+                result = session.run("MATCH (n:Facility {id: $facility_id}) RETURN n", facility_id=self.id)
+                self.uri = result.single()['n']['uri']
+        except Neo4jError as e:
+            raise Exception(f"Error fetching facility: {e.message}")
 
     def list_files(self) -> list:
         """

@@ -5,6 +5,7 @@ from rdflib import Namespace, Literal
 import urllib.parse
 import openpyxl
 from openpyxl.styles import PatternFill
+from io import BytesIO
 
 # Define common namespaces
 COBIE = Namespace("http://checksem.u-bourgogne.fr/ontology/cobie24#")
@@ -13,15 +14,15 @@ A = RDF.type
 
 class COBie:
     """
-    This class handles everything related to the COBie spreadsheet.
+    This class handles everything related to the COBie spreadsheet. Pass in the file path or the file content as a bytes object.
 
     Its repsonsibilities are to:
 
     1. COBie spreadsheet validation
     2. Spreadsheet to RDF conversion
     """
-    def __init__(self, file_path: str) -> None:
-        self.file_path = file_path
+    def __init__(self, file: str | bytes) -> None:
+        self.file = file if isinstance(file, str) else BytesIO(file)
 
     def create_uri(self, name: str) -> str:
         """
@@ -56,8 +57,8 @@ class COBie:
         errors_found = False
 
         # Open COBie spreadsheet
-        df = pd.read_excel(self.file_path, engine='openpyxl', sheet_name=None) 
-        wb = openpyxl.load_workbook(self.file_path)
+        df = pd.read_excel(self.file, engine='openpyxl', sheet_name=None) 
+        wb = openpyxl.load_workbook(self.file)
 
         expected_sheets = ['Facility', 'Floor', 'Space', 'Type', 'Component', 'Attribute', 'System']
         # Check to make sure the spreadsheet has the correct sheets     
@@ -203,7 +204,7 @@ class COBie:
         namespace = Namespace(namespace)
 
         # Open COBie spreadsheet
-        df = pd.read_excel(self.file_path, engine='openpyxl', sheet_name=None)
+        df = pd.read_excel(self.file, engine='openpyxl', sheet_name=None)
 
         errors_found, errors, updated_file_path = self.validate_spreadsheet()
 

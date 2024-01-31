@@ -4,11 +4,18 @@ from .facility import Facility
 from urllib.parse import quote
 from neo4j.exceptions import Neo4jError
 class Portfolio:
-    def __init__(self, operator, neo4j_driver: Driver, portfolio_id: str, uri: str) -> dict:
+    def __init__(self, operator, neo4j_driver: Driver, portfolio_id: str) -> dict:
         self.operator = operator
         self.neo4j_driver = neo4j_driver
         self.id = portfolio_id
-        self.uri = uri  
+
+        # Fetch portfolio from knowledge graph
+        try:
+            with self.neo4j_driver.session() as session:
+                result = session.run("MATCH (n:Portfolio {id: $portfolio_id}) RETURN n", portfolio_id=self.id)
+                self.uri = result.single()['n']['uri']
+        except Neo4jError as e:
+            raise Exception(f"Error fetching portfolio: {e.message}")
 
     def list_buildings(self) -> list:
         """
@@ -37,7 +44,7 @@ class Portfolio:
             except Neo4jError as e:
                 raise Exception(f"Error creating facility: {e.message}")        
                 
-        return Facility(portfolio=self, knowledge_graph=self.operator.knowledge_graph, facility_id=str(id), blob_store=self.operator.blob_store, vector_store=self.operator.vector_store, document_loader=self.operator.document_loader, uri=facility_uri)
+        return Facility(portfolio=self, knowledge_graph=self.operator.knowledge_graph, facility_id=str(id), blob_store=self.operator.blob_store, vector_store=self.operator.vector_store, document_loader=self.operator.document_loader)
         
     def search_documents(self, query: str, limit: int = 15) -> list:
         """
