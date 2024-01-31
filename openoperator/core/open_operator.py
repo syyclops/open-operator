@@ -92,4 +92,5 @@ class OpenOperator:
             "search_building_documents": facility.search_documents if facility else portfolio.search_documents,
         }
 
-        self.llm.chat(messages, self.tools, available_functions, verbose)
+        for response in self.llm.chat(messages, self.tools, available_functions, verbose):
+            yield response

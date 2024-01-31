@@ -41,11 +41,16 @@ operator = OpenOperator(
 app = FastAPI(title="Open Operator API")
 
 @app.post("/chat", tags=["assistant"])
-async def chat(messages: list[Message], portfolio_id: str, building_id: str | None = None) -> StreamingResponse:
+async def chat(messages: list[Message], portfolio_id: str, facility_id: str | None = None) -> StreamingResponse:
     messages_dict_list = [message.model_dump() for message in messages]
 
+    portfolio = operator.portfolio(portfolio_id)
+    facility = None
+    if facility_id:
+        facility = portfolio.facility(facility_id=facility_id)
+
     async def event_stream() -> Generator[str, None, None]:
-        for response in operator.chat(messages=messages_dict_list, portfolio_id=portfolio_id, building_id=building_id):
+        for response in operator.chat(messages=messages_dict_list, portfolio=portfolio, facility=facility):
             yield response
     
     return StreamingResponse(event_stream(), media_type="text/event-stream")
@@ -86,7 +91,7 @@ async def list_portfolios() -> JSONResponse:
 @app.post("/portfolio/create", tags=['portfolio'])
 async def create_portfolio(portfolio_name: str) -> JSONResponse:
     portfolio = operator.create_portfolio(portfolio_name)
-    return Response(content=portfolio.id)
+    return JSONResponse(portfolio.details())
 
 @app.get("/portfolio/{portfolio_id}/facilities", tags=['portfolio'])
 async def list_buildings(portfolio_id: str) -> JSONResponse:
@@ -97,7 +102,7 @@ async def list_buildings(portfolio_id: str) -> JSONResponse:
 
 @app.post("/portfolio/{portfolio_id}/facility/create", tags=['portfolio'])
 async def create_facility(portfolio_id: str, building_name: str) -> JSONResponse:
-    return JSONResponse(operator.portfolio(portfolio_id).create_facility(building_name))
+    return JSONResponse(operator.portfolio(portfolio_id).create_facility(building_name).details())
 
 # if __name__ == "__main__":
 #     uvicorn.run(app, port=8080, host="0.0.0.0")

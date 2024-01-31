@@ -31,6 +31,14 @@ class Facility:
                 self.uri = result.single()['n']['uri']
         except Neo4jError as e:
             raise Exception(f"Error fetching facility: {e.message}")
+        
+    def details(self) -> dict:
+        """
+        Get facility details.
+        """
+        with self.neo4j_driver.session() as session:
+            result = session.run("MATCH (p:Portfolio {id: $portfolio_id})-[]-(n:Facility {id: $facility_id}) RETURN n", portfolio_id=self.portfolio.id, facility_id=self.id)
+            return result.data()[0]['n']
 
     def list_files(self) -> list:
         """

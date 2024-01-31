@@ -16,6 +16,14 @@ class Portfolio:
                 self.uri = result.single()['n']['uri']
         except Neo4jError as e:
             raise Exception(f"Error fetching portfolio: {e.message}")
+        
+    def details(self) -> dict:
+        """
+        Get portfolio details.
+        """
+        with self.neo4j_driver.session() as session:
+            result = session.run("MATCH (n:Portfolio {id: $portfolio_id}) RETURN n", portfolio_id=self.id)
+            return result.data()[0]['n']
 
     def list_buildings(self) -> list:
         """
@@ -53,3 +61,4 @@ class Portfolio:
         Search documents in the portfolio.
         """
         return self.operator.vector_store.similarity_search(query=query, limit=limit, filter={"portfolio_id": self.id})
+    

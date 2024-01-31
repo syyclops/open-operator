@@ -120,7 +120,8 @@ Always respond with markdown formatted text."""
 
                 # If there are no tool calls and just streaming a normal response then print the chunks
                 if not tool_calls:
-                    print(delta.content or "", end="", flush=True)
+                    yield delta.content or ""
+                    # print(delta.content or "", end="", flush=True)
 
 
 def split_string_with_limit(text: str, limit: int, encoding) -> List[str]:
