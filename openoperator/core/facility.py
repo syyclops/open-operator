@@ -31,7 +31,7 @@ class Facility:
             result = session.run("MATCH (d:Document)-[:documentTo]-(f:Facility {id: $facility_id}) RETURN d", facility_id=self.id)
             return [record['d'] for record in result.data()]
         
-    def upload_document(self, file_content: bytes, file_name: str) -> None:
+    def upload_document(self, file_content: bytes, file_name: str, file_type: str) -> None:
         """
         Upload a file for a facility.
 
@@ -41,7 +41,7 @@ class Facility:
         4. Create a document node in the knowledge graph
         """
         try:
-            file_url = self.blob_store.upload_file(file_content=file_content, file_name=file_name)
+            file_url = self.blob_store.upload_file(file_content=file_content, file_name=file_name, file_type=file_type)
         except Exception as e:
             # Log the error and potentially handle specific cases
             raise Exception(f"Error uploading document to blob storage: {e}")
@@ -90,7 +90,7 @@ class Facility:
         try:
             spreadsheet = COBie(file_path)
             rdf_graph_str = spreadsheet.convert_to_graph(namespace=self.uri)
-            url = self.blob_store.upload_file(file_content=rdf_graph_str.encode(), file_name=f"{self.id}_cobie.ttl")
+            url = self.blob_store.upload_file(file_content=rdf_graph_str.encode(), file_name=f"{self.id}_cobie.ttl", file_type="text/turtle")
             self.knowledge_graph.import_rdf_data(url)
         except Exception as e:
             raise Exception(f"Error uploading spreadsheet: {e}")

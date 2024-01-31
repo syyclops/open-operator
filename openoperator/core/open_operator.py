@@ -28,7 +28,6 @@ class OpenOperator:
         knowledge_graph: KnowledgeGraph,
         llm: LLM,
     ) -> None:
-        # Services
         self.blob_store = blob_store
         self.embeddings = embeddings
         self.document_loader = document_loader  
@@ -36,6 +35,29 @@ class OpenOperator:
         self.knowledge_graph = knowledge_graph  
         self.neo4j_driver = knowledge_graph.neo4j_driver
         self.llm = llm
+    
+        self.tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "search_building_documents",
+                    "description": "Search building documents for metadata. These documents are drawings/plans, O&M manuals, etc.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "The search query to use.",
+                            },
+                        },
+                        "required": ["query"],
+                    },
+                },
+            }
+        ]
+
+
+
 
     def portfolio(self, portfolio_id: str) -> Portfolio:
         return Portfolio(self, neo4j_driver=self.neo4j_driver, portfolio_id=portfolio_id)
@@ -62,5 +84,9 @@ class OpenOperator:
                 raise Exception(f"Error creating portfolio: {e.message}")
         return Portfolio(self, neo4j_driver=self.neo4j_driver, portfolio_id=str(id), uri=portfolio_uri)
 
-    def chat(self, messages, verbose: bool = False):
-        self.llm.chat(messages, verbose)
+    def chat(self, messages, portfolio: Portfolio, verbose: bool = False):
+        available_functions = {
+            "search_building_documents": portfolio.search_documents
+        }
+
+        self.llm.chat(messages, self.tools, available_functions, verbose)

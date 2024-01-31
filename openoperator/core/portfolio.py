@@ -39,3 +39,8 @@ class Portfolio:
                 
         return Facility(portfolio=self, knowledge_graph=self.operator.knowledge_graph, facility_id=str(id), blob_store=self.operator.blob_store, vector_store=self.operator.vector_store, document_loader=self.operator.document_loader, uri=facility_uri)
         
+    def search_documents(self, query: str, limit: int = 5) -> list:
+        """
+        Search documents in the portfolio.
+        """
+        return self.operator.vector_store.similarity_search(query=query, limit=limit, filter={"portfolio_id": self.id})

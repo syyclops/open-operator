@@ -7,7 +7,8 @@ from typing import List
 class LLM:
     def __init__(self, 
                  openai_api_key: str | None = None,
-                 system_prompt: str | None = None) -> None:
+                 system_prompt: str | None = None
+                ) -> None:
         # Create openai client
         if openai_api_key is None:
             openai_api_key = os.environ['OPENAI_API_KEY']
@@ -22,44 +23,21 @@ Don't make up information. If you don't know, say you don't know.
 Always respond with markdown formatted text."""
         self.system_prompt = system_prompt
 
-        # Define tools to give model
-        self.tools = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "search_building_documents",
-                    "description": "Search building documents for metadata. These documents are drawings/plans, O&M manuals, etc.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "The search query to use.",
-                            },
-                        },
-                        "required": ["query"],
-                    },
-                },
-            }
-        ]
 
-    def chat(self, messages, verbose: bool = False):
+    def chat(self, messages, tools = [], available_functions = {}, verbose: bool = False):
         # Add the system message to be the first message
         messages.insert(0, {
             "role": "system",
             "content": self.system_prompt
         })
 
-        available_functions = {
-            # "search_building_documents": self.files.search_metadata,
-        }
-
+        
         while True:
             # Send the conversation and available functions to the model
             stream = self.openai.chat.completions.create(
                 model="gpt-4",
                 messages=messages,
-                tools=self.tools,
+                tools=tools,
                 tool_choice="auto",
                 stream=True
             )
@@ -105,12 +83,9 @@ Always respond with markdown formatted text."""
                         function_to_call = available_functions[function_name]
                         function_args = json.loads(tool_call['function']['arguments'])
                         if verbose: print("Tool args: " + str(function_args))
-                        filter = {
-                        }
                         function_response = function_to_call(
                             function_args['query'],
                             8,
-                            filter=filter
                         )
 
                         # Convert function response to string and limit to 5000 tokens
