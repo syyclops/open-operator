@@ -4,7 +4,6 @@ import tiktoken
 import json
 from typing import List
         
-
 class LLM:
     def __init__(self, 
                  openai_api_key: str | None = None,
@@ -44,7 +43,7 @@ Always respond with markdown formatted text."""
             }
         ]
 
-    def chat(self, messages, portfolio_id: str, building_id: bool = False, verbose: bool = False):
+    def chat(self, messages, verbose: bool = False):
         # Add the system message to be the first message
         messages.insert(0, {
             "role": "system",
@@ -107,10 +106,7 @@ Always respond with markdown formatted text."""
                         function_args = json.loads(tool_call['function']['arguments'])
                         if verbose: print("Tool args: " + str(function_args))
                         filter = {
-                            "portfolio_id": portfolio_id
                         }
-                        if building_id:
-                            filter["building_id"] = building_id
                         function_response = function_to_call(
                             function_args['query'],
                             8,

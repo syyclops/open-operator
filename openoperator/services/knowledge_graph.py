@@ -33,6 +33,14 @@ class KnowledgeGraph():
             preixes = session.run("call n10s.nsprefixes.list()")
             if "cobie" not in preixes:
                 session.run("call n10s.nsprefixes.add('cobie', 'http://checksem.u-bourgogne.fr/ontology/cobie24#')")
+    
+    def execute(self, query: str, parameters: dict = {}):
+        """
+        Execute a Cypher query.
+        """
+        with self.neo4j_driver.session() as session:
+            result = session.run(query, parameters)
+            return result.data()
                 
     def import_rdf_data(self, url: str, format: str = "Turtle", inline: bool = False):
         """

@@ -192,15 +192,15 @@ class COBie:
 
         return errors_found, errors, "test.xlsx"
 
-    def convert_to_graph(self, portfolio_namespace: str) -> str:
+    def convert_to_graph(self, namespace: str) -> str:
         """
         Converts a valid COBie spreadsheet to RDF and uploads it to knowledge graph.
 
         portfolio_namespace: The namespace to represent a group of buildings and is used to create the URI of the facility. Ex. https://departmentOfEnergy.com/ could be the namespace for all the buildings owned by the Department of Energy. 
         """
         # Make sure the portfolio namespace is a valid URI
-        assert urllib.parse.urlparse(portfolio_namespace).scheme != ""
-        portfolio_namespace = Namespace(portfolio_namespace)
+        assert urllib.parse.urlparse(namespace).scheme != ""
+        namespace = Namespace(namespace)
 
         # Open COBie spreadsheet
         df = pd.read_excel(self.file_path, engine='openpyxl', sheet_name=None)
@@ -222,11 +222,11 @@ class COBie:
             g = rdflib.Graph()
             g.bind("RDF", RDF)
             g.bind("COBIE", COBIE)
-            g.bind("Namespace", portfolio_namespace)
+            g.bind("Namespace", namespace)
 
-            facility_uri = portfolio_namespace[self.create_uri(df['Facility']['Name'][0])] # All the nodes in the graph will extend this uri
+            facility_uri = namespace # All the nodes in the graph will extend this uri
 
-            for sheet in ['Facility', 'Floor', 'Space', 'Type', 'Component', 'System']:
+            for sheet in ['Floor', 'Space', 'Type', 'Component', 'System']:
                 print(f"Processing {sheet} sheet...")
                 predicates = df[sheet].keys()
                 predicates = [predicate[0].lower() + predicate[1:] for predicate in predicates] # Make first letter lowercase
@@ -235,7 +235,7 @@ class COBie:
                 for _, row in df[sheet].iterrows():
                     # The name field is used as the subject
                     subject = row['Name']
-                    subject_uri = facility_uri + "/" + sheet.lower() + "/" + self.create_uri(subject)
+                    subject_uri = facility_uri["/" + sheet.lower() + "/" + self.create_uri(subject)]
 
                     # Get the values of the row
                     objects = row.values
@@ -259,12 +259,12 @@ class COBie:
                             elif sheet == "System":
                                 target_sheet = "Component"
 
-                            g.add((subject_uri, COBIE[predicate], facility_uri + "/" + target_sheet.lower() + "/" + self.create_uri(obj)))
+                            g.add((subject_uri, COBIE[predicate], facility_uri["/" + target_sheet.lower() + "/" + self.create_uri(obj)]))
                         elif sheet == "Component" and predicate == "space":
                             # Split by "," to get all spaces and remove whitespace
                             spaces = [space.strip() for space in obj.split(",")]
                             for space in spaces:
-                                g.add((subject_uri, COBIE[predicate], facility_uri + "/" + "space" + "/" + self.create_uri(space)))
+                                g.add((subject_uri, COBIE[predicate], facility_uri["/" + "space" + "/" + self.create_uri(space)]))
                         else:
                             g.add((subject_uri, COBIE[predicate], Literal(str(obj).replace('"', '\\"'))))
                         i += 1      
@@ -274,7 +274,7 @@ class COBie:
             for _, row in df['Attribute'].iterrows():
                 target_sheet = row['SheetName']
                 target_row_name = row['RowName']
-                target_uri = facility_uri + "/" + target_sheet.lower() + "/" + self.create_uri(target_row_name)
+                target_uri = facility_uri["/" + target_sheet.lower() + "/" + self.create_uri(target_row_name)]
 
                 attribute_uri = target_uri + "/attribute/" + self.create_uri(row['Name'])
 
