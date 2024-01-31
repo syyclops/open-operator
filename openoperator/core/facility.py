@@ -77,7 +77,7 @@ class Facility:
             raise Exception(f"Error creating document node in Neo4J: {e}")
 
     
-    def search_documents(self, query: str, limit: int = 5) -> list:
+    def search_documents(self, query: str, limit: int = 15) -> list:
         """
         Search documents in the facility.
         """

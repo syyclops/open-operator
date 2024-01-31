@@ -7,12 +7,15 @@ from typing import List
 class LLM:
     def __init__(self, 
                  openai_api_key: str | None = None,
-                 system_prompt: str | None = None
+                 system_prompt: str | None = None,
+                 model_name: str = "gpt-4"
                 ) -> None:
         # Create openai client
         if openai_api_key is None:
             openai_api_key = os.environ['OPENAI_API_KEY']
         self.openai = OpenAI(api_key=openai_api_key)
+
+        self.model_name = model_name
 
         if system_prompt is None:
             system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
@@ -31,11 +34,10 @@ Always respond with markdown formatted text."""
             "content": self.system_prompt
         })
 
-        
         while True:
             # Send the conversation and available functions to the model
             stream = self.openai.chat.completions.create(
-                model="gpt-4",
+                model=self.model_name,
                 messages=messages,
                 tools=tools,
                 tool_choice="auto",
@@ -85,14 +87,15 @@ Always respond with markdown formatted text."""
                         if verbose: print("Tool args: " + str(function_args))
                         function_response = function_to_call(
                             function_args['query'],
-                            8,
                         )
 
-                        # Convert function response to string and limit to 5000 tokens
+                        # Convert function response to string and limit to 7000 tokens
                         encoding = tiktoken.get_encoding("cl100k_base")
-                        texts = split_string_with_limit(str(function_response), 5000, encoding)
+                        texts = split_string_with_limit(str(function_response), 7000, encoding)
 
-                        if verbose: print("Tool response: " + texts[0])
+                        if verbose:
+                            print("Tool response:")
+                            print(json.dumps(function_response, indent=2))
 
                         # Extend conversation with function response
                         messages.append(
