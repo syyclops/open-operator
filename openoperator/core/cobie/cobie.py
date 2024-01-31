@@ -3,9 +3,6 @@ import pandas as pd
 import rdflib
 from rdflib import Namespace, Literal
 import urllib.parse
-from ...services.blob_store import BlobStore
-from ...services.graph_db import GraphDB
-from io import BytesIO
 import openpyxl
 from openpyxl.styles import PatternFill
 
@@ -23,9 +20,8 @@ class COBie:
     1. COBie spreadsheet validation
     2. Spreadsheet to RDF conversion
     """
-    def __init__(self, graph_db: GraphDB, blob_store: BlobStore) -> None:
-        self.graph_db = graph_db
-        self.blob_store = blob_store
+    def __init__(self, file_path: str) -> None:
+        self.file_path = file_path
 
     def create_uri(self, name: str) -> str:
         """
@@ -36,7 +32,7 @@ class COBie:
         name = urllib.parse.quote(name.lower())
         return name
 
-    def validate_spreadsheet(self, spread_sheet_file: bytes) -> (bool, dict, bytes):
+    def validate_spreadsheet(self) -> (bool, dict, bytes):
         """
         Validate a COBie spreadsheet. Refer to COBie_validation.pdf in docs/ for more information.
         
@@ -60,8 +56,8 @@ class COBie:
         errors_found = False
 
         # Open COBie spreadsheet
-        df = pd.read_excel(BytesIO(spread_sheet_file), engine='openpyxl', sheet_name=None) 
-        wb = openpyxl.load_workbook(BytesIO(spread_sheet_file))
+        df = pd.read_excel(self.file_path, engine='openpyxl', sheet_name=None) 
+        wb = openpyxl.load_workbook(self.file_path)
 
         expected_sheets = ['Facility', 'Floor', 'Space', 'Type', 'Component', 'Attribute', 'System']
         # Check to make sure the spreadsheet has the correct sheets     
@@ -196,7 +192,7 @@ class COBie:
 
         return errors_found, errors, "test.xlsx"
 
-    def upload_spreadsheet(self, file_content: bytes, portfolio_namespace: str) -> list | None:
+    def convert_to_graph(self, portfolio_namespace: str) -> str:
         """
         Converts a valid COBie spreadsheet to RDF and uploads it to knowledge graph.
 
@@ -207,9 +203,9 @@ class COBie:
         portfolio_namespace = Namespace(portfolio_namespace)
 
         # Open COBie spreadsheet
-        df = pd.read_excel(BytesIO(file_content), engine='openpyxl', sheet_name=None)
+        df = pd.read_excel(self.file_path, engine='openpyxl', sheet_name=None)
 
-        errors_found, errors = self.validate_spreadsheet(file_content)
+        errors_found, errors, updated_file_path = self.validate_spreadsheet()
 
         for key, value in errors.items():
             if len(value) > 0:
@@ -291,6 +287,4 @@ class COBie:
             # Serialize the graph to a file
             graph_string = g.serialize(format='turtle', encoding='utf-8').decode()
 
-            # Open the file and read it as a string, then upload it to the graph db
-            url = self.blob_store.upload_file(graph_string, "cobie_graph_test_2.ttl")
-            self.graph_db.import_rdf_data(url)
+            return graph_string

@@ -1,15 +1,16 @@
-from .files.files import Files
 from openai import OpenAI
 import json
 import tiktoken
 import os
 from typing import List
-from ..services.graph_db import GraphDB
+from ..services.knowledge_graph import KnowledgeGraph
 from ..services.blob_store import BlobStore
 from ..services.embeddings import Embeddings
 from ..services.document_loader import DocumentLoader
 from ..services.vector_store import VectorStore
 from .cobie.cobie import COBie
+import uuid
+from .portfolio import Portfolio
 
 class OpenOperator: 
     """
@@ -35,15 +36,17 @@ class OpenOperator:
         container_name: str | None = None,
     ) -> None:
         # Services
-        blob_store = BlobStore(container_client_connection_string=container_client_connection_string, container_name=container_name)
-        graph_db = GraphDB(neo4j_uri=neo4j_uri, neo4j_user=neo4j_user, neo4j_password=neo4j_password)
+        self.blob_store = BlobStore(container_client_connection_string=container_client_connection_string, container_name=container_name)
         embeddings = Embeddings(openai_api_key=openai_api_key)
-        document_loader = DocumentLoader(unstructured_api_key=unstructured_api_key, unstructured_api_url=unstructured_api_url)
-        vector_store = VectorStore(embeddings=embeddings, collection_name=postgres_embeddings_table, connection_string=postgres_connection_string)
+        self.document_loader = DocumentLoader(unstructured_api_key=unstructured_api_key, unstructured_api_url=unstructured_api_url)
+        self.vector_store = VectorStore(embeddings=embeddings, collection_name=postgres_embeddings_table, connection_string=postgres_connection_string)
+
+        knowledge_graph = KnowledgeGraph(neo4j_uri=neo4j_uri, neo4j_user=neo4j_user, neo4j_password=neo4j_password)
+        self.neo4j_driver = knowledge_graph.neo4j_driver
         
         # Core modules
-        self.files = Files(blob_store=blob_store, vector_store=vector_store, document_loader=document_loader)
-        self.cobie = COBie(graph_db=graph_db, blob_store=blob_store)
+        # self.files = Files(blob_store=blob_store, vector_store=vector_store, document_loader=document_loader)
+        # self.cobie = COBie(graph_db=self.neo4j_driver, blob_store=blob_store)
 
         # Create openai client
         if openai_api_key is None:
@@ -78,6 +81,27 @@ Always respond with markdown formatted text."""
             }
         ]
 
+    def portfolio(self, portfolio_id: str) -> Portfolio:
+        return Portfolio(self, neo4j_driver=self.neo4j_driver, portfolio_id=portfolio_id)
+
+    def portfolios(self) -> list:
+        """
+        Get all portfolios.
+        """
+        with self.neo4j_driver.session() as session:
+            result = session.run("MATCH (n:Portfolio) RETURN n")
+            return [record['n'] for record in result.data()]
+        
+    def create_portfolio(self, name: str) -> Portfolio:
+        """
+        Create a portfolio.
+        """
+        with self.neo4j_driver.session() as session:
+            id = uuid.uuid4()
+            result = session.run("CREATE (n:Portfolio {name: $name, id: $id}) RETURN n", name=name, id=str(id))
+            return Portfolio(self, neo4j_driver=self.neo4j_driver, portfolio_id=str(id))
+
+
     def chat(self, messages, portfolio_id: str, building_id: bool = False, verbose: bool = False):
         # Add the system message to be the first message
         messages.insert(0, {
@@ -86,7 +110,7 @@ Always respond with markdown formatted text."""
         })
 
         available_functions = {
-            "search_building_documents": self.files.search_metadata,
+            # "search_building_documents": self.files.search_metadata,
         }
 
         while True:

@@ -53,5 +53,22 @@ async def validate_spreadsheet(file: UploadFile, download_update_file: bool):
         return Response(content="Unable to validate spreadsheet", status_code=500)
 
 
-if __name__ == "__main__":
-    uvicorn.run(app, port=8080, host="0.0.0.0")
+@app.get("/portfolio/list", tags=['portfolio'])
+async def list_portfolios() -> JSONResponse:
+    return JSONResponse(operator.portfolios())
+
+@app.post("/portfolio/create", tags=['portfolio'])
+async def create_portfolio(portfolio_name: str) -> JSONResponse:
+    portfolio = operator.create_portfolio(portfolio_name)
+    return JSONResponse(portfolio)
+
+@app.get("/portfolio/{portfolio_id}/facilities", tags=['portfolio'])
+async def list_buildings(portfolio_id: str) -> JSONResponse:
+    return JSONResponse(operator.portfolio(portfolio_id).list_buildings())
+
+@app.post("/portfolio/{portfolio_id}/facility/create", tags=['portfolio'])
+async def create_building(portfolio_id: str, building_name: str) -> JSONResponse:
+    return JSONResponse(operator.portfolio(portfolio_id).create_building(building_name))
+
+# if __name__ == "__main__":
+#     uvicorn.run(app, port=8080, host="0.0.0.0")

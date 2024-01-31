@@ -14,6 +14,8 @@ Today in building operations information sits in different data siloes which mak
 
 A lot of the work for this project involves extracting information from these different data siloes and aligning the systems.
 
+This project will handle the ETL process to get the AI all infomation it needs, and interacting with the assistant.
+
 ## Tools
 
 1. Building Documents: Drawings/Plans, O&M Manuals, submittals, etc.

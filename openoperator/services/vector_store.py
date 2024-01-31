@@ -43,7 +43,7 @@ class VectorStore():
         """
         Creates text embeddings for a list of documents and uploads them to the vector store.
         """
-        with self.conn as cur:
+        with self.conn.cursor() as cur:
             # Create the embeddings
             docs = [doc.text for doc in documents]
             embeddings = self.embeddings.create_embeddings(texts=docs)
@@ -55,7 +55,7 @@ class VectorStore():
                 embedding = np.array(embeddings[i].embedding)
 
                 cur.execute(f'INSERT INTO {self.collection_name} (content, metadata, embedding) VALUES (%s, %s, %s)', (text, metadata, embedding))
-
+    
     def similarity_search(self, query: str, limit: int, filter: dict | None = None) -> list:
         """
         Search for similar documents in the vector store.
@@ -84,7 +84,7 @@ class VectorStore():
         params.append(limit)
         
         # Query postgres
-        with self.conn as cur:
+        with self.conn.cursor() as cur:
             register_vector(self.conn)
             records = cur.execute(query, params).fetchall()
             

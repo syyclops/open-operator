@@ -1,7 +1,7 @@
 import os
 from neo4j import GraphDatabase
 
-class GraphDB():
+class KnowledgeGraph():
     def __init__(
             self,
             neo4j_uri: str | None = None,
@@ -33,7 +33,7 @@ class GraphDB():
             preixes = session.run("call n10s.nsprefixes.list()")
             if "cobie" not in preixes:
                 session.run("call n10s.nsprefixes.add('cobie', 'http://checksem.u-bourgogne.fr/ontology/cobie24#')")
-
+                
     def import_rdf_data(self, url: str, format: str = "Turtle", inline: bool = False):
         """
         Import RDF data into the knowledge graph.
