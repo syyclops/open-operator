@@ -42,6 +42,9 @@ $ source ./venv/bin/activate
 
 # Install dependencies
 $ pip install -r requirements.txt
+
+# Start the docker containers
+$ docker compose up -d
 ```
 
 ## Resources
