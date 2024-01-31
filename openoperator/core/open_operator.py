@@ -24,29 +24,20 @@ class OpenOperator:
     """
     def __init__(
         self, 
-        postgres_connection_string: str | None = None, 
-        postgres_embeddings_table: str | str = None, 
+        blob_store: BlobStore,
+        embeddings: Embeddings,
+        document_loader: DocumentLoader,
+        vector_store: VectorStore,
+        knowledge_graph: KnowledgeGraph,
         openai_api_key: str | None = None,
-        unstructured_api_key: str | None = None,
-        unstructured_api_url: str | None = None,
-        neo4j_uri: str | None = None,
-        neo4j_user: str | None = None,
-        neo4j_password: str | None = None,
-        container_client_connection_string: str | None = None,
-        container_name: str | None = None,
     ) -> None:
         # Services
-        self.blob_store = BlobStore(container_client_connection_string=container_client_connection_string, container_name=container_name)
-        embeddings = Embeddings(openai_api_key=openai_api_key)
-        self.document_loader = DocumentLoader(unstructured_api_key=unstructured_api_key, unstructured_api_url=unstructured_api_url)
-        self.vector_store = VectorStore(embeddings=embeddings, collection_name=postgres_embeddings_table, connection_string=postgres_connection_string)
-
-        knowledge_graph = KnowledgeGraph(neo4j_uri=neo4j_uri, neo4j_user=neo4j_user, neo4j_password=neo4j_password)
+        self.blob_store = blob_store
+        self.embeddings = embeddings
+        self.document_loader = document_loader  
+        self.vector_store = vector_store
+        self.knowledge_graph = knowledge_graph  
         self.neo4j_driver = knowledge_graph.neo4j_driver
-        
-        # Core modules
-        # self.files = Files(blob_store=blob_store, vector_store=vector_store, document_loader=document_loader)
-        # self.cobie = COBie(graph_db=self.neo4j_driver, blob_store=blob_store)
 
         # Create openai client
         if openai_api_key is None:

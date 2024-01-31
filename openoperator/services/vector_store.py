@@ -13,7 +13,7 @@ class VectorStore():
     - Create text embeddings for documents and upload to the vector store
     - Search the vector store for similar documents
     """
-    def __init__(self, embeddings: Embeddings, collection_name: str, connection_string: str) -> None:
+    def __init__(self, embeddings: Embeddings, collection_name: str | None = None, connection_string: str | None = None) -> None:
         if connection_string is None:
             connection_string = os.environ['POSTGRES_CONNECTION_STRING']
         if collection_name is None:
