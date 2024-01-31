@@ -1,4 +1,4 @@
-from neo4j import Driver
+from ..services.knowledge_graph import KnowledgeGraph
 from ..services.blob_store import BlobStore
 from ..services.vector_store import VectorStore
 from ..services.document_loader import DocumentLoader
@@ -7,7 +7,7 @@ from .cobie.cobie import COBie
 class Facility:
     def __init__(self, 
                  portfolio,
-                 neo4j_driver: Driver, 
+                 knowledge_graph: KnowledgeGraph, 
                  facility_id: str, 
                  blob_store: BlobStore,
                  vector_store: VectorStore,
@@ -15,7 +15,8 @@ class Facility:
                  uri: str
         ) -> None:
         self.portfolio = portfolio
-        self.neo4j_driver = neo4j_driver
+        self.knowledge_graph = knowledge_graph
+        self.neo4j_driver = knowledge_graph.neo4j_driver
         self.id = facility_id
         self.blob_store = blob_store
         self.vector_store = vector_store
@@ -27,12 +28,17 @@ class Facility:
         List all files in a facility.
         """
         with self.neo4j_driver.session() as session:
-            result = session.run("MATCH (n:File)-[:PART_OF]-(f:Facility {id: $facility_id}) RETURN n", facility_id=self.id)
-            return [record['n'] for record in result.data()]
+            result = session.run("MATCH (d:Document)-[:documentTo]-(f:Facility {id: $facility_id}) RETURN d", facility_id=self.id)
+            return [record['d'] for record in result.data()]
         
     def upload_document(self, file_content: bytes, file_name: str) -> None:
         """
-        Upload a file to the facility.
+        Upload a file for a facility.
+
+        1. Upload the file to the blob store
+        2. Extract metadata from the file
+        3. Add metadata to the vector store
+        4. Create a document node in the knowledge graph
         """
         try:
             file_url = self.blob_store.upload_file(file_content=file_content, file_name=file_name)
@@ -77,9 +83,17 @@ class Facility:
         """
         return self.vector_store.similarity_search(query=query, limit=limit, filter={"facility_id": self.id})
     
-    def upload_spreadsheet(self, file_path: str):
-        spreadsheet = COBie(file_path)
-        rdf_graph_str = spreadsheet.convert_to_graph(namespace=self.uri)
+    def upload_cobie_spreadsheet(self, file_path: str):
+        """
+        Convert a cobie spreadsheet to rdf graph, upload it to the blob store and import it to the knowledge graph.
+        """
+        try:
+            spreadsheet = COBie(file_path)
+            rdf_graph_str = spreadsheet.convert_to_graph(namespace=self.uri)
+            url = self.blob_store.upload_file(file_content=rdf_graph_str.encode(), file_name=f"{self.id}_cobie.ttl")
+            self.knowledge_graph.import_rdf_data(url)
+        except Exception as e:
+            raise Exception(f"Error uploading spreadsheet: {e}")
 
-        return rdf_graph_str
+        return url
     

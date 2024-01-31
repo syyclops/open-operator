@@ -37,5 +37,5 @@ class Portfolio:
             except Neo4jError as e:
                 raise Exception(f"Error creating facility: {e.message}")        
                 
-        return Facility(portfolio=self, neo4j_driver=self.neo4j_driver, facility_id=str(id), blob_store=self.operator.blob_store, vector_store=self.operator.vector_store, document_loader=self.operator.document_loader, uri=facility_uri)
+        return Facility(portfolio=self, knowledge_graph=self.operator.knowledge_graph, facility_id=str(id), blob_store=self.operator.blob_store, vector_store=self.operator.vector_store, document_loader=self.operator.document_loader, uri=facility_uri)
         

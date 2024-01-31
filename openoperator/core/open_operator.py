@@ -50,7 +50,7 @@ class OpenOperator:
         
     def create_portfolio(self, name: str) -> Portfolio:
         """
-        Create a portfolio.
+        Create a portfolio. The name must be unique. It will be used to create the URI of the portfolio.
         """
         id = uuid.uuid4()
         portfolio_uri = f"https://openoperator.com/{quote(name)}"

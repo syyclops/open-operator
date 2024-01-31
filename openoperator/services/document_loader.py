@@ -2,6 +2,7 @@ from unstructured_client import UnstructuredClient
 from unstructured_client.models import shared
 from unstructured_client.models.errors import SDKError
 import os
+from typing import List
 
 class Document:
     def __init__(self, text: str, metadata):
@@ -22,7 +23,7 @@ class DocumentLoader():
 
         self.unstructured_client = s
     
-    def load(self, file_content: bytes, file_path: str) -> list[Document]:
+    def load(self, file_content: bytes, file_path: str) -> List[Document]:
         """
         Use unstructured client to extract metadata from a file and upload to vector store.
         """
@@ -37,13 +38,20 @@ class DocumentLoader():
                 # Other partition params
                 strategy="auto",
                 pdf_infer_table_structure=True,
-                skip_infer_table_types=[],
+                skip_infer_table_types=[""],
+                max_characters=1500,
+                new_after_n_chars=1500,
                 chunking_strategy="by_title",
-                multipage_sections=True,
+                combine_under_n_chars=500,
             )
 
             res = self.unstructured_client.general.partition(req)
 
-            return [Document(text=element['text'], metadata=element['metadata']) for element in res.elements]
+            docs = [Document(text=element['text'], metadata=element['metadata']) for element in res.elements]
+
+            # Remove any where text is empty
+            docs = [doc for doc in docs if doc.text]
+
+            return docs
         except SDKError as e:
             print("Error extracting metadata")

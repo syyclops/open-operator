@@ -5,6 +5,7 @@ import numpy as np
 import os
 from .embeddings import Embeddings
 from .document_loader import Document
+from typing import List
 
 class VectorStore():
     """
@@ -39,14 +40,14 @@ class VectorStore():
             if not exists:
                 cur.execute(f'CREATE TABLE {collection_name} (id bigserial PRIMARY KEY, content text, metadata jsonb, embedding vector(1536));')
 
-    def add_documents(self, documents: list[Document]) -> None:
+    def add_documents(self, documents: List[Document]) -> None:
         """
         Creates text embeddings for a list of documents and uploads them to the vector store.
         """
         with self.conn.cursor() as cur:
             # Create the embeddings
             docs = [doc.text for doc in documents]
-            embeddings = self.embeddings.create_embeddings(texts=docs)
+            embeddings = self.embeddings.create_embeddings(docs)
             
             # Insert into postgres
             for i, doc in enumerate(documents):
