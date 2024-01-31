@@ -13,7 +13,7 @@ A = RDF.type
 
 class COBie:
     """
-    This class handles everything related to the COBie graph.
+    This class handles everything related to the COBie spreadsheet.
 
     Its repsonsibilities are to:
 

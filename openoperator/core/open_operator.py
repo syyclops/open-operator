@@ -6,6 +6,7 @@ from ..services.vector_store import VectorStore
 from ..services.llm import LLM
 import uuid
 from .portfolio import Portfolio
+from .facility import Facility
 from urllib.parse import quote
 from neo4j.exceptions import Neo4jError
 
@@ -36,6 +37,7 @@ class OpenOperator:
         self.neo4j_driver = knowledge_graph.neo4j_driver
         self.llm = llm
     
+        # Define the tools that the assistant can use
         self.tools = [
             {
                 "type": "function",
@@ -55,9 +57,6 @@ class OpenOperator:
                 },
             }
         ]
-
-
-
 
     def portfolio(self, portfolio_id: str) -> Portfolio:
         return Portfolio(self, neo4j_driver=self.neo4j_driver, portfolio_id=portfolio_id)
@@ -84,9 +83,9 @@ class OpenOperator:
                 raise Exception(f"Error creating portfolio: {e.message}")
         return Portfolio(self, neo4j_driver=self.neo4j_driver, portfolio_id=str(id), uri=portfolio_uri)
 
-    def chat(self, messages, portfolio: Portfolio, verbose: bool = False):
+    def chat(self, messages, portfolio: Portfolio, facility: Facility | None = None, verbose: bool = False):
         available_functions = {
-            "search_building_documents": portfolio.search_documents
+            "search_building_documents": facility.search_documents if facility else portfolio.search_documents,
         }
 
         self.llm.chat(messages, self.tools, available_functions, verbose)
