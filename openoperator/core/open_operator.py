@@ -80,9 +80,11 @@ class OpenOperator:
         with self.neo4j_driver.session() as session:
             try: 
                 result = session.run("CREATE (n:Portfolio:Resource {name: $name, id: $id, uri: $uri}) RETURN n", name=name, id=str(id), uri=portfolio_uri)
-                result.consume()
+                if result.single() is None:
+                    raise Exception("Error creating portfolio")
             except Neo4jError as e:
                 raise Exception(f"Error creating portfolio: {e.message}")
+            
         return Portfolio(self, neo4j_driver=self.neo4j_driver, portfolio_id=str(id))
 
     def chat(self, messages, portfolio: Portfolio, facility: Facility | None = None, verbose: bool = False):

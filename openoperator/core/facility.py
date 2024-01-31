@@ -25,7 +25,9 @@ class Facility:
         # Fetch the facility from the knowledge graph
         try:
             with self.neo4j_driver.session() as session:
-                result = session.run("MATCH (n:Facility {id: $facility_id}) RETURN n", facility_id=self.id)
+                result = session.run("""MATCH (p:Portfolio {id: $portfolio_id})
+                                     MATCH (n:Facility {id: $facility_id})-[]-(p)
+                                     RETURN n""", facility_id=self.id, portfolio_id=self.portfolio.id)
                 self.uri = result.single()['n']['uri']
         except Neo4jError as e:
             raise Exception(f"Error fetching facility: {e.message}")

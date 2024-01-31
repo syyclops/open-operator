@@ -58,6 +58,7 @@ async def upload_file(file: UploadFile, portfolio_id: str, facility_id: str | No
         operator.portfolio(portfolio_id).facility(facility_id=facility_id).upload_document(file_content=file_content, file_name=file.filename, file_type=file_type)
         return "File uploaded successfully"
     except Exception as e:
+        print(e)
         return Response(content=str(e), status_code=500) 
     
 @app.post("/cobie/validate_spreadsheet", tags=['cobie'])
@@ -75,7 +76,7 @@ async def validate_spreadsheet(file: UploadFile, download_update_file: bool):
             return {"message": "No errors found"}
     except Exception as e:
         print(e)
-        return Response(content="Unable to validate spreadsheet", status_code=500)
+        return Response(content=f"Unable to validate spreadsheet: {e}", status_code=500)
 
 
 @app.get("/portfolio/list", tags=['portfolio'])

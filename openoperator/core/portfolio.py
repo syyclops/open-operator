@@ -26,7 +26,7 @@ class Portfolio:
             return [record['n'] for record in result.data()]
     
     def facility(self, facility_id: str) -> Facility:
-        return Facility(portfolio=self, neo4j_driver=self.neo4j_driver, facility_id=facility_id, blob_store=self.operator.blob_store)
+        return Facility(portfolio=self, knowledge_graph=self.operator.knowledge_graph, facility_id=facility_id, blob_store=self.operator.blob_store, vector_store=self.operator.vector_store, document_loader=self.operator.document_loader)
         
     def create_facility(self, name: str) -> Facility:
         """
@@ -34,13 +34,15 @@ class Portfolio:
         """
         facility_uri = f"{self.uri}/{quote(name)}"
         id = uuid.uuid4()
-        query = """CREATE (n:Facility:Resource {name: $name, id: $id, uri: $uri}) 
-                    CREATE (n)-[:PART_OF]->(:Portfolio {id: $portfolio_id})
+        query = """MATCH (p:Portfolio {id: $portfolio_id})
+                    CREATE (n:Facility:Resource {name: $name, id: $id, uri: $uri}) 
+                    CREATE (n)-[:PART_OF]->(p)
                     RETURN n"""
         with self.neo4j_driver.session() as session:
             try:
                 result = session.run(query, name=name, id=str(id), portfolio_id=self.id, uri=facility_uri)
-                result.consume()
+                if result.single() is None:
+                    raise Exception("Error creating facility")
             except Neo4jError as e:
                 raise Exception(f"Error creating facility: {e.message}")        
                 
