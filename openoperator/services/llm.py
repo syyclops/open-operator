@@ -8,7 +8,8 @@ class LLM:
     def __init__(self, 
                  openai_api_key: str | None = None,
                  system_prompt: str | None = None,
-                 model_name: str = "gpt-4"
+                 model_name: str = "gpt-4",
+                 temperature: float = 0
                 ) -> None:
         # Create openai client
         if openai_api_key is None:
@@ -16,6 +17,7 @@ class LLM:
         self.openai = OpenAI(api_key=openai_api_key)
 
         self.model_name = model_name
+        self.temperature = temperature
 
         if system_prompt is None:
             system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
@@ -41,7 +43,8 @@ Always respond with markdown formatted text."""
                 messages=messages,
                 tools=tools,
                 tool_choice="auto",
-                stream=True
+                stream=True,
+                temperature=self.temperature
             )
 
             tool_calls = []
