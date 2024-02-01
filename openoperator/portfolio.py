@@ -1,8 +1,9 @@
 from neo4j import Driver
 import uuid
 from .facility import Facility
-from urllib.parse import quote
 from neo4j.exceptions import Neo4jError
+from .utils import create_uri
+
 class Portfolio:
     def __init__(self, operator, neo4j_driver: Driver, portfolio_id: str) -> dict:
         self.operator = operator
@@ -40,7 +41,7 @@ class Portfolio:
         """
         Create a facility.
         """
-        facility_uri = f"{self.uri}/{quote(name)}"
+        facility_uri = f"{self.uri}/{create_uri(name)}"
         id = uuid.uuid4()
         query = """MATCH (p:Portfolio {id: $portfolio_id})
                     CREATE (n:Facility:Resource {name: $name, id: $id, uri: $uri}) 

@@ -2,9 +2,10 @@ from openai import OpenAI
 import os
 import tiktoken
 import json
-from typing import List
+from .llm import LLM
+from ..utils import split_string_with_limit
         
-class LLM:
+class OpenAILLM(LLM):
     def __init__(self, 
                  openai_api_key: str | None = None,
                  system_prompt: str | None = None,
@@ -123,28 +124,3 @@ Always respond with markdown formatted text."""
                     yield delta.content or ""
                     # print(delta.content or "", end="", flush=True)
 
-
-def split_string_with_limit(text: str, limit: int, encoding) -> List[str]:
-    """
-    Splits a string into multiple parts with a limit on the number of tokens in each part.
-    """
-    tokens = encoding.encode(text)
-    parts = []
-    current_part = []
-    current_count = 0
-
-    for token in tokens:
-        current_part.append(token)
-        current_count += 1
-
-        if current_count >= limit:
-            parts.append(current_part)
-            current_part = []
-            current_count = 0
-
-    if current_part:
-        parts.append(current_part)
-
-    text_parts = [encoding.decode(part) for part in parts]
-
-    return text_parts

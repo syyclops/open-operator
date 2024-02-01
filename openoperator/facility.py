@@ -1,7 +1,7 @@
-from ..services.knowledge_graph import KnowledgeGraph
-from ..services.blob_store import BlobStore
-from ..services.vector_store import VectorStore
-from ..services.document_loader import DocumentLoader
+from .knowledge_graph import KnowledgeGraph
+from  .blob_store.blob_store import BlobStore
+from .vector_store.vector_store import VectorStore
+from .document_loader.document_loader import DocumentLoader
 from .cobie.cobie import COBie
 from neo4j.exceptions import Neo4jError
 
@@ -106,7 +106,7 @@ class Facility:
         """
 
         spreadsheet = COBie(file)
-        errors_found, errors = spreadsheet.validate_spreadsheet()
+        errors_found, errors, updated_file = spreadsheet.validate_spreadsheet()
         if errors_found:
             return errors_found, errors
         

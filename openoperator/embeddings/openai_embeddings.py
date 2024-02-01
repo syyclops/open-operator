@@ -1,8 +1,9 @@
 import os
 from openai import OpenAI
 from openai.types import Embedding
+from .embeddings import Embeddings
 
-class Embeddings:
+class OpenAIEmbeddings(Embeddings):
     def __init__(self, openai_api_key: str | None = None) -> None:
         # Create openai client
         if openai_api_key is None:

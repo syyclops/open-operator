@@ -1,15 +1,13 @@
+
 from unstructured_client import UnstructuredClient
 from unstructured_client.models import shared
 from unstructured_client.models.errors import SDKError
 import os
 from typing import List
+from .document_loader import DocumentLoader
+from ..schema.document import Document
 
-class Document:
-    def __init__(self, text: str, metadata):
-        self.text = text
-        self.metadata = metadata
-
-class DocumentLoader():
+class UnstructuredDocumentLoader(DocumentLoader):
     def __init__(
             self,
             unstructured_api_key: str | None = None,

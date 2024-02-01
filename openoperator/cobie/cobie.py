@@ -24,15 +24,6 @@ class COBie:
     def __init__(self, file: str | bytes) -> None:
         self.file = file if isinstance(file, str) else BytesIO(file)
 
-    def create_uri(self, name: str) -> str:
-        """
-        Create a URI from string.
-        """
-        # name = re.sub(r'[^a-zA-Z0-9]', '', str(name).lower())
-        # name = name.replace("'", "_")  # Replace ' with _
-        name = urllib.parse.quote(name.lower())
-        return name
-
     def validate_spreadsheet(self) -> (bool, dict, bytes):
         """
         Validate a COBie spreadsheet. Refer to COBie_validation.pdf in docs/ for more information.

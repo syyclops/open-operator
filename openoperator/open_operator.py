@@ -1,14 +1,14 @@
-from ..services.knowledge_graph import KnowledgeGraph
-from ..services.blob_store import BlobStore
-from ..services.embeddings import Embeddings
-from ..services.document_loader import DocumentLoader
-from ..services.vector_store import VectorStore
-from ..services.llm import LLM
+from .knowledge_graph import KnowledgeGraph
 import uuid
 from .portfolio import Portfolio
 from .facility import Facility
-from urllib.parse import quote
 from neo4j.exceptions import Neo4jError
+from .blob_store.blob_store import BlobStore
+from .embeddings.embeddings import Embeddings
+from .document_loader.document_loader import DocumentLoader
+from .vector_store.vector_store import VectorStore
+from .llm.llm import LLM
+from .utils import create_uri
 
 class OpenOperator: 
     """
@@ -76,7 +76,7 @@ class OpenOperator:
         Create a portfolio. The name must be unique. It will be used to create the URI of the portfolio.
         """
         id = uuid.uuid4()
-        portfolio_uri = f"{self.base_uri}{quote(name)}"
+        portfolio_uri = f"{self.base_uri}{create_uri(name)}"
         with self.neo4j_driver.session() as session:
             try: 
                 result = session.run("CREATE (n:Portfolio:Resource {name: $name, id: $id, uri: $uri}) RETURN n", name=name, id=str(id), uri=portfolio_uri)

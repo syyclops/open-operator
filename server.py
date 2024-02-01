@@ -1,15 +1,15 @@
 from openoperator import OpenOperator
-from openoperator import BlobStore
-from openoperator import DocumentLoader
-from openoperator import VectorStore
-from openoperator import Embeddings
-from openoperator import KnowledgeGraph
-from openoperator import LLM
-from openoperator import COBie
+from openoperator.blob_store import AzureBlobStore
+from openoperator.document_loader import UnstructuredDocumentLoader
+from openoperator.vector_store import PGVectorStore
+from openoperator.embeddings import OpenAIEmbeddings
+from openoperator.knowledge_graph import KnowledgeGraph
+from openoperator.llm import OpenAILLM
+from openoperator.cobie import COBie
 
 from typing import Generator, Literal
 from fastapi import FastAPI, UploadFile
-from fastapi.responses import StreamingResponse, Response, FileResponse, JSONResponse
+from fastapi.responses import StreamingResponse, Response, JSONResponse
 from pydantic import BaseModel
 import uvicorn
 import mimetypes
@@ -22,12 +22,12 @@ class Message(BaseModel):
     role: Literal['user', 'assistant']
 
 # Create the different modules that are needed for the operator
-blob_store = BlobStore()
-document_loader = DocumentLoader() # used to extract text from documents
-embeddings = Embeddings()
-vector_store = VectorStore(embeddings=embeddings)
+blob_store = AzureBlobStore()
+document_loader = UnstructuredDocumentLoader()
+embeddings = OpenAIEmbeddings()
+vector_store = PGVectorStore(embeddings=embeddings)
 knowledge_graph = KnowledgeGraph()
-llm = LLM(model_name="gpt-4-0125-preview")
+llm = OpenAILLM(model_name="gpt-4-0125-preview")
 
 operator = OpenOperator(
     blob_store=blob_store,

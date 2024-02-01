@@ -1,13 +1,15 @@
+
 import psycopg
 from pgvector.psycopg import register_vector
 import json
 import numpy as np
 import os
-from .embeddings import Embeddings
-from .document_loader import Document
 from typing import List
+from .vector_store import VectorStore
+from ..embeddings.embeddings import Embeddings
+from ..schema.document import Document
 
-class VectorStore():
+class PGVectorStore(VectorStore):
     """
     This class is focused on managing the vector store for the assistant.
     Its responsibilities are:
