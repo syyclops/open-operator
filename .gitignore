@@ -6,3 +6,4 @@ logs*
 .postgresql/
 __pycache__/
 .pytest_cache/
+openoperator.egg-info/
