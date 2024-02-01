@@ -28,6 +28,12 @@ docker-compose.yml up -d
 
 Then you can check out an example use of the package in [create_a_operator.ipynb](./notebooks/creating_a_operator.ipynb)
 
+or you can start the server
+
+```
+python3 server.py
+```
+
 ## Useful Resources
 
 1. [What is COBie](https://www.thenbs.com/knowledge/what-is-cobie)
