@@ -189,9 +189,11 @@ class COBie:
         errors = {key: value for key, value in errors.items() if value}
 
         # Save the workbook
-        wb.save("test.xlsx")
+        content = BytesIO()
+        wb.save(content)
+        content.seek(0)
 
-        return errors_found, errors, "test.xlsx"
+        return errors_found, errors, content.getvalue()
 
     def convert_to_graph(self, namespace: str) -> str:
         """
@@ -206,86 +208,73 @@ class COBie:
         # Open COBie spreadsheet
         df = pd.read_excel(self.file, engine='openpyxl', sheet_name=None)
 
-        errors_found, errors, updated_file_path = self.validate_spreadsheet()
+        # Create an rdflib Graph to store the RDF data
+        g = rdflib.Graph()
+        g.bind("RDF", RDF)
+        g.bind("COBIE", COBIE)
+        g.bind("Namespace", namespace)
 
-        for key, value in errors.items():
-            if len(value) > 0:
-                print(key)
-                print(value)
+        facility_uri = namespace # All the nodes in the graph will extend this uri
 
-        if errors_found:
-            print("Errors found in the spreadsheet:")
-            return errors
-        else:
-            print("No errors found in the spreadsheet.")
+        for sheet in ['Floor', 'Space', 'Type', 'Component', 'System']:
+            print(f"Processing {sheet} sheet...")
+            predicates = df[sheet].keys()
+            predicates = [predicate[0].lower() + predicate[1:] for predicate in predicates] # Make first letter lowercase
 
-            # Create an rdflib Graph to store the RDF data
-            g = rdflib.Graph()
-            g.bind("RDF", RDF)
-            g.bind("COBIE", COBIE)
-            g.bind("Namespace", namespace)
+            # Iterate over all rows in the sheet, skipping the first row
+            for _, row in df[sheet].iterrows():
+                # The name field is used as the subject
+                subject = row['Name']
+                subject_uri = facility_uri["/" + sheet.lower() + "/" + self.create_uri(subject)]
 
-            facility_uri = namespace # All the nodes in the graph will extend this uri
+                # Get the values of the row
+                objects = row.values
 
-            for sheet in ['Floor', 'Space', 'Type', 'Component', 'System']:
-                print(f"Processing {sheet} sheet...")
-                predicates = df[sheet].keys()
-                predicates = [predicate[0].lower() + predicate[1:] for predicate in predicates] # Make first letter lowercase
+                # Create the node
+                g.add((subject_uri, A, COBIE[sheet]))
 
-                # Iterate over all rows in the sheet, skipping the first row
-                for _, row in df[sheet].iterrows():
-                    # The name field is used as the subject
-                    subject = row['Name']
-                    subject_uri = facility_uri["/" + sheet.lower() + "/" + self.create_uri(subject)]
+                # Add objects
+                i = 0
+                for obj in objects:
+                    predicate = predicates[i]
 
-                    # Get the values of the row
-                    objects = row.values
+                    # Check if it should be a relationship or a literal
+                    if (sheet == "Component" and predicate == "typeName") or (sheet == "Space" and predicate == "floorName") or (sheet == "System" and predicate == "componentNames"):
+                        # The target sheet is the one where the relationship is pointing to 
+                        target_sheet = None
+                        if sheet == "Component":
+                            target_sheet = "Type"
+                        elif sheet == "Space":
+                            target_sheet = "Floor"
+                        elif sheet == "System":
+                            target_sheet = "Component"
 
-                    # Create the node
-                    g.add((subject_uri, A, COBIE[sheet]))
+                        g.add((subject_uri, COBIE[predicate], facility_uri["/" + target_sheet.lower() + "/" + self.create_uri(obj)]))
+                    elif sheet == "Component" and predicate == "space":
+                        # Split by "," to get all spaces and remove whitespace
+                        spaces = [space.strip() for space in obj.split(",")]
+                        for space in spaces:
+                            g.add((subject_uri, COBIE[predicate], facility_uri["/" + "space" + "/" + self.create_uri(space)]))
+                    else:
+                        g.add((subject_uri, COBIE[predicate], Literal(str(obj).replace('"', '\\"'))))
+                    i += 1      
 
-                    # Add objects
-                    i = 0
-                    for obj in objects:
-                        predicate = predicates[i]
+        # Create the attributes
+        print("Processing Attribute sheet...")
+        for _, row in df['Attribute'].iterrows():
+            target_sheet = row['SheetName']
+            target_row_name = row['RowName']
+            target_uri = facility_uri["/" + target_sheet.lower() + "/" + self.create_uri(target_row_name)]
 
-                        # Check if it should be a relationship or a literal
-                        if (sheet == "Component" and predicate == "typeName") or (sheet == "Space" and predicate == "floorName") or (sheet == "System" and predicate == "componentNames"):
-                            # The target sheet is the one where the relationship is pointing to 
-                            target_sheet = None
-                            if sheet == "Component":
-                                target_sheet = "Type"
-                            elif sheet == "Space":
-                                target_sheet = "Floor"
-                            elif sheet == "System":
-                                target_sheet = "Component"
+            attribute_uri = target_uri + "/attribute/" + self.create_uri(row['Name'])
 
-                            g.add((subject_uri, COBIE[predicate], facility_uri["/" + target_sheet.lower() + "/" + self.create_uri(obj)]))
-                        elif sheet == "Component" and predicate == "space":
-                            # Split by "," to get all spaces and remove whitespace
-                            spaces = [space.strip() for space in obj.split(",")]
-                            for space in spaces:
-                                g.add((subject_uri, COBIE[predicate], facility_uri["/" + "space" + "/" + self.create_uri(space)]))
-                        else:
-                            g.add((subject_uri, COBIE[predicate], Literal(str(obj).replace('"', '\\"'))))
-                        i += 1      
+            g.add((attribute_uri, A, COBIE['Attribute']))
+            g.add((attribute_uri, COBIE['name'], Literal(row['Name'])))
+            g.add((attribute_uri, COBIE['value'], Literal(row['Value'])))
+            g.add((attribute_uri, COBIE['unit'], Literal(row['Unit'])))
+            g.add((attribute_uri, COBIE['attributeTo'], target_uri))
 
-            # Create the attributes
-            print("Processing Attribute sheet...")
-            for _, row in df['Attribute'].iterrows():
-                target_sheet = row['SheetName']
-                target_row_name = row['RowName']
-                target_uri = facility_uri["/" + target_sheet.lower() + "/" + self.create_uri(target_row_name)]
+        # Serialize the graph to a file
+        graph_string = g.serialize(format='turtle', encoding='utf-8').decode()
 
-                attribute_uri = target_uri + "/attribute/" + self.create_uri(row['Name'])
-
-                g.add((attribute_uri, A, COBIE['Attribute']))
-                g.add((attribute_uri, COBIE['name'], Literal(row['Name'])))
-                g.add((attribute_uri, COBIE['value'], Literal(row['Value'])))
-                g.add((attribute_uri, COBIE['unit'], Literal(row['Unit'])))
-                g.add((attribute_uri, COBIE['attributeTo'], target_uri))
-
-            # Serialize the graph to a file
-            graph_string = g.serialize(format='turtle', encoding='utf-8').decode()
-
-            return graph_string
+        return graph_string

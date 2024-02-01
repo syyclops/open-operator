@@ -71,10 +71,10 @@ async def validate_spreadsheet(file: UploadFile, download_update_file: bool):
     try:
         file_content = await file.read()
         spreadsheet = COBie(file_content)
-        errors_founds, errors, updated_file_path = spreadsheet.validate_spreadsheet()
+        errors_founds, errors, updated_file = spreadsheet.validate_spreadsheet()
         if errors_founds:
             if download_update_file:
-                return FileResponse(updated_file_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename="updated_cobie.xlsx")
+                return Response(content=updated_file, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=updated_cobie.xlsx"})
             else:
                 return JSONResponse(content=errors)
         else:

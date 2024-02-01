@@ -31,7 +31,7 @@ Then you can check out an example use of the package in [create_a_operator.ipynb
 or you can start the server
 
 ```
-python3 server.py
+uvicorn server:app --reload --port 8080
 ```
 
 ## Useful Resources

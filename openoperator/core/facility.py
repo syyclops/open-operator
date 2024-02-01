@@ -94,23 +94,25 @@ class Facility:
             raise Exception(f"Error creating document node in Neo4J: {e}")
 
     
-    def search_documents(self, query: str, limit: int = 15) -> list:
+    def search_documents(self, query: str, limit: int = 15):
         """
         Search documents in the facility.
         """
         return self.vector_store.similarity_search(query=query, limit=limit, filter={"facility_id": self.id})
     
-    def upload_cobie_spreadsheet(self, file_path: str):
+    def upload_cobie_spreadsheet(self, file: str | bytes) -> (bool, dict | None):
         """
         Convert a cobie spreadsheet to rdf graph, upload it to the blob store and import it to the knowledge graph.
         """
-        try:
-            spreadsheet = COBie(file_path)
-            rdf_graph_str = spreadsheet.convert_to_graph(namespace=self.uri)
-            url = self.blob_store.upload_file(file_content=rdf_graph_str.encode(), file_name=f"{self.id}_cobie.ttl", file_type="text/turtle")
-            self.knowledge_graph.import_rdf_data(url)
-        except Exception as e:
-            raise Exception(f"Error uploading spreadsheet: {e}")
 
-        return url
+        spreadsheet = COBie(file)
+        errors_found, errors = spreadsheet.validate_spreadsheet()
+        if errors_found:
+            return errors_found, errors
+        
+        rdf_graph_str = spreadsheet.convert_to_graph(namespace=self.uri)
+        url = self.blob_store.upload_file(file_content=rdf_graph_str.encode(), file_name=f"{self.id}_cobie.ttl", file_type="text/turtle")
+        self.knowledge_graph.import_rdf_data(url)
+
+        return False, None
     
