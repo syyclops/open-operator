@@ -26,7 +26,7 @@ export AZURE_CONTAINER_NAME=<your azure container name>
 docker-compose.yml up -d
 ```
 
-Then you can check out an example use of the package in [create_a_operator.ipynb](./notebooks/creating_a_operator.ipynb)
+Then you can check out an example use of the package in [create_a_operator.ipynb](./examples/creating_a_operator.ipynb)
 
 or you can start the server
 
