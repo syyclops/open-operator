@@ -16,7 +16,7 @@ cd open-opertor/
 python3 -m pip install -e .
 ```
 
-## How to use locally
+## Get started using the package locally
 
 ```
 cp .env.example .env
@@ -28,16 +28,14 @@ docker-compose.yml up -d
 
 Then you can check out an example use of the package in [create_a_operator.ipynb](./examples/creating_a_operator.ipynb)
 
-or you can start the server
+or
 
-```
-uvicorn server:app --reload --port 8080
-```
+start a simple rest api [server](./examples/server.py)
 
 ## Useful Resources
 
 1. [What is COBie](https://www.thenbs.com/knowledge/what-is-cobie)
-2. [what is Brick Schema](https://brickschema.org/)
+2. [Brick Schema](https://brickschema.org/)
 
 ## License
 

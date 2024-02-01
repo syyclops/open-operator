@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-import os
 
 class BlobStore(ABC):
     @abstractmethod

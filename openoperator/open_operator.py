@@ -1,5 +1,4 @@
 from .knowledge_graph import KnowledgeGraph
-import uuid
 from .portfolio import Portfolio
 from .facility import Facility
 from neo4j.exceptions import Neo4jError
@@ -9,6 +8,7 @@ from .document_loader.document_loader import DocumentLoader
 from .vector_store.vector_store import VectorStore
 from .llm.llm import LLM
 from .utils import create_uri
+from .server import server
 
 class OpenOperator: 
     """
@@ -93,3 +93,6 @@ class OpenOperator:
 
         for response in self.llm.chat(messages, self.tools, available_functions, verbose):
             yield response
+
+    def server(self, *args, **kwargs):
+        server(self, *args, **kwargs)
