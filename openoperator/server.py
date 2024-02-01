@@ -1,12 +1,12 @@
-from openoperator.cobie import COBie
+from .cobie import COBie
+from .schema.message import Message
+
+import mimetypes
 
 from typing import Generator
 from fastapi import FastAPI, UploadFile
 from fastapi.responses import StreamingResponse, Response, JSONResponse
-from .schema.message import Message
 import uvicorn
-import mimetypes
-
 
 def server(operator, host="0.0.0.0", port=8080):
     app = FastAPI(title="Open Operator API")
