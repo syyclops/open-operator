@@ -4,7 +4,7 @@
 
 ## What is Open Operator?
 
-Open Operator is a system that organizes and makes sense of the diverse operational data from buildings while adding a layer of analytics and engineering knowledge intelligence on top.
+Open Operator is a system that organizes and makes sense of the diverse operational data from buildings while adding a layer of analytics and engineering knowledge intelligence.
 
 ## Installation
 

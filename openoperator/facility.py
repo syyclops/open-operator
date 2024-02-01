@@ -3,13 +3,13 @@ from  .blob_store.blob_store import BlobStore
 from .vector_store.vector_store import VectorStore
 from .document_loader.document_loader import DocumentLoader
 from .cobie.cobie import COBie
-from neo4j.exceptions import Neo4jError
+from uuid import uuid4
 
 class Facility:
     def __init__(self, 
                  portfolio,
+                 uri: str,
                  knowledge_graph: KnowledgeGraph, 
-                 facility_id: str, 
                  blob_store: BlobStore,
                  vector_store: VectorStore,
                  document_loader: DocumentLoader
@@ -17,27 +17,17 @@ class Facility:
         self.portfolio = portfolio
         self.knowledge_graph = knowledge_graph
         self.neo4j_driver = knowledge_graph.neo4j_driver
-        self.id = facility_id
+        self.uri = uri
         self.blob_store = blob_store
         self.vector_store = vector_store
         self.document_loader = document_loader
-        
-        # Fetch the facility from the knowledge graph
-        try:
-            with self.neo4j_driver.session() as session:
-                result = session.run("""MATCH (p:Portfolio {id: $portfolio_id})
-                                     MATCH (n:Facility {id: $facility_id})-[]-(p)
-                                     RETURN n""", facility_id=self.id, portfolio_id=self.portfolio.id)
-                self.uri = result.single()['n']['uri']
-        except Neo4jError as e:
-            raise Exception(f"Error fetching facility: {e.message}")
         
     def details(self) -> dict:
         """
         Get facility details.
         """
         with self.neo4j_driver.session() as session:
-            result = session.run("MATCH (p:Portfolio {id: $portfolio_id})-[]-(n:Facility {id: $facility_id}) RETURN n", portfolio_id=self.portfolio.id, facility_id=self.id)
+            result = session.run("MATCH (n:Facility {uri: $facility_uri}) RETURN n", facility_uri=self.uri)
             return result.data()[0]['n']
 
     def list_files(self) -> list:
@@ -45,7 +35,7 @@ class Facility:
         List all files in a facility.
         """
         with self.neo4j_driver.session() as session:
-            result = session.run("MATCH (d:Document)-[:documentTo]-(f:Facility {id: $facility_id}) RETURN d", facility_id=self.id)
+            result = session.run("MATCH (d:Document)-[:documentTo]-(f:Facility {uri: $facility_uri}) RETURN d", facility_uri=self.uri)
             return [record['d'] for record in result.data()]
         
     def upload_document(self, file_content: bytes, file_name: str, file_type: str) -> None:
@@ -72,8 +62,8 @@ class Facility:
         try:
             # Add metadata to vector store  
             for doc in docs:
-                doc.metadata['portfolio_id'] = self.portfolio.id
-                doc.metadata['facility_id'] = self.id
+                doc.metadata['portfolio_uri'] = self.portfolio.uri
+                doc.metadata['facility_uri'] = self.uri
                 doc.metadata['file_url'] = file_url
             
             self.vector_store.add_documents(docs)
@@ -84,9 +74,9 @@ class Facility:
         try:
             with self.neo4j_driver.session() as session:
                 query = """CREATE (d:Document {name: $name, url: $url})
-                            CREATE (d)-[:documentTo]->(:Facility {id: $facility_id})
+                            CREATE (d)-[:documentTo]->(:Facility {uri: $facility_uri})
                             RETURN d"""
-                result = session.run(query, name=file_name, url=file_url, facility_id=self.id)
+                result = session.run(query, name=file_name, url=file_url, facility_uri=self.uri)
 
                 return result.data()[0]['d']
         except Exception as e:
@@ -98,7 +88,7 @@ class Facility:
         """
         Search documents in the facility.
         """
-        return self.vector_store.similarity_search(query=query, limit=limit, filter={"facility_id": self.id})
+        return self.vector_store.similarity_search(query=query, limit=limit, filter={"facility_uri": self.uri})
     
     def upload_cobie_spreadsheet(self, file: str | bytes) -> (bool, dict | None):
         """
@@ -106,12 +96,13 @@ class Facility:
         """
 
         spreadsheet = COBie(file)
-        errors_found, errors, updated_file = spreadsheet.validate_spreadsheet()
+        errors_found, errors, _ = spreadsheet.validate_spreadsheet()
         if errors_found:
             return errors_found, errors
         
         rdf_graph_str = spreadsheet.convert_to_graph(namespace=self.uri)
-        url = self.blob_store.upload_file(file_content=rdf_graph_str.encode(), file_name=f"{self.id}_cobie.ttl", file_type="text/turtle")
+        id = str(uuid4())
+        url = self.blob_store.upload_file(file_content=rdf_graph_str.encode(), file_name=f"{id}_cobie.ttl", file_type="text/turtle")
         self.knowledge_graph.import_rdf_data(url)
 
         return False, None

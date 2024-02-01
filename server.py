@@ -41,13 +41,13 @@ operator = OpenOperator(
 app = FastAPI(title="Open Operator API")
 
 @app.post("/chat", tags=["assistant"])
-async def chat(messages: list[Message], portfolio_id: str, facility_id: str | None = None) -> StreamingResponse:
+async def chat(messages: list[Message], portfolio_uri: str, facility_uri: str | None = None) -> StreamingResponse:
     messages_dict_list = [message.model_dump() for message in messages]
 
-    portfolio = operator.portfolio(portfolio_id)
+    portfolio = operator.portfolio(portfolio_uri)
     facility = None
-    if facility_id:
-        facility = portfolio.facility(facility_id=facility_id)
+    if facility_uri:
+        facility = portfolio.facility(facility_uri)
 
     async def event_stream() -> Generator[str, None, None]:
         for response in operator.chat(messages=messages_dict_list, portfolio=portfolio, facility=facility):
@@ -93,16 +93,16 @@ async def create_portfolio(portfolio_name: str) -> JSONResponse:
     portfolio = operator.create_portfolio(portfolio_name)
     return JSONResponse(portfolio.details())
 
-@app.get("/portfolio/{portfolio_id}/facilities", tags=['portfolio'])
-async def list_buildings(portfolio_id: str) -> JSONResponse:
+@app.get("/portfolio/facilities", tags=['portfolio'])
+async def list_facilities(portfolio_uri: str) -> JSONResponse:
     try:
-        return JSONResponse(operator.portfolio(portfolio_id).list_buildings())
+        return JSONResponse(operator.portfolio(portfolio_uri).list_facilities())
     except Exception as e:
         return Response(content="Unable to create portfolio", status_code=500)
 
-@app.post("/portfolio/{portfolio_id}/facility/create", tags=['portfolio'])
-async def create_facility(portfolio_id: str, building_name: str) -> JSONResponse:
-    return JSONResponse(operator.portfolio(portfolio_id).create_facility(building_name).details())
+@app.post("/portfolio/facility/create", tags=['portfolio'])
+async def create_facility(portfolio_uri: str, building_name: str) -> JSONResponse:
+    return JSONResponse(operator.portfolio(portfolio_uri).create_facility(building_name).details())
 
 # if __name__ == "__main__":
 #     uvicorn.run(app, port=8080, host="0.0.0.0")

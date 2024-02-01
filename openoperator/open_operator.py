@@ -60,8 +60,8 @@ class OpenOperator:
 
         self.base_uri = "https://openoperator.com/"
 
-    def portfolio(self, portfolio_id: str) -> Portfolio:
-        return Portfolio(self, neo4j_driver=self.neo4j_driver, portfolio_id=portfolio_id)
+    def portfolio(self, portfolio_uri: str) -> Portfolio:
+        return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri)
 
     def portfolios(self) -> list:
         """
@@ -75,17 +75,16 @@ class OpenOperator:
         """
         Create a portfolio. The name must be unique. It will be used to create the URI of the portfolio.
         """
-        id = uuid.uuid4()
         portfolio_uri = f"{self.base_uri}{create_uri(name)}"
         with self.neo4j_driver.session() as session:
             try: 
-                result = session.run("CREATE (n:Portfolio:Resource {name: $name, id: $id, uri: $uri}) RETURN n", name=name, id=str(id), uri=portfolio_uri)
+                result = session.run("CREATE (n:Portfolio:Resource {name: $name, uri: $uri}) RETURN n", name=name, id=str(id), uri=portfolio_uri)
                 if result.single() is None:
                     raise Exception("Error creating portfolio")
             except Neo4jError as e:
                 raise Exception(f"Error creating portfolio: {e.message}")
             
-        return Portfolio(self, neo4j_driver=self.neo4j_driver, portfolio_id=str(id))
+        return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri)
 
     def chat(self, messages, portfolio: Portfolio, facility: Facility | None = None, verbose: bool = False):
         available_functions = {
