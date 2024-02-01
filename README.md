@@ -1,5 +1,9 @@
 <div align="center">
   <img height="400" src="./docs/assets/Futuristic%20Robot%20HVAC.png" style="border-radius: 8px;"/>
+
+  <h3 align="center">
+    <a href="https://discord.gg/VmfmMfDREU">Community</a>
+  </h3>
 </div>
 
 ## What is Open Operator?
@@ -34,7 +38,7 @@ start a simple rest api [server](./examples/server.py)
 
 ## Useful Resources
 
-1. [What is COBie](https://www.thenbs.com/knowledge/what-is-cobie)
+1. [What is COBie?](https://www.thenbs.com/knowledge/what-is-cobie)
 2. [Brick Schema](https://brickschema.org/)
 
 ## License

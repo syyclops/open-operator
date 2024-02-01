@@ -11,7 +11,6 @@ import mimetypes
 def server(operator, host="0.0.0.0", port=8080):
     app = FastAPI(title="Open Operator API")
 
-
     @app.post("/chat", tags=["assistant"])
     async def chat(messages: list[Message], portfolio_uri: str, facility_uri: str | None = None) -> StreamingResponse:
         messages_dict_list = [message.model_dump() for message in messages]
@@ -27,16 +26,6 @@ def server(operator, host="0.0.0.0", port=8080):
         
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
-    @app.post("/files/upload", tags=['files'])
-    async def upload_file(file: UploadFile, portfolio_id: str, facility_id: str | None = None):
-        try:
-            file_content = await file.read()
-            file_type = mimetypes.guess_type(file.filename)[0]
-            operator.portfolio(portfolio_id).facility(facility_id=facility_id).upload_document(file_content=file_content, file_name=file.filename, file_type=file_type)
-            return "File uploaded successfully"
-        except Exception as e:
-            print(e)
-            return Response(content=str(e), status_code=500) 
         
     @app.post("/cobie/validate_spreadsheet", tags=['cobie'])
     async def validate_spreadsheet(file: UploadFile, download_update_file: bool):
@@ -75,6 +64,18 @@ def server(operator, host="0.0.0.0", port=8080):
     @app.post("/portfolio/facility/create", tags=['facility'])
     async def create_facility(portfolio_uri: str, building_name: str) -> JSONResponse:
         return JSONResponse(operator.portfolio(portfolio_uri).create_facility(building_name).details())
+    
+
+    @app.post("/files/upload", tags=['facility'])
+    async def upload_file(file: UploadFile, portfolio_uri: str, facility_uri: str | None = None):
+        try:
+            file_content = await file.read()
+            file_type = mimetypes.guess_type(file.filename)[0]
+            operator.portfolio(portfolio_uri).facility(facility_uri).upload_document(file_content=file_content, file_name=file.filename, file_type=file_type)
+            return "File uploaded successfully"
+        except Exception as e:
+            print(e)
+            return Response(content=str(e), status_code=500) 
     
 
     print("\nServer is running. Visit http://localhost:8080/docs to see documentation\n")
