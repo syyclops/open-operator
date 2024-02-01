@@ -33,8 +33,6 @@ class Portfolio:
         Create a facility.
         """
         facility_uri = f"{self.uri}/{create_uri(name)}"
-        print("here")
-        print(self.uri)
         query = """MATCH (p:Portfolio {uri: $portfolio_uri})
                     CREATE (n:Facility:Resource {name: $name, uri: $uri}) 
                     CREATE (n)-[:PART_OF]->(p)
