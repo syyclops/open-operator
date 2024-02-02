@@ -303,24 +303,44 @@ class COBie:
         """
         Add embeddings to the graph
         """
-        types = self.types()
+        query = """MATCH (n) WHERE (n:cobie__Space OR n:cobie__Type OR n:cobie__Component) AND n.uri starts with $uri RETURN n"""
+        nodes = []
+        try:
+            # Open a session to fetch the nodes
+            with self.knowledge_graph.neo4j_driver.session() as session:
+                result = session.run(query, uri=self.uri)
+                nodes = [record['n'] for record in result.data()]
+        except Exception as e:
+            raise Exception(f"Error fetching nodes from the graph: {e}")
 
-        names = [type['cobie__name'] for type in types]
+        if not nodes:
+            raise Exception("No nodes found in the graph")
+
+        # Process nodes to generate embeddings
+        names = [str(node['cobie__name']) for node in nodes]
         embeddings = self.embeddings.create_embeddings(names)
 
+        if len(embeddings) != len(nodes):
+            raise Exception("Number of embeddings does not match number of nodes")
+
         id_vector_pairs = []
-        for i, type in enumerate(types):
+        for node, embedding in zip(nodes, embeddings):
             id_vector_pairs.append({
-                "uri": type['uri'],
-                "vector": embeddings[i].embedding
+                "uri": node['uri'],
+                "vector": embedding.embedding
             })
 
-        query = """UNWIND $id_vector_pairs as pair
-                    MATCH (n:cobie__Type) WHERE n.uri = pair.uri
-                    CALL db.create.setNodeVectorProperty(n, 'embedding', pair.vector)
-                    RETURN n"""
+        # Open a new session to upload the embeddings
         try:
             with self.knowledge_graph.neo4j_driver.session() as session:
-                session.run(query, id_vector_pairs=id_vector_pairs)
+                query = """UNWIND $id_vector_pairs as pair
+                            MATCH (n:Resource {uri: pair.uri})
+                            CALL db.create.setNodeVectorProperty(n, 'embedding', pair.vector)
+                            RETURN n"""
+                result = session.run(query, id_vector_pairs=id_vector_pairs)
+                result.consume()
         except Exception as e:
-            raise Exception(f"Error uploading vectors to the graph: {e}") 
+            raise Exception(f"Error uploading vectors to the graph: {e}")
+        
+        return
+
