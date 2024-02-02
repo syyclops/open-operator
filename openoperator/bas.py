@@ -2,6 +2,10 @@ import json
 from rdflib import Graph, Namespace, Literal, URIRef
 from .utils import create_uri
 from uuid import uuid4
+from .embeddings import Embeddings
+import numpy as np
+from .utils import dbscan_cluster
+
 
 class BAS:
     """
@@ -13,10 +17,11 @@ class BAS:
     - Converting bacnet data to rdf, and transforming into the brickschema
     - Aligning devices with components from the cobie schema
     """
-    def __init__(self, facility) -> None:
+    def __init__(self, facility, embeddings: Embeddings) -> None:
         self.knowledge_graph = facility.knowledge_graph 
         self.blob_store = facility.blob_store
         self.uri = facility.uri
+        self.embeddings = embeddings
 
     def upload_bacnet_data(self, file: bytes):
         """
@@ -46,6 +51,9 @@ class BAS:
                 # Check if the necessary keys are in bacnet_data
                 if not all(key in bacnet_data for key in ['device_address', 'device_id', 'device_name']):
                     print("Missing necessary key in bacnet_data, skipping this item.")
+                    continue
+
+                if bacnet_data['device_name'] == None or bacnet_data['device_name'] == "":
                     continue
 
                 device_uri = URIRef(self.uri + '/device/' + bacnet_data['device_address'] + "-" + bacnet_data['device_id'] + '/' + create_uri(bacnet_data['device_name']))
@@ -101,3 +109,103 @@ class BAS:
         with self.knowledge_graph.neo4j_driver.session() as session:
             result = session.run(query, uri=self.uri, device_uri=device_uri)
             return [record['p'] for record in result.data()]
+        
+    def vectorize_graph(self):
+        """
+        For each device and point in the facility, create an embedding and upload it to the graph.
+        """
+        devices = self.devices()
+
+        texts = [device['bacnet__device_name'] for device in devices]
+
+        embeddings = self.embeddings.create_embeddings(texts)
+
+        id_vector_pairs = []
+        for i, device in enumerate(devices):
+            id_vector_pairs.append({
+                "id": device['uri'],
+                "vector": np.array(embeddings[i].embedding)
+            })
+
+        # Upload the vectors to the graph
+        query = """UNWIND $id_vector_pairs as pair
+                    MATCH (n:bacnet__Device) WHERE n.uri = pair.id
+                    CALL db.create.setNodeVectorProperty(n, 'embedding', pair.vector)
+                    RETURN n"""
+        try:
+            with self.knowledge_graph.neo4j_driver.session() as session:
+                session.run(query, id_vector_pairs=id_vector_pairs)
+        except Exception as e:
+            raise Exception(f"Error uploading vectors to the graph: {e}")
+        
+        points = self.points()
+        texts = [point['bacnet__object_name'] for point in points]
+
+        embeddings = self.embeddings.create_embeddings(texts)
+
+        id_vector_pairs = []
+        for i, point in enumerate(points):
+            id_vector_pairs.append({
+                "id": point['uri'],
+                "vector": np.array(embeddings[i].embedding)
+            })
+
+        # Upload the vectors to the graph
+        query = """UNWIND $id_vector_pairs as pair
+                    MATCH (n:bacnet__Point) WHERE n.uri = pair.id
+                    CALL db.create.setNodeVectorProperty(n, 'embedding', pair.vector)
+                    RETURN n"""
+        
+        try:
+            with self.knowledge_graph.neo4j_driver.session() as session:
+                session.run(query, id_vector_pairs=id_vector_pairs)
+        except Exception as e:
+            raise Exception(f"Error uploading vectors to the graph: {e}")
+        
+
+
+        
+    def cluster_devices(self):
+        """
+        Cluster the bacnet devices using the embeddings that were created from vectorizing the graph.
+        """
+        devices = self.devices()
+
+        embeddings = [device['embedding'] for device in devices]
+        embeddings = np.vstack(embeddings)
+
+        cluster_assignments = dbscan_cluster(embeddings)
+
+        # Create a dictionary of clusters, with the key being the cluster number and the value being the list of documents and metadata
+        clusters = {}
+        for i in range(len(cluster_assignments)):
+            cluster = cluster_assignments[i]
+            if cluster not in clusters:
+                clusters[cluster] = []
+            clusters[cluster].append(devices[i]['bacnet__device_name']) 
+
+        return clusters
+    
+    def cluster_points(self):
+        """
+        Cluster the bacnet points using the embeddings that were created from vectorizing the graph.
+        """
+        points = self.points()
+
+        embeddings = [point['embedding'] for point in points]
+        embeddings = np.vstack(embeddings)
+
+        cluster_assignments = dbscan_cluster(embeddings)
+
+        # Create a dictionary of clusters, with the key being the cluster number and the value being the list of documents and metadata
+        clusters = {}
+        for i in range(len(cluster_assignments)):
+            cluster = cluster_assignments[i]
+            if cluster not in clusters:
+                clusters[cluster] = []
+            clusters[cluster].append(points[i]['bacnet__object_name'])
+        
+        return clusters
+
+
+

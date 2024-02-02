@@ -1,5 +1,9 @@
 from typing import List
 from urllib.parse import quote
+from sklearn.cluster import DBSCAN
+from sklearn.neighbors import NearestNeighbors
+from kneed import KneeLocator
+import numpy as np
 
 
 def split_string_with_limit(text: str, limit: int, encoding) -> List[str]:
@@ -36,3 +40,32 @@ def create_uri(name: str) -> str:
     # name = name.replace("'", "_")  # Replace ' with _
     name = quote(name.lower())
     return name
+
+
+def dbscan_cluster(X):
+    """
+    DBSCAN clustering algorithm.
+    """
+    print("Clustering...")
+    # Find the optimal epsilon
+    nbrs = NearestNeighbors(n_neighbors=5).fit(X)
+
+    distances, indices = nbrs.kneighbors(X)
+
+    distances = np.sort(distances, axis=0)
+
+    kneedle = KneeLocator(
+        range(1, distances.shape[0] + 1), distances[:, 1], curve="convex", direction="increasing"
+    )
+
+    db = DBSCAN(eps=kneedle.knee_y, min_samples=3).fit(X)
+    labels = db.labels_
+
+    # Number of clusters in labels, ignoring noise if present.
+    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    n_noise_ = list(labels).count(-1)
+
+    print(f"Estimated number of clusters: {n_clusters_}")
+    print(f"Estimated number of noise points: {n_noise_}")
+
+    return labels
