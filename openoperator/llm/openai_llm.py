@@ -90,7 +90,7 @@ Always respond with markdown formatted text."""
                         function_args = json.loads(tool_call['function']['arguments'])
                         if verbose: print("Tool args: " + str(function_args))
                         function_response = function_to_call(
-                            function_args['query'],
+                            function_args
                         )
 
                         # Convert function response to string and limit to 7000 tokens

@@ -84,10 +84,12 @@ class Facility:
             raise Exception(f"Error creating document node in Neo4J: {e}")
 
     
-    def search_documents(self, query: str, limit: int = 15):
+    def search_documents(self, params: dict):
         """
         Search documents in the facility.
         """
+        query = params.get("query")
+        limit = params.get("limit", 15)
         return self.vector_store.similarity_search(query=query, limit=limit, filter={"facility_uri": self.uri})
     
     def upload_cobie_spreadsheet(self, file: str | bytes) -> (bool, dict | None):
