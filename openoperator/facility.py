@@ -26,7 +26,7 @@ class Facility:
         self.vector_store = vector_store
         self.document_loader = document_loader
 
-        self.bas = BAS(self)
+        self.bas = BAS(self, self.portfolio.operator.embeddings)
         
     def details(self) -> dict:
         with self.neo4j_driver.session() as session:
