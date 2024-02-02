@@ -4,9 +4,7 @@ from .vector_store.vector_store import VectorStore
 from .document_loader.document_loader import DocumentLoader
 from .cobie.cobie import COBie
 from uuid import uuid4
-import json
-from rdflib import Graph, Namespace, Literal, BNode, URIRef
-from .utils import create_uri
+from .bas import BAS
 
 class Facility:
     """
@@ -27,6 +25,8 @@ class Facility:
         self.blob_store = blob_store
         self.vector_store = vector_store
         self.document_loader = document_loader
+
+        self.bas = BAS(self)
         
     def details(self) -> dict:
         with self.neo4j_driver.session() as session:
@@ -108,68 +108,3 @@ class Facility:
 
         return False, None
     
-    def upload_bacnet_data(self, file: bytes):
-        """
-        This function takes a json file of bacnet data, converts it to rdf and uploads it to the knowledge graph.
-        """
-        try:
-            # Load the file
-            data = json.loads(file)
-
-            # Define namespaces for the graph
-            RDF = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
-            BACNET = Namespace("http://data.ashrae.org/bacnet/#")
-            A = RDF['type']
-
-            g = Graph()
-            g.bind("bacnet", BACNET)
-            g.bind("rdf", RDF)
-
-            # Loop through the bacnet json file
-            for item in data:
-                if item['Bacnet Data'] == None:
-                    continue
-                if item['Bacnet Data'] == "{}":
-                    continue
-                bacnet_data = json.loads(item['Bacnet Data'])[0]
-
-                # Check if the necessary keys are in bacnet_data
-                if not all(key in bacnet_data for key in ['device_address', 'device_id', 'device_name']):
-                    print("Missing necessary key in bacnet_data, skipping this item.")
-                    continue
-
-                device_uri = URIRef(self.uri + '/device/' + bacnet_data['device_address'] + "-" + bacnet_data['device_id'] + '/' + create_uri(bacnet_data['device_name']))
-                # Check if its a bacnet device or a bacnet object
-                if bacnet_data['object_type'] == "device":
-                # Create the bacnet device and add it to the graph
-                    g.add((device_uri, A, BACNET.bacnet_Device))
-
-                    # Go through all the bacnet data and add it to the graph
-                    for key, value in bacnet_data.items():
-                        if key == "object_type":
-                            continue
-                        g.add((device_uri, BACNET[key], Literal(str(value))))
-                else:
-                    # Create the bacnet point and add it to the graph
-                    point_uri = URIRef(device_uri + '/point/' + bacnet_data['object_type'] + "/" + create_uri(bacnet_data['object_name']) + "/" + bacnet_data['object_index'])
-                    g.add((point_uri, A, BACNET.bacnet_Point))
-
-                    # Go through all the bacnet data and add it to the graph
-                    for key, value in bacnet_data.items():
-                        if key == "object_type":
-                            continue
-                        g.add((point_uri, BACNET[key], Literal(str(value))))
-
-                    # Create relationship between the device and the point
-                    g.add((point_uri, BACNET.objectOf, device_uri))
-        
-            # Serialize the graph to a file
-            graph_string = g.serialize(format='turtle', encoding='utf-8').decode()
-            id = str(uuid4())
-            url = self.blob_store.upload_file(file_content=graph_string.encode(), file_name=f"{id}_bacnet.ttl", file_type="text/turtle")
-            self.knowledge_graph.import_rdf_data(url)
-        except Exception as e:
-            raise Exception(f"Error uploading bacnet data: {e}")
-        
-            
-        
