@@ -9,6 +9,12 @@ from .bas import BAS
 class Facility:
     """
     This class represents a facility. A facility is a building, a collection of buildings, or a collection of assets.
+
+    It is responsible for:
+    - Uploading documents to the facility
+    - Searching documents in the facility
+    - Integration with the COBie knowledge graph
+    - Integrating with the Building Automation System (BAS)
     """
     def __init__(self, 
                  portfolio,
@@ -26,6 +32,7 @@ class Facility:
         self.vector_store = vector_store
         self.document_loader = document_loader
 
+        self.cobie = COBie(self, self.portfolio.operator.embeddings)
         self.bas = BAS(self, self.portfolio.operator.embeddings)
         
     def details(self) -> dict:
@@ -92,19 +99,5 @@ class Facility:
         limit = params.get("limit", 15)
         return self.vector_store.similarity_search(query=query, limit=limit, filter={"facility_uri": self.uri})
     
-    def upload_cobie_spreadsheet(self, file: str | bytes) -> (bool, dict | None):
-        """
-        Convert a cobie spreadsheet to rdf graph, upload it to the blob store and import it to the knowledge graph.
-        """
-        spreadsheet = COBie(file)
-        errors_found, errors, _ = spreadsheet.validate_spreadsheet()
-        if errors_found:
-            return errors_found, errors
-        
-        rdf_graph_str = spreadsheet.convert_to_graph(namespace=self.uri)
-        id = str(uuid4())
-        url = self.blob_store.upload_file(file_content=rdf_graph_str.encode(), file_name=f"{id}_cobie.ttl", file_type="text/turtle")
-        self.knowledge_graph.import_rdf_data(url)
 
-        return False, None
     

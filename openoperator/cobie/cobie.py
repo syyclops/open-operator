@@ -2,10 +2,12 @@
 import pandas as pd
 import rdflib
 from rdflib import Namespace, Literal
-import urllib.parse
 import openpyxl
 from openpyxl.styles import PatternFill
 from io import BytesIO
+from ..embeddings import Embeddings
+from uuid import uuid4
+from ..utils import create_uri
 
 # Define common namespaces
 COBIE = Namespace("http://checksem.u-bourgogne.fr/ontology/cobie24#")
@@ -14,17 +16,22 @@ A = RDF.type
 
 class COBie:
     """
-    This class handles everything related to the COBie spreadsheet. Pass in the file path or the file content as a bytes object.
+    This class handles everything related to the COBie knowledge graph.
 
     Its repsonsibilities are to:
 
     1. COBie spreadsheet validation
-    2. Spreadsheet to RDF conversion
+    2. Spreadsheet to RDF conversion and upload to the knowledge graph
+    3. Vectorization of the graph
+    4. Align the COBie graph with documents and other data sources
     """
-    def __init__(self, file: str | bytes) -> None:
-        self.file = file if isinstance(file, str) else BytesIO(file)
+    def __init__(self, facility, embeddings: Embeddings) -> None:
+        self.knowledge_graph = facility.knowledge_graph 
+        self.blob_store = facility.blob_store
+        self.uri = facility.uri
+        self.embeddings = embeddings
 
-    def validate_spreadsheet(self) -> (bool, dict, bytes):
+    def validate_spreadsheet(self, file_content: bytes) -> (bool, dict, bytes):
         """
         Validate a COBie spreadsheet. Refer to COBie_validation.pdf in docs/ for more information.
         
@@ -48,8 +55,8 @@ class COBie:
         errors_found = False
 
         # Open COBie spreadsheet
-        df = pd.read_excel(self.file, engine='openpyxl', sheet_name=None) 
-        wb = openpyxl.load_workbook(self.file)
+        df = pd.read_excel(BytesIO(file_content), engine='openpyxl', sheet_name=None) 
+        wb = openpyxl.load_workbook(BytesIO(file_content))
 
         expected_sheets = ['Facility', 'Floor', 'Space', 'Type', 'Component', 'Attribute', 'System']
         # Check to make sure the spreadsheet has the correct sheets     
@@ -186,18 +193,14 @@ class COBie:
 
         return errors_found, errors, content.getvalue()
 
-    def convert_to_graph(self, namespace: str) -> str:
+    def convert_to_graph(self, file_content: bytes) -> str:
         """
         Converts a valid COBie spreadsheet to RDF and uploads it to knowledge graph.
-
-        portfolio_namespace: The namespace to represent a group of buildings and is used to create the URI of the facility. Ex. https://departmentOfEnergy.com/ could be the namespace for all the buildings owned by the Department of Energy. 
         """
-        # Make sure the portfolio namespace is a valid URI
-        assert urllib.parse.urlparse(namespace).scheme != ""
-        namespace = Namespace(namespace)
+        namespace = Namespace(self.uri)
 
         # Open COBie spreadsheet
-        df = pd.read_excel(self.file, engine='openpyxl', sheet_name=None)
+        df = pd.read_excel(BytesIO(file_content), engine='openpyxl', sheet_name=None)
 
         # Create an rdflib Graph to store the RDF data
         g = rdflib.Graph()
@@ -216,7 +219,7 @@ class COBie:
             for _, row in df[sheet].iterrows():
                 # The name field is used as the subject
                 subject = row['Name']
-                subject_uri = facility_uri["/" + sheet.lower() + "/" + self.create_uri(subject)]
+                subject_uri = facility_uri["/" + sheet.lower() + "/" + create_uri(subject)]
 
                 # Get the values of the row
                 objects = row.values
@@ -239,13 +242,13 @@ class COBie:
                             target_sheet = "Floor"
                         elif sheet == "System":
                             target_sheet = "Component"
-
-                        g.add((subject_uri, COBIE[predicate], facility_uri["/" + target_sheet.lower() + "/" + self.create_uri(obj)]))
+                   
+                        g.add((subject_uri, COBIE[predicate], facility_uri["/" + target_sheet.lower() + "/" + create_uri(obj)]))
                     elif sheet == "Component" and predicate == "space":
                         # Split by "," to get all spaces and remove whitespace
-                        spaces = [space.strip() for space in obj.split(",")]
+                        spaces = [space.strip() for space in str(obj).split(",")]
                         for space in spaces:
-                            g.add((subject_uri, COBIE[predicate], facility_uri["/" + "space" + "/" + self.create_uri(space)]))
+                            g.add((subject_uri, COBIE[predicate], facility_uri["/" + "space" + "/" + create_uri(space)]))
                     else:
                         g.add((subject_uri, COBIE[predicate], Literal(str(obj).replace('"', '\\"'))))
                     i += 1      
@@ -255,9 +258,9 @@ class COBie:
         for _, row in df['Attribute'].iterrows():
             target_sheet = row['SheetName']
             target_row_name = row['RowName']
-            target_uri = facility_uri["/" + target_sheet.lower() + "/" + self.create_uri(target_row_name)]
+            target_uri = facility_uri["/" + target_sheet.lower() + "/" + create_uri(target_row_name)]
 
-            attribute_uri = target_uri + "/attribute/" + self.create_uri(row['Name'])
+            attribute_uri = target_uri + "/attribute/" + create_uri(row['Name'])
 
             g.add((attribute_uri, A, COBIE['Attribute']))
             g.add((attribute_uri, COBIE['name'], Literal(row['Name'])))
@@ -269,3 +272,55 @@ class COBie:
         graph_string = g.serialize(format='turtle', encoding='utf-8').decode()
 
         return graph_string
+    
+
+    def upload_cobie_spreadsheet(self, file: str | bytes) -> (bool, dict | None):
+        """
+        Convert a cobie spreadsheet to rdf graph, upload it to the blob store and import it to the knowledge graph.
+        """
+        errors_found, errors, _ = self.validate_spreadsheet(file)
+        if errors_found:
+            return errors_found, errors
+        
+        rdf_graph_str = self.convert_to_graph(file)
+        id = str(uuid4())
+        url = self.blob_store.upload_file(file_content=rdf_graph_str.encode(), file_name=f"{id}_cobie.ttl", file_type="text/turtle")
+        self.knowledge_graph.import_rdf_data(url)
+
+        return False, None
+    
+    def types(self):
+        """
+        Get the types in the COBie graph.
+        """
+        query = """MATCH (n:cobie__Type) WHERE n.uri starts with $uri RETURN n"""
+        with self.knowledge_graph.neo4j_driver.session() as session:
+            result = session.run(query, uri=self.uri)
+            return [record['n'] for record in result.data()]
+    
+
+    def vectorize_graph(self):
+        """
+        Add embeddings to the graph
+        """
+        types = self.types()
+
+        names = [type['cobie__name'] for type in types]
+        embeddings = self.embeddings.create_embeddings(names)
+
+        id_vector_pairs = []
+        for i, type in enumerate(types):
+            id_vector_pairs.append({
+                "uri": type['uri'],
+                "vector": embeddings[i].embedding
+            })
+
+        query = """UNWIND $id_vector_pairs as pair
+                    MATCH (n:cobie__Type) WHERE n.uri = pair.uri
+                    CALL db.create.setNodeVectorProperty(n, 'embedding', pair.vector)
+                    RETURN n"""
+        try:
+            with self.knowledge_graph.neo4j_driver.session() as session:
+                session.run(query, id_vector_pairs=id_vector_pairs)
+        except Exception as e:
+            raise Exception(f"Error uploading vectors to the graph: {e}") 
