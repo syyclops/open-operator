@@ -1,4 +1,3 @@
-from .cobie import COBie
 from .schema.message import Message
 
 import mimetypes
@@ -27,22 +26,22 @@ def server(operator, host="0.0.0.0", port=8080):
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
         
-    @app.post("/cobie/validate_spreadsheet", tags=['cobie'])
-    async def validate_spreadsheet(file: UploadFile, download_update_file: bool):
-        try:
-            file_content = await file.read()
-            spreadsheet = COBie(file_content)
-            errors_founds, errors, updated_file = spreadsheet.validate_spreadsheet()
-            if errors_founds:
-                if download_update_file:
-                    return Response(content=updated_file, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=updated_cobie.xlsx"})
-                else:
-                    return JSONResponse(content=errors)
-            else:
-                return {"message": "No errors found"}
-        except Exception as e:
-            print(e)
-            return Response(content=f"Unable to validate spreadsheet: {e}", status_code=500)
+    # @app.post("/cobie/validate_spreadsheet", tags=['cobie'])
+    # async def validate_spreadsheet(file: UploadFile, download_update_file: bool):
+    #     try:
+    #         file_content = await file.read()
+    #         # spreadsheet = COBie(file_content)
+    #         errors_founds, errors, updated_file = spreadsheet.validate_spreadsheet()
+    #         if errors_founds:
+    #             if download_update_file:
+    #                 return Response(content=updated_file, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": "attachment; filename=updated_cobie.xlsx"})
+    #             else:
+    #                 return JSONResponse(content=errors)
+    #         else:
+    #             return {"message": "No errors found"}
+    #     except Exception as e:
+    #         print(e)
+    #         return Response(content=f"Unable to validate spreadsheet: {e}", status_code=500)
 
 
     @app.get("/portfolio/list", tags=['portfolio'])
