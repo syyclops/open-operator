@@ -6,6 +6,9 @@ from .cobie.cobie import COBie
 from uuid import uuid4
 
 class Facility:
+    """
+    This class represents a facility. A facility is a building, a collection of buildings, or a collection of assets.
+    """
     def __init__(self, 
                  portfolio,
                  uri: str,
@@ -23,17 +26,11 @@ class Facility:
         self.document_loader = document_loader
         
     def details(self) -> dict:
-        """
-        Get facility details.
-        """
         with self.neo4j_driver.session() as session:
             result = session.run("MATCH (n:Facility {uri: $facility_uri}) RETURN n", facility_uri=self.uri)
             return result.data()[0]['n']
 
     def list_files(self) -> list:
-        """
-        List all files in a facility.
-        """
         with self.neo4j_driver.session() as session:
             result = session.run("MATCH (d:Document)-[:documentTo]-(f:Facility {uri: $facility_uri}) RETURN d", facility_uri=self.uri)
             return [record['d'] for record in result.data()]
@@ -96,7 +93,6 @@ class Facility:
         """
         Convert a cobie spreadsheet to rdf graph, upload it to the blob store and import it to the knowledge graph.
         """
-
         spreadsheet = COBie(file)
         errors_found, errors, _ = spreadsheet.validate_spreadsheet()
         if errors_found:

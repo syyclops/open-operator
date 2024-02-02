@@ -2,7 +2,7 @@
   <img height="400" src="./docs/assets/Futuristic%20Robot%20HVAC.png" style="border-radius: 8px;"/>
 
   <h3 align="center">
-    <a href="https://discord.gg/VmfmMfDREU">Community</a>
+    <a href="https://github.com/syyclops/open-operator/discussions">Community</a>
   </h3>
 </div>
 

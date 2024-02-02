@@ -4,23 +4,20 @@ from neo4j.exceptions import Neo4jError
 from .utils import create_uri
 
 class Portfolio:
+    """
+    This class represents a portfolio of facilities. A portfolio is a collection of facilities, such as a collection of buildings or a collection of assets.
+    """
     def __init__(self, operator, neo4j_driver: Driver, uri: str) -> dict:
         self.operator = operator
         self.neo4j_driver = neo4j_driver
         self.uri = uri
         
     def details(self) -> dict:
-        """
-        Get portfolio details.
-        """
         with self.neo4j_driver.session() as session:
             result = session.run("MATCH (n:Portfolio {uri: $uri}) RETURN n", uri=self.uri)
             return result.data()[0]['n']
 
     def list_facilities(self) -> list:
-        """
-        List all facilities in a portfolio.
-        """
         with self.neo4j_driver.session() as session:
             result = session.run("MATCH (n:Facility)-[:PART_OF]-(p:Portfolio {uri: $uri}) RETURN n", uri=self.uri)
             return [record['n'] for record in result.data()]
@@ -29,9 +26,6 @@ class Portfolio:
         return Facility(portfolio=self, knowledge_graph=self.operator.knowledge_graph, uri=facility_uri, blob_store=self.operator.blob_store, vector_store=self.operator.vector_store, document_loader=self.operator.document_loader)
         
     def create_facility(self, name: str) -> Facility:
-        """
-        Create a facility.
-        """
         facility_uri = f"{self.uri}/{create_uri(name)}"
         query = """MATCH (p:Portfolio {uri: $portfolio_uri})
                     CREATE (n:Facility:Resource {name: $name, uri: $uri}) 
@@ -49,7 +43,7 @@ class Portfolio:
         
     def search_documents(self, params: dict) -> list:
         """
-        Search documents in the portfolio.
+        Search documents for metadata. These documents are drawings/plans, O&M manuals, etc.
         """
         query = params.get("query")
         limit = params.get("limit", 15)
