@@ -19,6 +19,11 @@ class KnowledgeGraph():
         neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
         neo4j_driver.verify_connectivity()
         self.neo4j_driver = neo4j_driver
+
+        namespaces = [
+            ("cobie", "http://checksem.u-bourgogne.fr/ontology/cobie24#"),
+            ("bacnet", "http://data.ashrae.org/bacnet/#"),
+        ]
     
         # Set up the graph
         with self.neo4j_driver.session() as session:
@@ -31,8 +36,9 @@ class KnowledgeGraph():
             
             # Check if the graph has the prefixes we need
             preixes = session.run("call n10s.nsprefixes.list()")
-            if "cobie" not in preixes:
-                session.run("call n10s.nsprefixes.add('cobie', 'http://checksem.u-bourgogne.fr/ontology/cobie24#')")
+            for prefix, uri in namespaces:
+                if prefix not in preixes:
+                    session.run(f"call n10s.nsprefixes.add('{prefix}', '{uri}')")
     
     def execute(self, query: str, parameters: dict = {}):
         """

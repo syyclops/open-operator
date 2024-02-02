@@ -16,9 +16,11 @@ class OpenOperator:
 
     Its responsibilities are:
 
-    - Provide a chat method that can be used to interact with the assistant
-    - Provide a files object that can be used to upload files to the assistant
-    - Provide a knowledge graph object that can be used to interact with the knowledge graph of the assistant
+    - Manage the different modules that are needed for the operator
+    - Define the tools that the assistant can use
+    - Create and manage portfolios
+    - Chat with the assistant
+    - Start the server
     """
     def __init__(
         self, 
@@ -64,17 +66,11 @@ class OpenOperator:
         return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri)
 
     def portfolios(self) -> list:
-        """
-        Get all portfolios.
-        """
         with self.neo4j_driver.session() as session:
             result = session.run("MATCH (n:Portfolio) RETURN n")
             return [record['n'] for record in result.data()]
         
     def create_portfolio(self, name: str) -> Portfolio:
-        """
-        Create a portfolio. The name must be unique. It will be used to create the URI of the portfolio.
-        """
         portfolio_uri = f"{self.base_uri}{create_uri(name)}"
         with self.neo4j_driver.session() as session:
             try: 
@@ -87,6 +83,9 @@ class OpenOperator:
         return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri)
 
     def chat(self, messages, portfolio: Portfolio, facility: Facility | None = None, verbose: bool = False):
+        """
+        Interact with the assistant.
+        """
         available_functions = {
             "search_building_documents": facility.search_documents if facility else portfolio.search_documents,
         }
