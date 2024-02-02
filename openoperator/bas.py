@@ -4,6 +4,9 @@ from .utils import create_uri
 from uuid import uuid4
 from .embeddings import Embeddings
 import numpy as np
+from sklearn.cluster import DBSCAN
+from sklearn.neighbors import NearestNeighbors
+from kneed import KneeLocator
 
 class BAS:
     """
@@ -160,4 +163,67 @@ class BAS:
         except Exception as e:
             raise Exception(f"Error uploading vectors to the graph: {e}")
         
+
+    def dbscan_cluster(self, X):
+        print("Clustering...")
+        # Find the optimal epsilon
+        nbrs = NearestNeighbors(n_neighbors=5).fit(X)
+
+        distances, indices = nbrs.kneighbors(X)
+
+        distances = np.sort(distances, axis=0)
+
+        kneedle = KneeLocator(
+            range(1, distances.shape[0] + 1), distances[:, 1], curve="convex", direction="increasing"
+        )
+
+        db = DBSCAN(eps=kneedle.knee_y, min_samples=3).fit(X)
+        labels = db.labels_
+
+        # Number of clusters in labels, ignoring noise if present.
+        n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+        n_noise_ = list(labels).count(-1)
+
+        print(f"Estimated number of clusters: {n_clusters_}")
+        print(f"Estimated number of noise points: {n_noise_}")
+
+        return labels
+        
+    def cluster_devices(self):
+        devices = self.devices()
+
+        embeddings = [device['embedding'] for device in devices]
+        embeddings = np.vstack(embeddings)
+
+        cluster_assignments = self.dbscan_cluster(embeddings)
+
+        # Create a dictionary of clusters, with the key being the cluster number and the value being the list of documents and metadata
+        clusters = {}
+        for i in range(len(cluster_assignments)):
+            cluster = cluster_assignments[i]
+            if cluster not in clusters:
+                clusters[cluster] = []
+            clusters[cluster].append(devices[i]['bacnet__device_name']) 
+
+        return clusters
+    
+    def cluster_points(self):
+        points = self.points()
+
+        embeddings = [point['embedding'] for point in points]
+        embeddings = np.vstack(embeddings)
+
+        cluster_assignments = self.dbscan_cluster(embeddings)
+
+        # Create a dictionary of clusters, with the key being the cluster number and the value being the list of documents and metadata
+        clusters = {}
+        for i in range(len(cluster_assignments)):
+            cluster = cluster_assignments[i]
+            if cluster not in clusters:
+                clusters[cluster] = []
+            clusters[cluster].append(points[i]['bacnet__object_name'])
+        
+        return clusters
+
+
 
