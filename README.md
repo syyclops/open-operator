@@ -12,7 +12,7 @@ Open Operator is a system that organizes and makes sense of the diverse operatio
 
 ## Demo
 
-https://github.com/syyclops/open-operator/assets/70538060/68fc6a14-1bbc-43ac-8bad-1f4eba1b88d6
+https://github.com/syyclops/open-operator/assets/70538060/e9a833bd-b1e5-4a81-aef5-083f8b163144
 
 ## Installation
 
