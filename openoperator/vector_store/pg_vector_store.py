@@ -95,3 +95,19 @@ class PGVectorStore(VectorStore):
             data = [{"content": record[0], "metadata": record[1]} for record in records]
 
             return data
+
+    def delete_documents(self, filter: dict) -> None:
+        """
+        Deletes documents from the vector store.
+        """
+        print(filter)
+        with self.conn.cursor() as cur:
+            query = f"DELETE FROM {self.collection_name} WHERE "
+            params = []
+            for i, (key, value) in enumerate(filter.items()):
+                query += f"metadata->>'{key}' = %s"
+                params.append(str(value))
+                if i != len(filter) - 1:
+                    query += " AND "
+            
+            cur.execute(query, params)

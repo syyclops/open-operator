@@ -8,6 +8,12 @@ class BlobStore(ABC):
         """
         pass
 
+    def delete_file(self, url: str) -> None:
+        """
+        Delete a file from the blob storage.
+        """
+        pass
+
     @abstractmethod
     def list_files(self, path: str) -> list:
         """

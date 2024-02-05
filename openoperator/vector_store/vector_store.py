@@ -19,6 +19,12 @@ class VectorStore(ABC):
         Creates text embeddings for a list of documents and uploads them to the vector store.
         """
         pass
+
+    def delete_documents(self, filter: dict) -> None:
+        """
+        Deletes documents from the vector store.
+        """
+        pass
     
     def similarity_search(self, query: str, limit: int, filter: dict | None = None) -> list:
         """
