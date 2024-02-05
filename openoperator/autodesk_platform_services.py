@@ -87,7 +87,3 @@ class AutodeskPlatformServices:
 
             return token, expires_in
         
-    def upload_file(self, file_content: bytes, file_name: str) -> str:
-        token, _ = self.authenticate()
-        
-        # First check if the bucket exists
