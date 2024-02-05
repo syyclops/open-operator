@@ -15,7 +15,7 @@ document_loader = UnstructuredDocumentLoader()
 embeddings = OpenAIEmbeddings()
 vector_store = PGVectorStore(embeddings=embeddings)
 knowledge_graph = KnowledgeGraph()
-llm = OpenAILLM(model_name="gpt-4-0125-preview")
+llm = OpenAILLM(model_name="gpt-3.5-turbo-16k")
 
 operator = OpenOperator(
     blob_store=blob_store,
