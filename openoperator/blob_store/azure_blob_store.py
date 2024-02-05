@@ -1,6 +1,7 @@
 from .blob_store import BlobStore
 import os
 from azure.storage.blob import ContainerClient, ContentSettings
+import urllib
 
 
 class AzureBlobStore(BlobStore):
@@ -24,3 +25,9 @@ class AzureBlobStore(BlobStore):
     def list_files(self, path: str) -> list:
         blobs = self.container_client.list_blob_names(name_starts_with=path)
         return [blob for blob in blobs]
+    
+    def delete_file(self, url: str) -> None:
+        clean_url = urllib.parse.unquote(url)
+        name = clean_url.split('/')[-1]
+        blob = self.container_client.get_blob_client(name)
+        blob.delete_blob()

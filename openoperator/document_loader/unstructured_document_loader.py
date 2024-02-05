@@ -41,11 +41,13 @@ class UnstructuredDocumentLoader(DocumentLoader):
                 new_after_n_chars=1500,
                 chunking_strategy="by_title",
                 combine_under_n_chars=500,
+                coordinates=True
             )
 
             res = self.unstructured_client.general.partition(req)
 
             docs = [Document(text=element['text'], metadata=element['metadata']) for element in res.elements]
+
 
             # Remove any where text is empty
             docs = [doc for doc in docs if doc.text]

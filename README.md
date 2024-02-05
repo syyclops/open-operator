@@ -10,6 +10,10 @@
 
 Open Operator is a system that organizes and makes sense of the diverse operational data from buildings while adding a layer of analytics and engineering knowledge intelligence.
 
+## Demo
+
+https://github.com/syyclops/open-operator/assets/70538060/e9a833bd-b1e5-4a81-aef5-083f8b163144
+
 ## Installation
 
 Install from source:

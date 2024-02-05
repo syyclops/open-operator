@@ -65,7 +65,22 @@ def server(operator, host="0.0.0.0", port=8080):
         return JSONResponse(operator.portfolio(portfolio_uri).create_facility(building_name).details())
     
 
-    @app.post("/files/upload", tags=['facility'])
+    @app.get("/portfolio/facility/documents", tags=['facility'])
+    async def list_documents(portfolio_uri: str, facility_uri: str) -> JSONResponse:
+        return JSONResponse(operator.portfolio(portfolio_uri).facility(facility_uri).documents())
+    
+    @app.delete("/portfolio/facility/document/delete", tags=['facility'])
+    async def delete_document(portfolio_uri: str, facility_uri: str, document_url: str) -> Response:
+        try:
+            operator.portfolio(portfolio_uri).facility(facility_uri).delete_document(document_url)
+            return JSONResponse(content={
+                "message": "Document deleted successfully",
+            })
+        except Exception as e:
+            return Response(content=str(e), status_code=500)
+        
+
+    @app.post("/portfolio/facility/documents/upload", tags=['facility'])
     async def upload_file(file: UploadFile, portfolio_uri: str, facility_uri: str | None = None):
         try:
             file_content = await file.read()
@@ -75,6 +90,7 @@ def server(operator, host="0.0.0.0", port=8080):
         except Exception as e:
             print(e)
             return Response(content=str(e), status_code=500) 
+        
     
 
     print("\nServer is running. Visit http://localhost:8080/docs to see documentation\n")

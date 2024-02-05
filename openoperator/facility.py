@@ -3,7 +3,6 @@ from  .blob_store.blob_store import BlobStore
 from .vector_store.vector_store import VectorStore
 from .document_loader.document_loader import DocumentLoader
 from .cobie.cobie import COBie
-from uuid import uuid4
 from .bas import BAS
 
 class Facility:
@@ -40,7 +39,10 @@ class Facility:
             result = session.run("MATCH (n:Facility {uri: $facility_uri}) RETURN n", facility_uri=self.uri)
             return result.data()[0]['n']
 
-    def list_files(self) -> list:
+    def documents(self) -> list:
+        """
+        List all the documents in the facility.
+        """
         with self.neo4j_driver.session() as session:
             result = session.run("MATCH (d:Document)-[:documentTo]-(f:Facility {uri: $facility_uri}) RETURN d", facility_uri=self.uri)
             return [record['d'] for record in result.data()]
@@ -89,6 +91,20 @@ class Facility:
         except Exception as e:
             # Handle database errors
             raise Exception(f"Error creating document node in Neo4J: {e}")
+    
+
+    def delete_document(self, url):
+        """
+        Delete a document from the facility. This will remove the document from the blob store, the vector store, and the knowledge graph.
+        """
+        try:
+            with self.neo4j_driver.session() as session:
+                query = """MATCH (d:Document {url: $url}) DETACH DELETE d"""
+                session.run(query, url=url)
+            self.blob_store.delete_file(url)
+            self.vector_store.delete_documents(filter={"file_url": url})
+        except Exception as e:
+            raise Exception(f"Error deleting document: {e}")
 
     
     def search_documents(self, params: dict):
