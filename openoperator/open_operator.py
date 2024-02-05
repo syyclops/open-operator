@@ -30,6 +30,7 @@ class OpenOperator:
         vector_store: VectorStore,
         knowledge_graph: KnowledgeGraph,
         llm: LLM,
+        base_uri: str = "https://openoperator.com/"
     ) -> None:
         self.blob_store = blob_store
         self.embeddings = embeddings
@@ -60,7 +61,7 @@ class OpenOperator:
             }
         ]
 
-        self.base_uri = "https://openoperator.com/"
+        self.base_uri = base_uri
 
     def portfolio(self, portfolio_uri: str) -> Portfolio:
         return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri)

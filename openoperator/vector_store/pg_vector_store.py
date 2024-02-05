@@ -51,7 +51,7 @@ class PGVectorStore(VectorStore):
             docs = [doc.text for doc in documents]
             embeddings = self.embeddings.create_embeddings(docs)
             
-            # Insert into postgres
+            # Insert into postgrs
             for i, doc in enumerate(documents):
                 text = doc.text
                 metadata = json.dumps(doc.metadata)

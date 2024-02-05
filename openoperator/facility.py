@@ -3,7 +3,6 @@ from  .blob_store.blob_store import BlobStore
 from .vector_store.vector_store import VectorStore
 from .document_loader.document_loader import DocumentLoader
 from .cobie.cobie import COBie
-from uuid import uuid4
 from .bas import BAS
 
 class Facility:
