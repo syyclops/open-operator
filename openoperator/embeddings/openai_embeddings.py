@@ -1,6 +1,5 @@
 import os
 from openai import OpenAI
-from openai.types import Embedding
 from .embeddings import Embeddings
 import tiktoken
 import numpy as np
@@ -12,16 +11,15 @@ class OpenAIEmbeddings(Embeddings):
             openai_api_key = os.environ['OPENAI_API_KEY']
         openai = OpenAI(api_key=openai_api_key)
         self.embeddings = openai.embeddings
-        self.model = "text-embedding-3-small" 
-    
-    def create_embeddings(self, texts: list[str]) -> list:
+        self.model = "text-embedding-3-small"
+
+
+    def chunk_text(self, texts: list[str], max_tokens: int) -> list:
         """
-        Convert a list of strings into embeddings, ensuring each chunk does not exceed the token limit.
+        Split a list of texts into chunks that do not exceed the max tokens.
         """
         encoding = tiktoken.get_encoding('cl100k_base')
-        max_tokens = 8191  # Max tokens allowed
-        chunks = []  # This will store our chunks of texts
-
+        chunks = []
         current_chunk = []
         current_chunk_text = ""
 
@@ -43,6 +41,17 @@ class OpenAIEmbeddings(Embeddings):
         # Don't forget to add the last chunk if it's not empty
         if current_chunk:
             chunks.append(current_chunk)
+
+        return chunks
+     
+    
+    def create_embeddings(self, texts: list[str]) -> list:
+        """
+        Convert a list of strings into embeddings, ensuring each chunk does not exceed the token limit.
+        """
+        max_tokens = 8191  # Max tokens allowed
+        
+        chunks = self.chunk_text(texts, max_tokens)
 
         embeddings = []
         for chunk in chunks:

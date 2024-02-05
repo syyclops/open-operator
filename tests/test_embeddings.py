@@ -27,6 +27,27 @@ class TestOpenAIEmbeddings(unittest.TestCase):
         mock_client.embeddings.create.assert_called_once_with(model="text-embedding-3-small", input=texts, encoding_format="float")
 
 
+    @patch('openoperator.embeddings.openai_embeddings.os.environ')
+    @patch('openoperator.embeddings.openai_embeddings.OpenAI')
+    def test_chunk_text(self, mock_OpenAI, mock_environ):
+        mock_environ.get.return_value = 'test_api_key'
+
+        # Initialize OpenAIEmbeddings instance
+        embeddings_instance = OpenAIEmbeddings()
+        
+        texts = ["Hello world", "This is a test", "Another test", "Yet another test"]
+        max_tokens = 5 
+        expected_chunks = [
+            ['Hello world'], 
+            ['This is a test'], 
+            ['Another test', 'Yet another test']
+        ]
+
+        chunks = embeddings_instance.chunk_text(texts, max_tokens)
+
+        # Assertions to verify behavior
+        self.assertEqual(chunks, expected_chunks)
+
 
 if __name__ == '__main__':
     unittest.main()
