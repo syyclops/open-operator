@@ -9,6 +9,8 @@ from .vector_store.vector_store import VectorStore
 from .llm.llm import LLM
 from .utils import create_uri
 from .server import server
+from .schema.user import User
+import os
 
 class OpenOperator: 
     """
@@ -30,7 +32,8 @@ class OpenOperator:
         vector_store: VectorStore,
         knowledge_graph: KnowledgeGraph,
         llm: LLM,
-        base_uri: str = "https://openoperator.com/"
+        base_uri: str = "https://openoperator.com/",
+        api_token_secret: str | None = None# Used to JWT on the server
     ) -> None:
         self.blob_store = blob_store
         self.embeddings = embeddings
@@ -39,6 +42,10 @@ class OpenOperator:
         self.knowledge_graph = knowledge_graph  
         self.neo4j_driver = knowledge_graph.neo4j_driver
         self.llm = llm
+
+        if api_token_secret is None:
+            api_token_secret = os.getenv("API_TOKEN_SECRET")
+        self.secret_key = api_token_secret
     
         # Define the tools that the assistant can use
         self.tools = [
@@ -61,27 +68,39 @@ class OpenOperator:
             }
         ]
 
-        self.base_uri = base_uri
+        self.base_uri = base_uri        
 
-    def portfolio(self, portfolio_uri: str) -> Portfolio:
-        return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri)
+    def portfolio(self, user: User, portfolio_uri: str) -> Portfolio:
+        return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri, user=user)
 
-    def portfolios(self) -> list:
+    def portfolios(self, user: User) -> list:
         with self.neo4j_driver.session() as session:
-            result = session.run("MATCH (n:Portfolio) RETURN n")
-            return [record['n'] for record in result.data()]
-        
-    def create_portfolio(self, name: str) -> Portfolio:
+            result = session.run("MATCH (u:User {email: $email})-[:HAS_ACCESS_TO]->(c:Customer) return c as Customer", email=user.email)
+            data = []
+            for record in result.data():
+                customer = record['Customer']
+                data.append({
+                    "name": customer['name'],
+                    "uri": customer['uri'],
+                })
+            return data
+         
+    def create_portfolio(self, user: User, name: str) -> Portfolio:
         portfolio_uri = f"{self.base_uri}{create_uri(name)}"
         with self.neo4j_driver.session() as session:
             try: 
-                result = session.run("CREATE (n:Portfolio:Resource {name: $name, uri: $uri}) RETURN n", name=name, id=str(id), uri=portfolio_uri)
+                result = session.run("""
+                                     MATCH (u:User {email: $email})
+                                     CREATE (n:Customer:Resource {name: $name, uri: $uri}) 
+                                     CREATE (u)-[:HAS_ACCESS_TO]->(n)
+                                     RETURN n
+                                     """, name=name, id=str(id), uri=portfolio_uri, email=user.email)
                 if result.single() is None:
                     raise Exception("Error creating portfolio")
             except Neo4jError as e:
                 raise Exception(f"Error creating portfolio: {e.message}")
             
-        return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri)
+        return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri, user=user)
 
     def chat(self, messages, portfolio: Portfolio, facility: Facility | None = None, verbose: bool = False):
         """

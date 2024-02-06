@@ -4,6 +4,7 @@ from .vector_store.vector_store import VectorStore
 from .document_loader.document_loader import DocumentLoader
 from .cobie.cobie import COBie
 from .bas import BAS
+from .schema.user import User
 
 class Facility:
     """
@@ -21,7 +22,7 @@ class Facility:
                  knowledge_graph: KnowledgeGraph, 
                  blob_store: BlobStore,
                  vector_store: VectorStore,
-                 document_loader: DocumentLoader
+                 document_loader: DocumentLoader,
         ) -> None:
         self.portfolio = portfolio
         self.knowledge_graph = knowledge_graph

@@ -1,7 +1,8 @@
 venv/
 .venv/
 data/*
-.env
+.env*
+!.env.example
 logs*
 .postgresql/
 __pycache__/

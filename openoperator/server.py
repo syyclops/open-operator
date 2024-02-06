@@ -1,20 +1,85 @@
 from .schema.message import Message
+from .schema.user import User
 
 import mimetypes
 
 from typing import Generator
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException
 from fastapi.responses import StreamingResponse, Response, JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
+
+import bcrypt
+
+import jwt
 
 def server(operator, host="0.0.0.0", port=8080):
     app = FastAPI(title="Open Operator API")
 
+    security = HTTPBearer()
+
+    async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
+        token = credentials.credentials
+        secret_key = operator.secret_key
+        decoded_token = jwt.decode(token, secret_key, algorithms=["HS256"])
+        email = decoded_token["email"]
+
+        with operator.neo4j_driver.session() as session:
+            result = session.run("MATCH (u:User {email: $email}) RETURN u", email=email)
+            user = result.single()
+            if user is None:
+                raise HTTPException(status_code=401, detail="Invalid token")
+            user_data = user['u']
+
+        return User(email=user_data['email'])
+    
+
+    @app.post("/signup", tags=["auth"])
+    async def signup(email: str, password: str, full_name: str) -> JSONResponse:
+        try:
+            # Check if user exists
+            with operator.neo4j_driver.session() as session:
+                result = session.run("MATCH (u:User {email: $email}) RETURN u", email=email)
+                user = result.single()
+                if user is not None:
+                    return JSONResponse(content={"message": "User already exists"}, status_code=400)
+            
+
+            hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+            with operator.neo4j_driver.session() as session:
+                result = session.run("CREATE (n:User {email: $email, password: $password, fullName: $full_name}) RETURN n", email=email, password=hashed_password, full_name=full_name)
+                if result.single() is None:
+                    raise Exception("Error creating user")
+                
+            # Generate http bearer token
+            token = jwt.encode({"email": email}, operator.secret_key, algorithm="HS256")
+
+            return JSONResponse(content={"token": token, "email": email, "full_name": full_name})
+        except Exception as e:
+            return JSONResponse(content={"message": f"Unable to create user: {e}"}, status_code=500)
+        
+    @app.post("/login", tags=["auth"])
+    async def login(email: str, password: str) -> JSONResponse:
+        with operator.neo4j_driver.session() as session:
+            result = session.run("MATCH (u:User {email: $email}) RETURN u", email=email)
+            user = result.single()
+            if user is None:
+                return JSONResponse(content={"message": "User does not exist"}, status_code=400)
+            user_data = user['u']
+            hashed_password = user_data['password']
+
+            if bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8")):
+                token = jwt.encode({"email": email}, operator.secret_key, algorithm="HS256")
+                return JSONResponse(content={"token": token, "email": email, "full_name": user_data['fullName']})
+            else:
+                return JSONResponse(content={"message": "Invalid password"}, status_code=400)
+        
+
     @app.post("/chat", tags=["assistant"])
-    async def chat(messages: list[Message], portfolio_uri: str, facility_uri: str | None = None) -> StreamingResponse:
+    async def chat(messages: list[Message], portfolio_uri: str, facility_uri: str | None = None, current_user: User = Security(get_current_user)) -> StreamingResponse:
         messages_dict_list = [message.model_dump() for message in messages]
 
-        portfolio = operator.portfolio(portfolio_uri)
+        portfolio = operator.portfolio(current_user, portfolio_uri)
         facility = None
         if facility_uri:
             facility = portfolio.facility(facility_uri)
@@ -45,34 +110,34 @@ def server(operator, host="0.0.0.0", port=8080):
 
 
     @app.get("/portfolio/list", tags=['portfolio'])
-    async def list_portfolios() -> JSONResponse:
-        return JSONResponse(operator.portfolios())
+    async def list_portfolios(current_user: User = Security(get_current_user)) -> JSONResponse:
+        return JSONResponse(operator.portfolios(current_user))
 
     @app.post("/portfolio/create", tags=['portfolio'])
-    async def create_portfolio(portfolio_name: str) -> JSONResponse:
-        portfolio = operator.create_portfolio(portfolio_name)
+    async def create_portfolio(portfolio_name: str, current_user: User = Security(get_current_user)) -> JSONResponse:
+        portfolio = operator.create_portfolio(current_user, portfolio_name)
         return JSONResponse(portfolio.details())
 
     @app.get("/portfolio/facilities", tags=['portfolio'])
-    async def list_facilities(portfolio_uri: str) -> JSONResponse:
+    async def list_facilities(portfolio_uri: str, current_user: User = Security(get_current_user)) -> JSONResponse:
         try:
-            return JSONResponse(operator.portfolio(portfolio_uri).list_facilities())
+            return JSONResponse(operator.portfolio(current_user, portfolio_uri).list_facilities())
         except Exception as e:
             return Response(content="Unable to create portfolio", status_code=500)
 
-    @app.post("/portfolio/facility/create", tags=['facility'])
-    async def create_facility(portfolio_uri: str, building_name: str) -> JSONResponse:
-        return JSONResponse(operator.portfolio(portfolio_uri).create_facility(building_name).details())
+    # @app.post("/portfolio/facility/create", tags=['facility'])
+    # async def create_facility(portfolio_uri: str, building_name: str) -> JSONResponse:
+    #     return JSONResponse(operator.portfolio(portfolio_uri).create_facility(building_name).details())
     
 
     @app.get("/portfolio/facility/documents", tags=['facility'])
-    async def list_documents(portfolio_uri: str, facility_uri: str) -> JSONResponse:
-        return JSONResponse(operator.portfolio(portfolio_uri).facility(facility_uri).documents())
+    async def list_documents(portfolio_uri: str, facility_uri: str, current_user: User = Security(get_current_user)) -> JSONResponse:
+        return JSONResponse(operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents())
     
     @app.delete("/portfolio/facility/document/delete", tags=['facility'])
-    async def delete_document(portfolio_uri: str, facility_uri: str, document_url: str) -> Response:
+    async def delete_document(portfolio_uri: str, facility_uri: str, document_url: str, current_user: User = Security(get_current_user)) -> Response:
         try:
-            operator.portfolio(portfolio_uri).facility(facility_uri).delete_document(document_url)
+            operator.portfolio(current_user, portfolio_uri).facility(facility_uri).delete_document(document_url)
             return JSONResponse(content={
                 "message": "Document deleted successfully",
             })
@@ -81,11 +146,11 @@ def server(operator, host="0.0.0.0", port=8080):
         
 
     @app.post("/portfolio/facility/documents/upload", tags=['facility'])
-    async def upload_file(file: UploadFile, portfolio_uri: str, facility_uri: str | None = None):
+    async def upload_file(file: UploadFile, portfolio_uri: str, facility_uri: str | None = None, current_user: User = Security(get_current_user)):
         try:
             file_content = await file.read()
             file_type = mimetypes.guess_type(file.filename)[0]
-            operator.portfolio(portfolio_uri).facility(facility_uri).upload_document(file_content=file_content, file_name=file.filename, file_type=file_type)
+            operator.portfolio(current_user, portfolio_uri).facility(facility_uri).upload_document(file_content=file_content, file_name=file.filename, file_type=file_type)
             return "File uploaded successfully"
         except Exception as e:
             print(e)
