@@ -3,12 +3,43 @@ from .schema.message import Message
 import mimetypes
 
 from typing import Generator
-from fastapi import FastAPI, UploadFile
+from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException
+from fastapi.requests import Request
 from fastapi.responses import StreamingResponse, Response, JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
+
+from pydantic import BaseModel
+from dotenv import load_dotenv
+load_dotenv()
+
+import jwt
+import os   
+
+
+class User(BaseModel):
+    email: str
 
 def server(operator, host="0.0.0.0", port=8080):
     app = FastAPI(title="Open Operator API")
+
+    security = HTTPBearer()
+
+    async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
+        token = credentials.credentials
+        secret_key = os.environ.get("API_TOKEN_SECRET") 
+        decoded_token = jwt.decode(token, secret_key, algorithms=["HS256"])
+        email = decoded_token["email"]
+
+        with operator.neo4j_driver.session() as session:
+            result = session.run("MATCH (u:User {email: $email}) RETURN u", email=email)
+            user = result.single()
+            if user is None:
+                raise HTTPException(status_code=401, detail="Invalid token")
+            user_data = user['u']
+
+        return User(email=user_data['email'])
+
 
     @app.post("/chat", tags=["assistant"])
     async def chat(messages: list[Message], portfolio_uri: str, facility_uri: str | None = None) -> StreamingResponse:
@@ -45,7 +76,8 @@ def server(operator, host="0.0.0.0", port=8080):
 
 
     @app.get("/portfolio/list", tags=['portfolio'])
-    async def list_portfolios() -> JSONResponse:
+    async def list_portfolios(current_user: str = Security(get_current_user)) -> JSONResponse:
+        print(current_user.email)
         return JSONResponse(operator.portfolios())
 
     @app.post("/portfolio/create", tags=['portfolio'])

@@ -23,7 +23,8 @@ operator = OpenOperator(
     vector_store=vector_store,
     embeddings=embeddings,
     knowledge_graph=knowledge_graph,
-    llm=llm
+    llm=llm,
+    base_uri="https://syyclops.com/"
 )
 
 operator.server()
