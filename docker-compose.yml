@@ -1,17 +1,17 @@
 version: "3.0"
 services:
-  # open-operator-api:
-  #   build: .
-  #   command: ["sh", "-c", "sleep 10; python ./examples/server.py"] # wait for neo4j to start
-  #   ports:
-  #     - 8080:8080
-  #   env_file:
-  #     - .env
-  #   networks:
-  #     - local
-  #   depends_on:
-  #     - neo4j
-  #     - postgres
+  open-operator-api:
+    build: .
+    command: ["sh", "-c", "sleep 10; python ./examples/server.py"] # wait for neo4j to start
+    ports:
+      - 8080:8080
+    env_file:
+      - .env
+    networks:
+      - local
+    depends_on:
+      - neo4j
+      - postgres
 
   unstructured:
     image: quay.io/unstructured-io/unstructured-api:latest

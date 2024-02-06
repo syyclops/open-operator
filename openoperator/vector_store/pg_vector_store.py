@@ -24,23 +24,27 @@ class PGVectorStore(VectorStore):
 
         self.embeddings = embeddings
 
-        # Connect to postgres
-        self.conn = psycopg.connect(connection_string)
-        self.collection_name = collection_name
+        try:
 
-        # Make sure pgvector is installed and table is created
-        self.conn.autocommit = True
-        with self.conn.cursor() as cur:
-            cur.execute('CREATE EXTENSION IF NOT EXISTS vector')
-            register_vector(self.conn)
+            # Connect to postgres
+            self.conn = psycopg.connect(connection_string)
+            self.collection_name = collection_name
 
-            # Check if table exists
-            cur.execute(f'SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = \'{collection_name}\')')
-            exists = cur.fetchone()[0]
+            # Make sure pgvector is installed and table is created
+            self.conn.autocommit = True
+            with self.conn.cursor() as cur:
+                cur.execute('CREATE EXTENSION IF NOT EXISTS vector')
+                register_vector(self.conn)
 
-            # Create table if it doesn't exist
-            if not exists:
-                cur.execute(f'CREATE TABLE {collection_name} (id bigserial PRIMARY KEY, content text, metadata jsonb, embedding vector(1536));')
+                # Check if table exists
+                cur.execute(f'SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = \'{collection_name}\')')
+                exists = cur.fetchone()[0]
+
+                # Create table if it doesn't exist
+                if not exists:
+                    cur.execute(f'CREATE TABLE {collection_name} (id bigserial PRIMARY KEY, content text, metadata jsonb, embedding vector(1536));')
+        except Exception as e:
+            raise Exception(f"Error connecting to postgres: {e}")
 
     def add_documents(self, documents: List[Document]) -> None:
         """

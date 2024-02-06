@@ -2,25 +2,40 @@ from neo4j import Driver
 from .facility import Facility
 from neo4j.exceptions import Neo4jError
 from .utils import create_uri
-
+from .schema.user import User
 class Portfolio:
     """
     This class represents a portfolio of facilities. A portfolio is a collection of facilities, such as a collection of buildings or a collection of assets.
     """
-    def __init__(self, operator, neo4j_driver: Driver, uri: str) -> dict:
+    def __init__(self, operator, neo4j_driver: Driver, uri: str, user: User) -> dict:
         self.operator = operator
         self.neo4j_driver = neo4j_driver
         self.uri = uri
+        self.user = user
         
     def details(self) -> dict:
         with self.neo4j_driver.session() as session:
-            result = session.run("MATCH (n:Portfolio {uri: $uri}) RETURN n", uri=self.uri)
-            return result.data()[0]['n']
+            result = session.run("MATCH (c:Customer {uri: $uri}) RETURN c", uri=self.uri)
+            return result.data()[0]['c']
 
     def list_facilities(self) -> list:
-        with self.neo4j_driver.session() as session:
-            result = session.run("MATCH (n:Facility)-[:PART_OF]-(p:Portfolio {uri: $uri}) RETURN n", uri=self.uri)
-            return [record['n'] for record in result.data()]
+        try:
+            with self.neo4j_driver.session() as session:
+                result = session.run("""
+                                    MATCH (u:User {email: $email})-[:HAS_ACCESS_TO]-(f:Facility)
+                                    MATCH (c:Customer {uri: $uri})-[:HAS_FACILITY]-(f)
+                                    RETURN f
+                                    """, email=self.user.email, uri=self.uri)
+                facilities = []
+                for record in result.data():
+                    facility = record['f']
+                    facilities.append({
+                        "name": facility['name'],
+                        "uri": facility['uri'],
+                    })
+                return facilities
+        except Neo4jError as e:
+            raise Exception(f"Error listing facilities: {e.message}")
     
     def facility(self, facility_uri: str) -> Facility:
         return Facility(portfolio=self, knowledge_graph=self.operator.knowledge_graph, uri=facility_uri, blob_store=self.operator.blob_store, vector_store=self.operator.vector_store, document_loader=self.operator.document_loader)

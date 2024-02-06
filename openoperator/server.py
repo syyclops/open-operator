@@ -1,24 +1,15 @@
 from .schema.message import Message
+from .schema.user import User
 
 import mimetypes
 
 from typing import Generator
 from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException
-from fastapi.requests import Request
 from fastapi.responses import StreamingResponse, Response, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
 
-from pydantic import BaseModel
-from dotenv import load_dotenv
-load_dotenv()
-
 import jwt
-import os   
-
-
-class User(BaseModel):
-    email: str
 
 def server(operator, host="0.0.0.0", port=8080):
     app = FastAPI(title="Open Operator API")
@@ -27,7 +18,7 @@ def server(operator, host="0.0.0.0", port=8080):
 
     async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
         token = credentials.credentials
-        secret_key = os.environ.get("API_TOKEN_SECRET") 
+        secret_key = operator.secret_key
         decoded_token = jwt.decode(token, secret_key, algorithms=["HS256"])
         email = decoded_token["email"]
 
@@ -42,10 +33,10 @@ def server(operator, host="0.0.0.0", port=8080):
 
 
     @app.post("/chat", tags=["assistant"])
-    async def chat(messages: list[Message], portfolio_uri: str, facility_uri: str | None = None) -> StreamingResponse:
+    async def chat(messages: list[Message], portfolio_uri: str, facility_uri: str | None = None, current_user: User = Security(get_current_user)) -> StreamingResponse:
         messages_dict_list = [message.model_dump() for message in messages]
 
-        portfolio = operator.portfolio(portfolio_uri)
+        portfolio = operator.portfolio(current_user, portfolio_uri)
         facility = None
         if facility_uri:
             facility = portfolio.facility(facility_uri)
@@ -76,35 +67,34 @@ def server(operator, host="0.0.0.0", port=8080):
 
 
     @app.get("/portfolio/list", tags=['portfolio'])
-    async def list_portfolios(current_user: str = Security(get_current_user)) -> JSONResponse:
-        print(current_user.email)
-        return JSONResponse(operator.portfolios())
+    async def list_portfolios(current_user: User = Security(get_current_user)) -> JSONResponse:
+        return JSONResponse(operator.portfolios(current_user))
 
-    @app.post("/portfolio/create", tags=['portfolio'])
-    async def create_portfolio(portfolio_name: str) -> JSONResponse:
-        portfolio = operator.create_portfolio(portfolio_name)
-        return JSONResponse(portfolio.details())
+    # @app.post("/portfolio/create", tags=['portfolio'])
+    # async def create_portfolio(portfolio_name: str) -> JSONResponse:
+    #     portfolio = operator.create_portfolio(portfolio_name)
+    #     return JSONResponse(portfolio.details())
 
     @app.get("/portfolio/facilities", tags=['portfolio'])
-    async def list_facilities(portfolio_uri: str) -> JSONResponse:
+    async def list_facilities(portfolio_uri: str, current_user: User = Security(get_current_user)) -> JSONResponse:
         try:
-            return JSONResponse(operator.portfolio(portfolio_uri).list_facilities())
+            return JSONResponse(operator.portfolio(current_user, portfolio_uri).list_facilities())
         except Exception as e:
             return Response(content="Unable to create portfolio", status_code=500)
 
-    @app.post("/portfolio/facility/create", tags=['facility'])
-    async def create_facility(portfolio_uri: str, building_name: str) -> JSONResponse:
-        return JSONResponse(operator.portfolio(portfolio_uri).create_facility(building_name).details())
+    # @app.post("/portfolio/facility/create", tags=['facility'])
+    # async def create_facility(portfolio_uri: str, building_name: str) -> JSONResponse:
+    #     return JSONResponse(operator.portfolio(portfolio_uri).create_facility(building_name).details())
     
 
     @app.get("/portfolio/facility/documents", tags=['facility'])
-    async def list_documents(portfolio_uri: str, facility_uri: str) -> JSONResponse:
-        return JSONResponse(operator.portfolio(portfolio_uri).facility(facility_uri).documents())
+    async def list_documents(portfolio_uri: str, facility_uri: str, current_user: User = Security(get_current_user)) -> JSONResponse:
+        return JSONResponse(operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents())
     
     @app.delete("/portfolio/facility/document/delete", tags=['facility'])
-    async def delete_document(portfolio_uri: str, facility_uri: str, document_url: str) -> Response:
+    async def delete_document(portfolio_uri: str, facility_uri: str, document_url: str, current_user: User = Security(get_current_user)) -> Response:
         try:
-            operator.portfolio(portfolio_uri).facility(facility_uri).delete_document(document_url)
+            operator.portfolio(current_user, portfolio_uri).facility(facility_uri).delete_document(document_url)
             return JSONResponse(content={
                 "message": "Document deleted successfully",
             })
@@ -113,11 +103,11 @@ def server(operator, host="0.0.0.0", port=8080):
         
 
     @app.post("/portfolio/facility/documents/upload", tags=['facility'])
-    async def upload_file(file: UploadFile, portfolio_uri: str, facility_uri: str | None = None):
+    async def upload_file(file: UploadFile, portfolio_uri: str, facility_uri: str | None = None, current_user: User = Security(get_current_user)):
         try:
             file_content = await file.read()
             file_type = mimetypes.guess_type(file.filename)[0]
-            operator.portfolio(portfolio_uri).facility(facility_uri).upload_document(file_content=file_content, file_name=file.filename, file_type=file_type)
+            operator.portfolio(current_user, portfolio_uri).facility(facility_uri).upload_document(file_content=file_content, file_name=file.filename, file_type=file_type)
             return "File uploaded successfully"
         except Exception as e:
             print(e)
