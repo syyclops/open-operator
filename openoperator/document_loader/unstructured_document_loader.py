@@ -17,6 +17,7 @@ class UnstructuredDocumentLoader(DocumentLoader):
             unstructured_api_key = os.environ['UNSTRUCTURED_API_KEY']
         if unstructured_api_url is None:
             unstructured_api_url = os.environ['UNSTRUCTURED_URL']
+        
         s = UnstructuredClient(api_key_auth=unstructured_api_key, server_url=unstructured_api_url)
 
         self.unstructured_client = s

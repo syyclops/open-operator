@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from openoperator.embeddings import OpenAIEmbeddings  # Adjust the import based on your project structure
+from openoperator.embeddings import OpenAIEmbeddings 
 
 class TestOpenAIEmbeddings(unittest.TestCase):
     @patch('openoperator.embeddings.openai_embeddings.os.environ')
