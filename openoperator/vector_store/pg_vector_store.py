@@ -25,7 +25,6 @@ class PGVectorStore(VectorStore):
         self.embeddings = embeddings
 
         try:
-
             # Connect to postgres
             self.conn = psycopg.connect(connection_string)
             self.collection_name = collection_name

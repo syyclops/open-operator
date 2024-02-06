@@ -11,6 +11,7 @@ from .utils import create_uri
 from .server import server
 from .schema.user import User
 import os
+
 class OpenOperator: 
     """
     This class (one instance is called 'operator') is the center of this project.
@@ -67,7 +68,7 @@ class OpenOperator:
             }
         ]
 
-        self.base_uri = base_uri
+        self.base_uri = base_uri        
 
     def portfolio(self, user: User, portfolio_uri: str) -> Portfolio:
         return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri, user=user)
@@ -84,17 +85,22 @@ class OpenOperator:
                 })
             return data
          
-    def create_portfolio(self, name: str) -> Portfolio:
+    def create_portfolio(self, user: User, name: str) -> Portfolio:
         portfolio_uri = f"{self.base_uri}{create_uri(name)}"
         with self.neo4j_driver.session() as session:
             try: 
-                result = session.run("CREATE (n:Portfolio:Resource {name: $name, uri: $uri}) RETURN n", name=name, id=str(id), uri=portfolio_uri)
+                result = session.run("""
+                                     MATCH (u:User {email: $email})
+                                     CREATE (n:Customer:Resource {name: $name, uri: $uri}) 
+                                     CREATE (u)-[:HAS_ACCESS_TO]->(n)
+                                     RETURN n
+                                     """, name=name, id=str(id), uri=portfolio_uri, email=user.email)
                 if result.single() is None:
                     raise Exception("Error creating portfolio")
             except Neo4jError as e:
                 raise Exception(f"Error creating portfolio: {e.message}")
             
-        return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri)
+        return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri, user=user)
 
     def chat(self, messages, portfolio: Portfolio, facility: Facility | None = None, verbose: bool = False):
         """
