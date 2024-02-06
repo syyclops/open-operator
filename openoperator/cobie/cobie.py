@@ -8,6 +8,7 @@ from io import BytesIO
 from ..embeddings import Embeddings
 from uuid import uuid4
 from ..utils import create_uri
+from typing import Tuple, Dict
 
 # Define common namespaces
 COBIE = Namespace("http://checksem.u-bourgogne.fr/ontology/cobie24#")
@@ -31,7 +32,7 @@ class COBie:
         self.uri = facility.uri
         self.embeddings = embeddings
 
-    def validate_spreadsheet(self, file_content: bytes) -> (bool, dict, bytes):
+    def validate_spreadsheet(self, file_content: bytes) -> Tuple[bool, Dict, bytes]:
         """
         Validate a COBie spreadsheet. Refer to COBie_validation.pdf in docs/ for more information.
         
@@ -274,7 +275,7 @@ class COBie:
         return graph_string
     
 
-    def upload_cobie_spreadsheet(self, file: str | bytes) -> (bool, dict | None):
+    def upload_cobie_spreadsheet(self, file: str | bytes) -> Tuple[bool, Dict]:
         """
         Convert a cobie spreadsheet to rdf graph, upload it to the blob store and import it to the knowledge graph.
         """

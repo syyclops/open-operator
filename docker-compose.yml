@@ -1,9 +1,24 @@
 version: "3.0"
 services:
+  open-operator-api:
+    build: .
+    command: ["sh", "-c", "sleep 10; python ./examples/server.py"] # wait for neo4j to start
+    ports:
+      - 8080:8080
+    env_file:
+      - .env
+    networks:
+      - local
+    depends_on:
+      - neo4j
+      - postgres
+
   unstructured:
     image: quay.io/unstructured-io/unstructured-api:latest
     ports:
       - 8000:8000
+    networks:
+      - local
 
   postgres:
     image: ankane/pgvector
@@ -16,6 +31,8 @@ services:
       # - ./db.sql:/docker-entrypoint-initdb.d/db.sql
     ports:
       - 5432:5432
+    networks:
+      - local
 
   neo4j:
     image: neo4j:5.15
@@ -34,3 +51,8 @@ services:
     ports:
       - 7474:7474
       - 7687:7687
+    networks:
+      - local
+
+networks:
+  local:

@@ -1,0 +1,13 @@
+.git
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+*.env
+data/
+docs/
+scripts/
+tests/
+.egg-info/
