@@ -9,8 +9,5 @@ RUN pip install python-dotenv
 
 EXPOSE 8080
 
-# Copy ENV from .env file
-
-
 # Run server.py when the container launches
 CMD ["python", "./examples/server.py"]
