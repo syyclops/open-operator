@@ -44,12 +44,14 @@ class Portfolio:
     def create_facility(self, name: str) -> Facility:
         facility_uri = f"{self.uri}/{create_uri(name)}"
         query = """MATCH (p:Customer {uri: $portfolio_uri})
-                    CREATE (n:Facility:Resource {name: $name, uri: $uri}) 
-                    CREATE (n)-[:PART_OF]->(p)
-                    RETURN n"""
+                    MATCH (u:User {email: $email})
+                    CREATE (f:Facility:Resource {name: $name, uri: $uri}) 
+                    CREATE (p)-[:HAS_FACILITY]->(f)
+                    CREATE (u)-[:HAS_ACCESS_TO]->(f)
+                    RETURN f"""
         with self.knowledge_graph.create_session() as session:
             try:
-                result = session.run(query, name=name, portfolio_uri=self.uri, uri=facility_uri)
+                result = session.run(query, name=name, portfolio_uri=self.uri, uri=facility_uri, email=self.user.email)
                 if result.single() is None:
                     raise Exception("Error creating facility")
             except Neo4jError as e:
