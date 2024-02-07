@@ -1,3 +1,6 @@
+"""
+This module contains utility functions used by the OpenOperator package.
+"""
 from typing import List
 from urllib.parse import quote
 from sklearn.cluster import DBSCAN
@@ -42,15 +45,15 @@ def create_uri(name: str) -> str:
     return name
 
 
-def dbscan_cluster(X):
+def dbscan_cluster(x):
     """
     DBSCAN clustering algorithm.
     """
     print("Clustering...")
     # Find the optimal epsilon
-    nbrs = NearestNeighbors(n_neighbors=5).fit(X)
+    nbrs = NearestNeighbors(n_neighbors=5).fit(x)
 
-    distances, indices = nbrs.kneighbors(X)
+    distances = nbrs.kneighbors(x)
 
     distances = np.sort(distances, axis=0)
 
@@ -58,7 +61,7 @@ def dbscan_cluster(X):
         range(1, distances.shape[0] + 1), distances[:, 1], curve="convex", direction="increasing"
     )
 
-    db = DBSCAN(eps=kneedle.knee_y, min_samples=3).fit(X)
+    db = DBSCAN(eps=kneedle.knee_y, min_samples=3).fit(x)
     labels = db.labels_
 
     # Number of clusters in labels, ignoring noise if present.

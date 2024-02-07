@@ -1,6 +1,9 @@
+"""
+This module contains the Portfolio class which represents a portfolio of facilities. A portfolio is a collection of facilities, such as a collection of buildings or a collection of assets.
+"""
+from neo4j.exceptions import Neo4jError
 from .knowledge_graph import KnowledgeGraph
 from .facility import Facility
-from neo4j.exceptions import Neo4jError
 from .utils import create_uri
 from .user import User
 
