@@ -27,18 +27,24 @@ class KnowledgeGraph():
     
         # Set up the graph
         with self.neo4j_driver.session() as session:
+            # Check constraint for unique URIs
+            result = session.run("SHOW CONSTRAINTS")
+            if "n10s_unique_uri" not in [record['name'] for record in result.data()]:
+                session.run("CREATE CONSTRAINT n10s_unique_uri FOR (r:Resource) REQUIRE r.uri IS UNIQUE")
+
             # Check if the graph is already configured
             result = session.run("MATCH (n:`_GraphConfig`) RETURN n")
             if len(result.data()) == 0:
-                # Configure the graph
-                session.run("CREATE CONSTRAINT n10s_unique_uri FOR (r:Resource) REQUIRE r.uri IS UNIQUE")
-                session.run("call n10s.graphconfig.init()")
+                session.run("call n10s.graphconfig.init({handleVocabUris: 'IGNORE'})")
             
             # Check if the graph has the prefixes we need
             preixes = session.run("call n10s.nsprefixes.list()")
             for prefix, uri in namespaces:
                 if prefix not in preixes:
                     session.run(f"call n10s.nsprefixes.add('{prefix}', '{uri}')")
+
+    def create_session(self):
+        return self.neo4j_driver.session()
     
     def execute(self, query: str, parameters: dict = {}):
         """

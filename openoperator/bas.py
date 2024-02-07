@@ -93,7 +93,7 @@ class BAS:
         """
         Get the bacnet devices in the facility.
         """
-        query = "MATCH (d:bacnet__Device) where d.uri starts with $uri RETURN d"
+        query = "MATCH (d:Device) where d.uri starts with $uri RETURN d"
         with self.knowledge_graph.neo4j_driver.session() as session:
             result = session.run(query, uri=self.uri)
             return [record['d'] for record in result.data()]
@@ -102,9 +102,9 @@ class BAS:
         """
         Get the bacnet points in the facility or a specific device.
         """
-        query = "MATCH (p:bacnet__Point)"
+        query = "MATCH (p:Point)"
         if device_uri:
-            query += "-[:bacnet__objectOf]->(d:bacnet__Device {uri: $device_uri})"
+            query += "-[:objectOf]->(d:Device {uri: $device_uri})"
         query += " WHERE p.uri STARTS WITH $uri RETURN p"
         with self.knowledge_graph.neo4j_driver.session() as session:
             result = session.run(query, uri=self.uri, device_uri=device_uri)
@@ -116,7 +116,7 @@ class BAS:
         """
         devices = self.devices()
 
-        texts = [device['bacnet__device_name'] for device in devices]
+        texts = [device['device_name'] for device in devices]
 
         embeddings = self.embeddings.create_embeddings(texts)
 
@@ -129,7 +129,7 @@ class BAS:
 
         # Upload the vectors to the graph
         query = """UNWIND $id_vector_pairs as pair
-                    MATCH (n:bacnet__Device) WHERE n.uri = pair.id
+                    MATCH (n:Device) WHERE n.uri = pair.id
                     CALL db.create.setNodeVectorProperty(n, 'embedding', pair.vector)
                     RETURN n"""
         try:
@@ -139,7 +139,7 @@ class BAS:
             raise Exception(f"Error uploading vectors to the graph: {e}")
         
         points = self.points()
-        texts = [point['bacnet__object_name'] for point in points]
+        texts = [point['object_name'] for point in points]
 
         embeddings = self.embeddings.create_embeddings(texts)
 
@@ -152,7 +152,7 @@ class BAS:
 
         # Upload the vectors to the graph
         query = """UNWIND $id_vector_pairs as pair
-                    MATCH (n:bacnet__Point) WHERE n.uri = pair.id
+                    MATCH (n:Point) WHERE n.uri = pair.id
                     CALL db.create.setNodeVectorProperty(n, 'embedding', pair.vector)
                     RETURN n"""
         
@@ -182,7 +182,7 @@ class BAS:
             cluster = cluster_assignments[i]
             if cluster not in clusters:
                 clusters[cluster] = []
-            clusters[cluster].append(devices[i]['bacnet__device_name']) 
+            clusters[cluster].append(devices[i]['device_name']) 
 
         return clusters
     
@@ -203,7 +203,7 @@ class BAS:
             cluster = cluster_assignments[i]
             if cluster not in clusters:
                 clusters[cluster] = []
-            clusters[cluster].append(points[i]['bacnet__object_name'])
+            clusters[cluster].append(points[i]['object_name'])
         
         return clusters
 
