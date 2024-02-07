@@ -94,9 +94,13 @@ class BAS:
         Get the bacnet devices in the facility.
         """
         query = "MATCH (d:Device) where d.uri starts with $uri RETURN d"
-        with self.knowledge_graph.create_session() as session:
-            result = session.run(query, uri=self.uri)
-            return [record['d'] for record in result.data()]
+        try:
+            with self.knowledge_graph.create_session() as session:
+                result = session.run(query, uri=self.uri)
+                devices = [record['d'] for record in result.data()]
+            return devices
+        except Exception as e:
+            raise e
         
     def points(self, device_uri: str | None = None):
         """
@@ -133,7 +137,7 @@ class BAS:
                     CALL db.create.setNodeVectorProperty(n, 'embedding', pair.vector)
                     RETURN n"""
         try:
-            with self.knowledge_graph.create_sesssion() as session:
+            with self.knowledge_graph.create_session() as session:
                 session.run(query, id_vector_pairs=id_vector_pairs)
         except Exception as e:
             raise Exception(f"Error uploading vectors to the graph: {e}")
@@ -161,9 +165,6 @@ class BAS:
                 session.run(query, id_vector_pairs=id_vector_pairs)
         except Exception as e:
             raise Exception(f"Error uploading vectors to the graph: {e}")
-        
-
-
         
     def cluster_devices(self):
         """

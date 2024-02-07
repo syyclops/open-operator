@@ -191,6 +191,12 @@ def server(operator, host="0.0.0.0", port=8080):
                 current_user,
                 portfolio_uri
             ).facility(facility_uri).bas.upload_bacnet_data(file_content)
+
+            operator.portfolio(
+                current_user,
+                portfolio_uri
+            ).facility(facility_uri).bas.vectorize_graph()
+
             return "BACnet data uploaded successfully"
         except HTTPException as e:
             return Response(content=str(e), status_code=500)
@@ -201,11 +207,17 @@ def server(operator, host="0.0.0.0", port=8080):
         facility_uri: str,
         current_user: User = Security(get_current_user)
     ) -> JSONResponse:
-        return JSONResponse(
-            operator.portfolio(
-                current_user, portfolio_uri
-            ).facility(facility_uri).bas.devices()
-        )
+        try:
+            return JSONResponse(
+                operator.portfolio(
+                    current_user, portfolio_uri
+                ).facility(facility_uri).bas.devices()
+            )
+        except HTTPException as e:
+            return JSONResponse(
+                content={"message": f"Unable to list devices: {e}"},
+                status_code=500
+            )
 
     @app.get("/bas/points", tags=['BAS'])
     async def list_points(
@@ -225,8 +237,19 @@ def server(operator, host="0.0.0.0", port=8080):
                 current_user, portfolio_uri
                 ).facility(facility_uri).bas.points(device_uri)
             )
+    
+    @app.get("/bas/deviceCluster", tags=['BAS'])
+    async def list_device_cluster(
+        portfolio_uri: str,
+        facility_uri: str,
+        current_user: User = Security(get_current_user)
+    ) -> JSONResponse:
+        return JSONResponse(
+            operator.portfolio(
+                current_user, portfolio_uri
+            ).facility(facility_uri).bas.cluster_devices()
+        )
 
     print("\nServer is running. Visit http://localhost:8080/docs to see documentation\n")
 
     uvicorn.run(app, host=host, port=port)
-    
