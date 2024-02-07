@@ -16,7 +16,7 @@ class KnowledgeGraph():
         if neo4j_password is None:
             neo4j_password = os.environ['NEO4J_PASSWORD']
         
-        neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
+        neo4j_driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password), max_connection_lifetime=200)
         neo4j_driver.verify_connectivity()
         self.neo4j_driver = neo4j_driver
 
