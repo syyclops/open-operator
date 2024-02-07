@@ -1,5 +1,5 @@
 from .schema.message import Message
-from .schema.user import User
+from .user import User 
 
 import mimetypes
 
@@ -9,10 +9,6 @@ from fastapi.responses import StreamingResponse, Response, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
 
-import bcrypt
-
-import jwt
-
 def server(operator, host="0.0.0.0", port=8080):
     app = FastAPI(title="Open Operator API")
 
@@ -20,59 +16,26 @@ def server(operator, host="0.0.0.0", port=8080):
 
     async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
         token = credentials.credentials
-        secret_key = operator.secret_key
-        decoded_token = jwt.decode(token, secret_key, algorithms=["HS256"])
-        email = decoded_token["email"]
-
-        with operator.neo4j_driver.session() as session:
-            result = session.run("MATCH (u:User {email: $email}) RETURN u", email=email)
-            user = result.single()
-            if user is None:
-                raise HTTPException(status_code=401, detail="Invalid token")
-            user_data = user['u']
-
-        return User(email=user_data['email'])
+        try:
+            user = operator.get_user_from_access_token(token)
+            return user
+        except Exception as e:
+            raise HTTPException(status_code=401, detail=str(e))
     
 
     @app.post("/signup", tags=["auth"])
     async def signup(email: str, password: str, full_name: str) -> JSONResponse:
         try:
-            # Check if user exists
-            with operator.neo4j_driver.session() as session:
-                result = session.run("MATCH (u:User {email: $email}) RETURN u", email=email)
-                user = result.single()
-                if user is not None:
-                    return JSONResponse(content={"message": "User already exists"}, status_code=400)
-            
-
-            hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-            with operator.neo4j_driver.session() as session:
-                result = session.run("CREATE (n:User {email: $email, password: $password, fullName: $full_name}) RETURN n", email=email, password=hashed_password, full_name=full_name)
-                if result.single() is None:
-                    raise Exception("Error creating user")
-                
-            # Generate http bearer token
-            token = jwt.encode({"email": email}, operator.secret_key, algorithm="HS256")
-
-            return JSONResponse(content={"token": token, "email": email, "full_name": full_name})
+            return JSONResponse(operator.user(email, password, full_name).signup())
         except Exception as e:
             return JSONResponse(content={"message": f"Unable to create user: {e}"}, status_code=500)
         
     @app.post("/login", tags=["auth"])
     async def login(email: str, password: str) -> JSONResponse:
-        with operator.neo4j_driver.session() as session:
-            result = session.run("MATCH (u:User {email: $email}) RETURN u", email=email)
-            user = result.single()
-            if user is None:
-                return JSONResponse(content={"message": "User does not exist"}, status_code=400)
-            user_data = user['u']
-            hashed_password = user_data['password']
-
-            if bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8")):
-                token = jwt.encode({"email": email}, operator.secret_key, algorithm="HS256")
-                return JSONResponse(content={"token": token, "email": email, "full_name": user_data['fullName']})
-            else:
-                return JSONResponse(content={"message": "Invalid password"}, status_code=400)
+        try:
+            return JSONResponse(operator.user(email, password, "").login()) 
+        except Exception as e:
+            return JSONResponse(content={"message": f"Unable to login: {e}"}, status_code=500)
         
 
     @app.post("/chat", tags=["assistant"])

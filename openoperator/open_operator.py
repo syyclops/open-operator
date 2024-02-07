@@ -9,8 +9,9 @@ from .vector_store.vector_store import VectorStore
 from .llm.llm import LLM
 from .utils import create_uri
 from .server import server
-from .schema.user import User
+from .user import User
 import os
+import jwt
 
 class OpenOperator: 
     """
@@ -69,6 +70,28 @@ class OpenOperator:
         ]
 
         self.base_uri = base_uri        
+
+    def get_user_from_access_token(self, token):
+        """
+        This is used to get the current user from the request.
+        It uses the JWT token to get the user.
+        If there is no user that matches the token, it returns None.
+        """
+        secret_key = self.secret_key
+        decoded_token = jwt.decode(token, secret_key, algorithms=["HS256"])
+        email = decoded_token["email"]
+
+        with self.neo4j_driver.session() as session:
+            result = session.run("MATCH (u:User {email: $email}) RETURN u", email=email)
+            user = result.single()
+            if user is None:
+                raise Exception("Invalid token")
+            user_data = user['u']
+
+        return User(email=user_data['email'], full_name=user_data['fullName'], password=user_data['password'], operator=self)
+
+    def user(self, email: str, password: str, full_name: str) -> User:
+        return User(self, email, password, full_name)
 
     def portfolio(self, user: User, portfolio_uri: str) -> Portfolio:
         return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri, user=user)
