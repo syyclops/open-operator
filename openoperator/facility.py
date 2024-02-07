@@ -4,7 +4,6 @@ from .vector_store.vector_store import VectorStore
 from .document_loader.document_loader import DocumentLoader
 from .cobie.cobie import COBie
 from .bas import BAS
-from .schema.user import User
 
 class Facility:
     """

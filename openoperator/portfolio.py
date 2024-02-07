@@ -2,7 +2,8 @@ from neo4j import Driver
 from .facility import Facility
 from neo4j.exceptions import Neo4jError
 from .utils import create_uri
-from .schema.user import User
+from .user import User
+
 class Portfolio:
     """
     This class represents a portfolio of facilities. A portfolio is a collection of facilities, such as a collection of buildings or a collection of assets.
@@ -42,7 +43,7 @@ class Portfolio:
         
     def create_facility(self, name: str) -> Facility:
         facility_uri = f"{self.uri}/{create_uri(name)}"
-        query = """MATCH (p:Portfolio {uri: $portfolio_uri})
+        query = """MATCH (p:Customer {uri: $portfolio_uri})
                     CREATE (n:Facility:Resource {name: $name, uri: $uri}) 
                     CREATE (n)-[:PART_OF]->(p)
                     RETURN n"""
