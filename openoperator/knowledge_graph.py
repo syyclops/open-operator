@@ -45,14 +45,6 @@ class KnowledgeGraph():
 
     def create_session(self):
         return self.neo4j_driver.session()
-    
-    def execute(self, query: str, parameters: dict = {}):
-        """
-        Execute a Cypher query.
-        """
-        with self.neo4j_driver.session() as session:
-            result = session.run(query, parameters)
-            return result.data()
                 
     def import_rdf_data(self, url: str, format: str = "Turtle", inline: bool = False):
         """

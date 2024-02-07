@@ -94,7 +94,7 @@ class BAS:
         Get the bacnet devices in the facility.
         """
         query = "MATCH (d:Device) where d.uri starts with $uri RETURN d"
-        with self.knowledge_graph.neo4j_driver.session() as session:
+        with self.knowledge_graph.create_session() as session:
             result = session.run(query, uri=self.uri)
             return [record['d'] for record in result.data()]
         
@@ -106,7 +106,7 @@ class BAS:
         if device_uri:
             query += "-[:objectOf]->(d:Device {uri: $device_uri})"
         query += " WHERE p.uri STARTS WITH $uri RETURN p"
-        with self.knowledge_graph.neo4j_driver.session() as session:
+        with self.knowledge_graph.create_session() as session:
             result = session.run(query, uri=self.uri, device_uri=device_uri)
             return [record['p'] for record in result.data()]
         
@@ -133,7 +133,7 @@ class BAS:
                     CALL db.create.setNodeVectorProperty(n, 'embedding', pair.vector)
                     RETURN n"""
         try:
-            with self.knowledge_graph.neo4j_driver.session() as session:
+            with self.knowledge_graph.create_sesssion() as session:
                 session.run(query, id_vector_pairs=id_vector_pairs)
         except Exception as e:
             raise Exception(f"Error uploading vectors to the graph: {e}")
@@ -157,7 +157,7 @@ class BAS:
                     RETURN n"""
         
         try:
-            with self.knowledge_graph.neo4j_driver.session() as session:
+            with self.knowledge_graph.create_session() as session:
                 session.run(query, id_vector_pairs=id_vector_pairs)
         except Exception as e:
             raise Exception(f"Error uploading vectors to the graph: {e}")

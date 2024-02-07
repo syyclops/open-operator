@@ -16,7 +16,7 @@ class User:
         """
         try:
             # Check if user exists
-            with self.operator.neo4j_driver.session() as session:
+            with self.operator.knowledge_graph.create_session() as session:
                 result = session.run("MATCH (u:User {email: $email}) RETURN u", email=self.email)
                 user = result.single()
                 if user is not None:
@@ -24,7 +24,7 @@ class User:
             
 
             hashed_password = bcrypt.hashpw(self.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-            with self.operator.neo4j_driver.session() as session:
+            with self.operator.knowledge_graph.create_session() as session:
                 result = session.run("CREATE (n:User {email: $email, password: $password, fullName: $full_name}) RETURN n", email=self.email, password=hashed_password, full_name=self.full_name)
                 if result.single() is None:
                     raise Exception("Error creating user")
@@ -48,7 +48,7 @@ class User:
         - Generate a token
         """
         try:
-            with self.operator.neo4j_driver.session() as session:
+            with self.operator.knowledge_graph.create_session() as session:
                 result = session.run("MATCH (u:User {email: $email}) RETURN u", email=self.email)
                 user = result.single()
                 if user is None:

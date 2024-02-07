@@ -25,7 +25,6 @@ class Facility:
         ) -> None:
         self.portfolio = portfolio
         self.knowledge_graph = knowledge_graph
-        self.neo4j_driver = knowledge_graph.neo4j_driver
         self.uri = uri
         self.blob_store = blob_store
         self.vector_store = vector_store
@@ -35,7 +34,7 @@ class Facility:
         self.bas = BAS(self, self.portfolio.operator.embeddings)
         
     def details(self) -> dict:
-        with self.neo4j_driver.session() as session:
+        with self.knowledge_graph.create_session() as session:
             result = session.run("MATCH (n:Facility {uri: $facility_uri}) RETURN n", facility_uri=self.uri)
             return result.data()[0]['n']
 
@@ -43,7 +42,7 @@ class Facility:
         """
         List all the documents in the facility.
         """
-        with self.neo4j_driver.session() as session:
+        with self.knowledge_graph.create_session() as session:
             result = session.run("MATCH (d:Document)-[:documentTo]-(f:Facility {uri: $facility_uri}) RETURN d", facility_uri=self.uri)
             return [record['d'] for record in result.data()]
         
@@ -81,7 +80,7 @@ class Facility:
             raise Exception(f"Error adding documents to vector store: {e}")
 
         try:
-            with self.neo4j_driver.session() as session:
+            with self.knowledge_graph.create_session() as session:
                 query = """CREATE (d:Document {name: $name, url: $url})
                             CREATE (d)-[:documentTo]->(:Facility {uri: $facility_uri})
                             RETURN d"""
@@ -98,7 +97,7 @@ class Facility:
         Delete a document from the facility. This will remove the document from the blob store, the vector store, and the knowledge graph.
         """
         try:
-            with self.neo4j_driver.session() as session:
+            with self.knowledge_graph.create_session() as session:
                 query = """MATCH (d:Document {url: $url}) DETACH DELETE d"""
                 session.run(query, url=url)
             self.blob_store.delete_file(url)

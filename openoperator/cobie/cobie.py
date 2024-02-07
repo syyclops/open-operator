@@ -1,4 +1,3 @@
-
 import pandas as pd
 import rdflib
 from rdflib import Namespace, Literal
@@ -294,8 +293,8 @@ class COBie:
         """
         Get the types in the COBie graph.
         """
-        query = """MATCH (n:cobie__Type) WHERE n.uri starts with $uri RETURN n"""
-        with self.knowledge_graph.neo4j_driver.session() as session:
+        query = """MATCH (n:Type) WHERE n.uri starts with $uri RETURN n"""
+        with self.knowledge_graph.create_session() as session:
             result = session.run(query, uri=self.uri)
             return [record['n'] for record in result.data()]
     
@@ -304,11 +303,11 @@ class COBie:
         """
         Add embeddings to the graph
         """
-        query = """MATCH (n) WHERE (n:cobie__Space OR n:cobie__Type OR n:cobie__Component) AND n.uri starts with $uri RETURN n"""
+        query = """MATCH (n) WHERE (n:Space OR n:Type OR n:Component) AND n.uri starts with $uri RETURN n"""
         nodes = []
         try:
             # Open a session to fetch the nodes
-            with self.knowledge_graph.neo4j_driver.session() as session:
+            with self.knowledge_graph.create_session() as session:
                 result = session.run(query, uri=self.uri)
                 nodes = [record['n'] for record in result.data()]
         except Exception as e:
@@ -318,7 +317,7 @@ class COBie:
             raise Exception("No nodes found in the graph")
 
         # Process nodes to generate embeddings
-        names = [str(node['cobie__name']) for node in nodes]
+        names = [str(node['name']) for node in nodes]
         embeddings = self.embeddings.create_embeddings(names)
 
         if len(embeddings) != len(nodes):
@@ -333,7 +332,7 @@ class COBie:
 
         # Open a new session to upload the embeddings
         try:
-            with self.knowledge_graph.neo4j_driver.session() as session:
+            with self.knowledge_graph.create_session() as session:
                 query = """UNWIND $id_vector_pairs as pair
                             MATCH (n:Resource {uri: pair.uri})
                             CALL db.create.setNodeVectorProperty(n, 'embedding', pair.vector)

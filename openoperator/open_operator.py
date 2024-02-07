@@ -41,7 +41,6 @@ class OpenOperator:
         self.document_loader = document_loader  
         self.vector_store = vector_store
         self.knowledge_graph = knowledge_graph  
-        self.neo4j_driver = knowledge_graph.neo4j_driver
         self.llm = llm
 
         if api_token_secret is None:
@@ -81,7 +80,7 @@ class OpenOperator:
         decoded_token = jwt.decode(token, secret_key, algorithms=["HS256"])
         email = decoded_token["email"]
 
-        with self.neo4j_driver.session() as session:
+        with self.knowledge_graph.create_session() as session:
             result = session.run("MATCH (u:User {email: $email}) RETURN u", email=email)
             user = result.single()
             if user is None:
@@ -94,10 +93,10 @@ class OpenOperator:
         return User(self, email, password, full_name)
 
     def portfolio(self, user: User, portfolio_uri: str) -> Portfolio:
-        return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri, user=user)
+        return Portfolio(self, knowledge_graph=self.knowledge_graph, uri=portfolio_uri, user=user)
 
     def portfolios(self, user: User) -> list:
-        with self.neo4j_driver.session() as session:
+        with self.knowledge_graph.create_session() as session:
             result = session.run("MATCH (u:User {email: $email})-[:HAS_ACCESS_TO]->(c:Customer) return c as Customer", email=user.email)
             data = []
             for record in result.data():
@@ -110,7 +109,7 @@ class OpenOperator:
          
     def create_portfolio(self, user: User, name: str) -> Portfolio:
         portfolio_uri = f"{self.base_uri}{create_uri(name)}"
-        with self.neo4j_driver.session() as session:
+        with self.knowledge_graph.create_session() as session:
             try: 
                 result = session.run("""
                                      MATCH (u:User {email: $email})
@@ -123,7 +122,7 @@ class OpenOperator:
             except Neo4jError as e:
                 raise Exception(f"Error creating portfolio: {e.message}")
             
-        return Portfolio(self, neo4j_driver=self.neo4j_driver, uri=portfolio_uri, user=user)
+        return Portfolio(self, knowledge_graph=self.knowledge_graph, uri=portfolio_uri, user=user)
 
     def chat(self, messages, portfolio: Portfolio, facility: Facility | None = None, verbose: bool = False):
         """
