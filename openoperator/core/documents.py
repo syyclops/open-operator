@@ -1,4 +1,6 @@
 
+import fitz
+import io
 from ..services.blob_store.blob_store import BlobStore
 from ..services.document_loader.document_loader import DocumentLoader
 from ..services.vector_store.vector_store import VectorStore
@@ -39,16 +41,24 @@ class Documents:
         2. Create a document node in the knowledge graph with extractionStatus = "pending"
         """
         try:
+            thumbnail_url = None
+            if file_type == "application/pdf":
+                doc = fitz.open("pdf", io.BytesIO(file_content))
+                page = doc.load_page(0)
+                pix = page.get_pixmap(matrix=fitz.Matrix(100/72, 100/72))
+                thumbnail_url = self.blob_store.upload_file(file_content=pix.tobytes(), file_name=f"{file_name}_thumbnail.png", file_type="image/png")
+            
             file_url = self.blob_store.upload_file(file_content=file_content, file_name=file_name, file_type=file_type)
+            
         except Exception as e:
             raise Exception(f"Error uploading document to blob storage: {e}")
 
         try:
             with self.knowledge_graph.create_session() as session:
-                query = """CREATE (d:Document {name: $name, url: $url, extractionStatus: 'pending'})
+                query = """CREATE (d:Document {name: $name, url: $url, extractionStatus: 'pending', thumbnailUrl: $thumbnail_url})
                             CREATE (d)-[:documentTo]->(:Facility {uri: $facility_uri})
                             RETURN d"""
-                result = session.run(query, name=file_name, url=file_url, facility_uri=self.facility.uri)
+                result = session.run(query, name=file_name, url=file_url, facility_uri=self.facility.uri, thumbnail_url=thumbnail_url)
 
                 return result.data()[0]['d']
         except Exception as e:
