@@ -5,6 +5,7 @@ from fastapi.responses import StreamingResponse, Response, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
 from io import BytesIO
+from typing import List
 
 from .schema.message import Message
 from .schema.document_query import DocumentQuery
@@ -178,37 +179,42 @@ def server(operator, host="0.0.0.0", port=8080):
             )
 
     @app.post("/portfolio/facility/documents/upload", tags=['Documents'])
-    async def upload_file(
+    async def upload_files(
         background_tasks: BackgroundTasks,
-        file: UploadFile,
+        files: List[UploadFile],
         portfolio_uri: str,
-        facility_uri: str | None = None,
+        facility_uri: str,
         current_user: User = Security(get_current_user)
     ):
-        try:
-            file_content = await file.read()
-            file_type = mimetypes.guess_type(file.filename)[0]
-            document = operator.portfolio(
-                current_user,
-                portfolio_uri
-            ).facility(facility_uri).documents.upload(
-                file_content=file_content,
-                file_name=file.filename,
-                file_type=file_type
-            )
+        uploaded_files_info = []  # To store info about uploaded files
 
-            file_url = document['url']
-            
-            background_tasks.add_task(operator.portfolio(
-                current_user,
-                portfolio_uri
-            ).facility(facility_uri).documents.run_extraction_process, file_content, file.filename, file_url)
-            return "File uploaded successfully"
-        except HTTPException as e:
-            return JSONResponse(
-                content={"message": f"Unable to upload file: {e}"},
-                status_code=500
-            )
+        for file in files:
+            try:
+                file_content = await file.read()
+                file_type = mimetypes.guess_type(file.filename)[0]
+                document = operator.portfolio(
+                    current_user,
+                    portfolio_uri
+                ).facility(facility_uri).documents.upload(
+                    file_content=file_content,
+                    file_name=file.filename,
+                    file_type=file_type
+                )
+
+                file_url = document['url']
+                background_tasks.add_task(operator.portfolio(
+                    current_user,
+                    portfolio_uri
+                ).facility(facility_uri).documents.run_extraction_process, file_content, file.filename, file_url)
+
+                uploaded_files_info.append({"filename": file.filename, "url": file_url})
+            except Exception as e:  # Catching a more general exception; you might want to log this or handle it differently
+                return JSONResponse(
+                    content={"message": f"Unable to upload file {file.filename}: {e}"},
+                    status_code=500
+                )
+
+        return {"message": "Files uploaded successfully", "uploaded_files": uploaded_files_info}
 
     ## BAS INTEGRATION ROUTES
     @app.post("/portfolio/facility/bas/upload_json_scan", tags=['BAS'])
@@ -234,7 +240,7 @@ def server(operator, host="0.0.0.0", port=8080):
         except HTTPException as e:
             return Response(content=str(e), status_code=500)
 
-    @app.get("/portfolio/facility//bas/devices", tags=['BAS'])
+    @app.get("/portfolio/facility/bas/devices", tags=['BAS'])
     async def list_devices(
         portfolio_uri: str,
         facility_uri: str,
@@ -252,7 +258,7 @@ def server(operator, host="0.0.0.0", port=8080):
                 status_code=500
             )
 
-    @app.get("/portfolio/facility//bas/points", tags=['BAS'])
+    @app.get("/portfolio/facility/bas/points", tags=['BAS'])
     async def list_points(
         portfolio_uri: str,
         facility_uri: str,
@@ -271,7 +277,7 @@ def server(operator, host="0.0.0.0", port=8080):
                 ).facility(facility_uri).bas.points(device_uri)
             )
     
-    @app.get("/portfolio/facility//bas/deviceCluster", tags=['BAS'])
+    @app.get("/portfolio/facility/bas/deviceCluster", tags=['BAS'])
     async def list_device_cluster(
         portfolio_uri: str,
         facility_uri: str,
