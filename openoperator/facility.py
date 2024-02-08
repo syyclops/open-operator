@@ -4,6 +4,7 @@ from .vector_store.vector_store import VectorStore
 from .document_loader.document_loader import DocumentLoader
 from .cobie.cobie import COBie
 from .bas import BAS
+from .schema.document_query import DocumentQuery
 
 class Facility:
     """
@@ -12,8 +13,8 @@ class Facility:
     It is responsible for:
     - Uploading documents to the facility
     - Searching documents in the facility
-    - Integration with the COBie knowledge graph
-    - Integrating with the Building Automation System (BAS)
+    - Integration with the COBie for asset details information
+    - Integration with the Building Automation System (BAS)
     """
     def __init__(self, 
                  portfolio,
@@ -106,12 +107,12 @@ class Facility:
             raise Exception(f"Error deleting document: {e}")
 
     
-    def search_documents(self, params: dict):
+    def search_documents(self, params: DocumentQuery) -> list:
         """
         Search documents in the facility.
         """
-        query = params.get("query")
-        limit = params.get("limit", 15)
+        query = params.query
+        limit = params.limit
         return self.vector_store.similarity_search(query=query, limit=limit, filter={"facility_uri": self.uri})
     
 

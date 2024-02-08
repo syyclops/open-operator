@@ -6,6 +6,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
 
 from .schema.message import Message
+from .schema.document_query import DocumentQuery
 from .user import User
 
 def server(operator, host="0.0.0.0", port=8080):
@@ -126,6 +127,17 @@ def server(operator, host="0.0.0.0", port=8080):
     ) -> JSONResponse:
         return JSONResponse(
             operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents()
+        )
+    
+    @app.post("/portfolio/facility/documents/search", tags=['Facility'])
+    async def search_documents(
+        portfolio_uri: str,
+        facility_uri: str,
+        query: DocumentQuery,
+        current_user: User = Security(get_current_user)
+    ) -> JSONResponse:
+        return JSONResponse(
+            operator.portfolio(current_user, portfolio_uri).facility(facility_uri).search_documents(query)
         )
 
     @app.delete("/portfolio/facility/document/delete", tags=['Facility'])
