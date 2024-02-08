@@ -111,4 +111,8 @@ class Documents:
         """
         query = params.query
         limit = params.limit
-        return self.vector_store.similarity_search(query=query, limit=limit, filter={"facility_uri": self.facility.uri})
+        file_url = params.file_url
+        filter = {"facility_uri": self.facility.uri}
+        if file_url:
+            filter['file_url'] = file_url
+        return self.vector_store.similarity_search(query=query, limit=limit, filter=filter)
