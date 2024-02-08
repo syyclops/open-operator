@@ -197,7 +197,7 @@ def server(operator, host="0.0.0.0", port=8080):
             )
 
     ## BAS INTEGRATION ROUTES
-    @app.post("/bas/upload_json_scan", tags=['BAS'])
+    @app.post("/portfolio/facility/bas/upload_json_scan", tags=['BAS'])
     async def upload_bacnet(
         portfolio_uri: str,
         facility_uri: str,
@@ -220,7 +220,7 @@ def server(operator, host="0.0.0.0", port=8080):
         except HTTPException as e:
             return Response(content=str(e), status_code=500)
 
-    @app.get("/bas/devices", tags=['BAS'])
+    @app.get("/portfolio/facility//bas/devices", tags=['BAS'])
     async def list_devices(
         portfolio_uri: str,
         facility_uri: str,
@@ -238,7 +238,7 @@ def server(operator, host="0.0.0.0", port=8080):
                 status_code=500
             )
 
-    @app.get("/bas/points", tags=['BAS'])
+    @app.get("/portfolio/facility//bas/points", tags=['BAS'])
     async def list_points(
         portfolio_uri: str,
         facility_uri: str,
@@ -257,7 +257,7 @@ def server(operator, host="0.0.0.0", port=8080):
                 ).facility(facility_uri).bas.points(device_uri)
             )
     
-    @app.get("/bas/deviceCluster", tags=['BAS'])
+    @app.get("/portfolio/facility//bas/deviceCluster", tags=['BAS'])
     async def list_device_cluster(
         portfolio_uri: str,
         facility_uri: str,
