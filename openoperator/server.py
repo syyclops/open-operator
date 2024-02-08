@@ -1,11 +1,12 @@
 import mimetypes
 from typing import Generator
-from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException
+from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse, Response, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
 
 from .schema.message import Message
+from .schema.document_query import DocumentQuery
 from .user import User
 
 def server(operator, host="0.0.0.0", port=8080):
@@ -117,18 +118,31 @@ def server(operator, host="0.0.0.0", port=8080):
         return JSONResponse(
             operator.portfolio(current_user, portfolio_uri).create_facility(building_name).details()
         )
+    
+    ## DOCUMENTS ROUTES
 
-    @app.get("/portfolio/facility/documents", tags=['Facility'])
+    @app.get("/portfolio/facility/documents", tags=['Documents'])
     async def list_documents(
         portfolio_uri: str,
         facility_uri: str,
         current_user: User = Security(get_current_user)
     ) -> JSONResponse:
         return JSONResponse(
-            operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents()
+            operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents.list()
+        )
+    
+    @app.post("/portfolio/facility/documents/search", tags=['Documents'])
+    async def search_documents(
+        portfolio_uri: str,
+        facility_uri: str,
+        query: DocumentQuery,
+        current_user: User = Security(get_current_user)
+    ) -> JSONResponse:
+        return JSONResponse(
+            operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents.search(query)
         )
 
-    @app.delete("/portfolio/facility/document/delete", tags=['Facility'])
+    @app.delete("/portfolio/facility/document/delete", tags=['Documents'])
     async def delete_document(
         portfolio_uri: str,
         facility_uri: str,
@@ -139,7 +153,7 @@ def server(operator, host="0.0.0.0", port=8080):
             operator.portfolio(
                 current_user,
                 portfolio_uri
-            ).facility(facility_uri).delete_document(document_url)
+            ).facility(facility_uri).documents.delete(document_url)
             return JSONResponse(content={
                 "message": "Document deleted successfully",
             })
@@ -149,8 +163,9 @@ def server(operator, host="0.0.0.0", port=8080):
                 status_code=500
             )
 
-    @app.post("/portfolio/facility/documents/upload", tags=['Facility'])
+    @app.post("/portfolio/facility/documents/upload", tags=['Documents'])
     async def upload_file(
+        background_tasks: BackgroundTasks,
         file: UploadFile,
         portfolio_uri: str,
         facility_uri: str | None = None,
@@ -159,14 +174,21 @@ def server(operator, host="0.0.0.0", port=8080):
         try:
             file_content = await file.read()
             file_type = mimetypes.guess_type(file.filename)[0]
-            operator.portfolio(
+            document = operator.portfolio(
                 current_user,
                 portfolio_uri
-            ).facility(facility_uri).upload_document(
+            ).facility(facility_uri).documents.upload(
                 file_content=file_content,
                 file_name=file.filename,
                 file_type=file_type
             )
+
+            file_url = document['url']
+            
+            background_tasks.add_task(operator.portfolio(
+                current_user,
+                portfolio_uri
+            ).facility(facility_uri).documents.run_extraction_process, file_content, file.filename, file_url)
             return "File uploaded successfully"
         except HTTPException as e:
             return JSONResponse(

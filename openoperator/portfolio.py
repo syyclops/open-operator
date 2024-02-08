@@ -3,6 +3,7 @@ from .knowledge_graph import KnowledgeGraph
 from .facility import Facility
 from .utils import create_uri
 from .user import User
+from .schema.document_query import DocumentQuery
 
 class Portfolio:
     """
@@ -59,11 +60,11 @@ class Portfolio:
                 
         return Facility(portfolio=self, uri=facility_uri, knowledge_graph=self.operator.knowledge_graph, blob_store=self.operator.blob_store, vector_store=self.operator.vector_store, document_loader=self.operator.document_loader)
         
-    def search_documents(self, params: dict) -> list:
+    def search_documents(self, params: DocumentQuery) -> list:
         """
         Search contents of all upload documents to the portfolio. These documents are drawings/plans, O&M manuals, etc.
         """
-        query = params.get("query")
-        limit = params.get("limit", 15)
+        query = params.query
+        limit = params.limit
         return self.operator.vector_store.similarity_search(query=query, limit=limit, filter={"portfolio_uri": self.uri})
     
