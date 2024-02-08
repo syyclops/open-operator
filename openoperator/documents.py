@@ -105,13 +105,13 @@ class Documents:
             raise Exception(f"Error deleting document: {e}")
 
 
-    def search(self, params: DocumentQuery) -> list:
+    def search(self, params: dict) -> list:
         """
         Search vector store for documents in the facility
         """
-        query = params.query
-        limit = params.limit
-        file_url = params.file_url
+        query = params.get('query')
+        limit = params.get('limit') or 15
+        file_url = params.get('file_url')
         filter = {"facility_uri": self.facility.uri}
         if file_url:
             filter['file_url'] = file_url

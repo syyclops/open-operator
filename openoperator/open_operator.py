@@ -6,7 +6,7 @@ from .blob_store.blob_store import BlobStore
 from .embeddings.embeddings import Embeddings
 from .document_loader.document_loader import DocumentLoader
 from .vector_store.vector_store import VectorStore
-from .llm.llm import LLM
+from .ai import AI
 from .utils import create_uri
 from .server import server
 from .user import User
@@ -32,16 +32,16 @@ class OpenOperator:
         document_loader: DocumentLoader,
         vector_store: VectorStore,
         knowledge_graph: KnowledgeGraph,
-        llm: LLM,
+        ai: AI,
         base_uri: str = "https://openoperator.com/",
-        api_token_secret: str | None = None# Used to JWT on the server
+        api_token_secret: str | None = None # Used to JWT on the server
     ) -> None:
         self.blob_store = blob_store
         self.embeddings = embeddings
         self.document_loader = document_loader  
         self.vector_store = vector_store
         self.knowledge_graph = knowledge_graph  
-        self.llm = llm
+        self.ai = ai
 
         if api_token_secret is None:
             api_token_secret = os.getenv("API_TOKEN_SECRET")
@@ -111,11 +111,17 @@ class OpenOperator:
         Interact with the assistant.
         """
         available_functions = {
-            "search_building_documents": facility.search_documents if facility else portfolio.search_documents,
+            "search_building_documents": facility.documents.search if facility else portfolio.search_documents,
         }
 
-        for response in self.llm.chat(messages, self.tools, available_functions, verbose):
+        for response in self.ai.chat(messages, self.tools, available_functions, verbose):
             yield response
+
+    def transcribe(self, audio) -> str:
+        """
+        Transcribe audio to text.
+        """
+        return self.ai.transcribe(audio)
 
     def get_user_from_access_token(self, token):
         """

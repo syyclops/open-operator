@@ -14,7 +14,7 @@ setup(name='openoperator',
       author='Anthony DeMattos',
       license='GPL-3.0',
       long_description_content_type='text/markdown',
-      packages = ['openoperator', 'openoperator.llm', 'openoperator.blob_store', 'openoperator.vector_store', 'openoperator.document_loader', 
+      packages = ['openoperator', 'openoperator.ai', 'openoperator.blob_store', 'openoperator.vector_store', 'openoperator.document_loader', 
                   'openoperator.embeddings'],
       classifiers=[
         "Programming Language :: Python :: 3",

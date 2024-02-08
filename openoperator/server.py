@@ -4,6 +4,7 @@ from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, Backg
 from fastapi.responses import StreamingResponse, Response, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
+from io import BytesIO
 
 from .schema.message import Message
 from .schema.document_query import DocumentQuery
@@ -41,7 +42,7 @@ def server(operator, host="0.0.0.0", port=8080):
         except HTTPException as e:
             return JSONResponse(content={"message": f"Unable to login: {e}"}, status_code=500)
 
-    @app.post("/chat", tags=["Assistant"])
+    @app.post("/chat", tags=["AI"])
     async def chat(
         messages: list[Message],
         portfolio_uri: str,
@@ -64,6 +65,19 @@ def server(operator, host="0.0.0.0", port=8080):
                 yield response
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
+    
+    @app.post("/transcribe", tags=["AI"])
+    async def transcribe_audio(
+        file: UploadFile,
+        current_user: User = Security(get_current_user)
+        ) -> JSONResponse:
+        try:
+            file_content = await file.read()
+            buffer = BytesIO(file_content)
+            buffer.name = file.filename
+            return JSONResponse(content={"text": operator.transcribe(buffer)})
+        except HTTPException as e:
+            return JSONResponse(content={"message": f"Unable to transcribe audio: {e}"}, status_code=500)
 
 
     # @app.post("/cobie/validate_spreadsheet", tags=['cobie'])
@@ -139,7 +153,7 @@ def server(operator, host="0.0.0.0", port=8080):
         current_user: User = Security(get_current_user)
     ) -> JSONResponse:
         return JSONResponse(
-            operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents.search(query)
+            operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents.search(query.model_dump())
         )
 
     @app.delete("/portfolio/facility/document/delete", tags=['Documents'])

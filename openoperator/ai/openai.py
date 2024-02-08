@@ -2,10 +2,11 @@ from openai import OpenAI
 import os
 import tiktoken
 import json
-from .llm import LLM
+from io import BytesIO 
+from .ai import AI
 from ..utils import split_string_with_limit
         
-class OpenAILLM(LLM):
+class Openai(AI):
     def __init__(self, 
                  openai_api_key: str | None = None,
                  system_prompt: str | None = None,
@@ -124,3 +125,13 @@ Always respond with markdown formatted text."""
                     yield delta.content or ""
                     # print(delta.content or "", end="", flush=True)
 
+    def transcribe(self, audio: BytesIO) -> str:
+        try:
+            transcript = self.openai.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio,
+            )
+
+            return transcript.text
+        except Exception as e:
+            raise Exception(f"Error transcribing audio: {e}")
