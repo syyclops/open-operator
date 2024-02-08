@@ -7,7 +7,7 @@ import os
 from typing import List
 from .vector_store import VectorStore
 from ..embeddings.embeddings import Embeddings
-from ..schema.document import Document
+from ...schema.document import Document
 
 class PGVectorStore(VectorStore):
     """

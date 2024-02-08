@@ -4,9 +4,9 @@ from rdflib import Namespace, Literal
 import openpyxl
 from openpyxl.styles import PatternFill
 from io import BytesIO
-from ..embeddings import Embeddings
+from ...services.embeddings import Embeddings
 from uuid import uuid4
-from ..utils import create_uri
+from ...utils import create_uri
 from typing import Tuple, Dict
 
 # Define common namespaces

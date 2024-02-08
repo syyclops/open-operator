@@ -1,11 +1,10 @@
 from unittest.mock import Mock, patch
-from unstructured_client.models.errors import SDKError
-from openoperator.document_loader import UnstructuredDocumentLoader
+from openoperator.services.document_loader import UnstructuredDocumentLoader
 import os
 import unittest
 
 class TestUnstructuredDocumentLoader(unittest.TestCase):
-    @patch('openoperator.document_loader.unstructured_document_loader.UnstructuredClient')
+    @patch('openoperator.services.document_loader.unstructured_document_loader.UnstructuredClient')
     def test_load(self, mock_UnstructuredClient):
         # Setup mock for API key environment variable
         os.environ['UNSTRUCTURED_API_KEY'] = 'test_api_key'
@@ -35,7 +34,7 @@ class TestUnstructuredDocumentLoader(unittest.TestCase):
         assert documents[0].metadata == {"title": "Test Document"}
 
 
-    @patch('openoperator.document_loader.unstructured_document_loader.UnstructuredClient')
+    @patch('openoperator.services.document_loader.unstructured_document_loader.UnstructuredClient')
     def test_invalid_credentials(self, mock_UnstructuredClient):
         # Setup mock for API key and URL environment variables
         os.environ['UNSTRUCTURED_API_KEY'] = 'invalid_api_key'

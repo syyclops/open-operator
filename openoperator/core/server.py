@@ -7,8 +7,8 @@ import uvicorn
 from io import BytesIO
 from typing import List
 
-from .schema.message import Message
-from .schema.document_query import DocumentQuery
+from ..schema.message import Message
+from ..schema.document_query import DocumentQuery
 from .user import User
 
 def server(operator, host="0.0.0.0", port=8080):

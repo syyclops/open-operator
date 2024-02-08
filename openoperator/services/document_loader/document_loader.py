@@ -1,5 +1,5 @@
 from typing import List
-from ..schema.document import Document
+from ...schema.document import Document
 from abc import ABC, abstractmethod
 
 

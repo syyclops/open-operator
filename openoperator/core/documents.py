@@ -1,9 +1,8 @@
 
-from .blob_store.blob_store import BlobStore
-from .document_loader.document_loader import DocumentLoader
-from .vector_store.vector_store import VectorStore
-from .knowledge_graph import KnowledgeGraph
-from .schema.document_query import DocumentQuery
+from ..services.blob_store.blob_store import BlobStore
+from ..services.document_loader.document_loader import DocumentLoader
+from ..services.vector_store.vector_store import VectorStore
+from ..services.knowledge_graph import KnowledgeGraph
 
 class Documents:
     """

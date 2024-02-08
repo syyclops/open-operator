@@ -1,12 +1,12 @@
 from unittest.mock import MagicMock, patch
-from openoperator.vector_store.pg_vector_store import PGVectorStore
+from openoperator.services.vector_store.pg_vector_store import PGVectorStore
 import os
 from openoperator.schema.document import Document
-from openoperator.embeddings import Embeddings
+from openoperator.services.embeddings import Embeddings
 from openai.types import Embedding
 
-@patch('openoperator.vector_store.pg_vector_store.psycopg')
-@patch('openoperator.vector_store.pg_vector_store.register_vector')
+@patch('openoperator.services.vector_store.pg_vector_store.psycopg')
+@patch('openoperator.services.vector_store.pg_vector_store.register_vector')
 def test_add_documents(mock_register_vector, mock_psycopg):
     # Setup environment variables
     os.environ['POSTGRES_CONNECTION_STRING'] = 'connection_string'

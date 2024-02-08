@@ -1,10 +1,10 @@
 from openoperator import OpenOperator
-from openoperator.blob_store import AzureBlobStore
-from openoperator.document_loader import UnstructuredDocumentLoader
-from openoperator.vector_store import PGVectorStore
-from openoperator.embeddings import OpenAIEmbeddings
-from openoperator.knowledge_graph import KnowledgeGraph
-from openoperator.ai import Openai
+from openoperator.services.blob_store import AzureBlobStore
+from openoperator.services.document_loader import UnstructuredDocumentLoader
+from openoperator.services.vector_store import PGVectorStore
+from openoperator.services.embeddings import OpenAIEmbeddings
+from openoperator.services.knowledge_graph import KnowledgeGraph
+from openoperator.services.ai import Openai
 
 from dotenv import load_dotenv
 load_dotenv()

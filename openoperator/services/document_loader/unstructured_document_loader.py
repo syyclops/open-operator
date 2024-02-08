@@ -5,7 +5,7 @@ from unstructured_client.models.errors import SDKError
 import os
 from typing import List
 from .document_loader import DocumentLoader
-from ..schema.document import Document
+from ...schema.document import Document
 
 class UnstructuredDocumentLoader(DocumentLoader):
     """

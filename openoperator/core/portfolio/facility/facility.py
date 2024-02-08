@@ -1,10 +1,10 @@
-from .knowledge_graph import KnowledgeGraph
-from  .blob_store.blob_store import BlobStore
-from .vector_store.vector_store import VectorStore
-from .document_loader.document_loader import DocumentLoader
-from .cobie.cobie import COBie
-from .bas import BAS
-from .documents import Documents
+from ....services.knowledge_graph import KnowledgeGraph
+from ....services.blob_store.blob_store import BlobStore
+from ....services.vector_store.vector_store import VectorStore
+from ....services.document_loader.document_loader import DocumentLoader
+from ...cobie.cobie import COBie
+from ...bas import BAS
+from ...documents import Documents
 
 class Facility:
     """

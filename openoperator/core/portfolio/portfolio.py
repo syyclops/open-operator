@@ -1,9 +1,9 @@
 from neo4j.exceptions import Neo4jError
-from .knowledge_graph import KnowledgeGraph
-from .facility import Facility
-from .utils import create_uri
-from .user import User
-from .schema.document_query import DocumentQuery
+from ...services.knowledge_graph import KnowledgeGraph
+from .facility.facility import Facility
+from ...utils import create_uri
+from ..user import User
+from ...schema.document_query import DocumentQuery
 
 class Portfolio:
     """

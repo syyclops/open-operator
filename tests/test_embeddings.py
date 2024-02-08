@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from openoperator.embeddings import OpenAIEmbeddings 
+from openoperator.services.embeddings import OpenAIEmbeddings 
 
 class TestOpenAIEmbeddings(unittest.TestCase):
-    @patch('openoperator.embeddings.openai_embeddings.os.environ')
-    @patch('openoperator.embeddings.openai_embeddings.OpenAI')
+    @patch('openoperator.services.embeddings.openai_embeddings.os.environ')
+    @patch('openoperator.services.embeddings.openai_embeddings.OpenAI')
     def test_create_embeddings_single_chunk(self, mock_OpenAI, mock_environ):
         # Setup mock for API key environment variable
         mock_environ.get.return_value = 'test_api_key'
@@ -27,8 +27,8 @@ class TestOpenAIEmbeddings(unittest.TestCase):
         mock_client.embeddings.create.assert_called_once_with(model="text-embedding-3-small", input=texts, encoding_format="float")
 
 
-    @patch('openoperator.embeddings.openai_embeddings.os.environ')
-    @patch('openoperator.embeddings.openai_embeddings.OpenAI')
+    @patch('openoperator.services.embeddings.openai_embeddings.os.environ')
+    @patch('openoperator.services.embeddings.openai_embeddings.OpenAI')
     def test_chunk_text(self, mock_OpenAI, mock_environ):
         mock_environ.get.return_value = 'test_api_key'
 
