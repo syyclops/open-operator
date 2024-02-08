@@ -86,7 +86,7 @@ class PGVectorStore(VectorStore):
                 if i != len(filter) - 1:
                     query += " AND "
 
-        query += f" ORDER BY embedding <-> %s LIMIT %s"
+        query += f" ORDER BY embedding <=> %s LIMIT %s"
         params.append(embedding)
         params.append(limit)
         
