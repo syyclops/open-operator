@@ -44,6 +44,7 @@ start a simple rest api [server](./examples/server.py)
 
 1. [What is COBie?](https://www.thenbs.com/knowledge/what-is-cobie)
 2. [Brick Schema](https://brickschema.org/)
+3. [Data-Driven Smart Buildings: State-of-the-Art Review](https://github.com/syyclops/open-operator/files/14202864/Annex.81.State-of-the-Art.Report.final.pdf)
 
 ## License
 
