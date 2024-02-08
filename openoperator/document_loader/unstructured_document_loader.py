@@ -8,6 +8,9 @@ from .document_loader import DocumentLoader
 from ..schema.document import Document
 
 class UnstructuredDocumentLoader(DocumentLoader):
+    """
+    Using https://unstructured.io/ to extract metadata from a file and upload to vector store.
+    """
     def __init__(
             self,
             unstructured_api_key: str | None = None,

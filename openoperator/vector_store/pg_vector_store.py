@@ -11,7 +11,8 @@ from ..schema.document import Document
 
 class PGVectorStore(VectorStore):
     """
-    This class is focused on managing the vector store for the assistant.
+    PG Vector Store is a vector store that uses Postgres to store text embeddings.
+     
     Its responsibilities are:
     - Create text embeddings for documents and upload to the vector store
     - Search the vector store for similar documents

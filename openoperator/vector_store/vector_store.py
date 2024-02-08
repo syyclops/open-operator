@@ -5,7 +5,8 @@ from ..schema.document import Document
 
 class VectorStore(ABC):
     """
-    This class is focused on managing the vector store for the assistant.
+    A vector store is a database that stores text embeddings.
+     
     Its responsibilities are:
     - Create text embeddings for documents and upload to the vector store
     - Search the vector store for similar documents

@@ -1,6 +1,3 @@
-"""
-This module contains the Portfolio class which represents a portfolio of facilities. A portfolio is a collection of facilities, such as a collection of buildings or a collection of assets.
-"""
 from neo4j.exceptions import Neo4jError
 from .knowledge_graph import KnowledgeGraph
 from .facility import Facility
@@ -9,7 +6,7 @@ from .user import User
 
 class Portfolio:
     """
-    This class represents a portfolio of facilities. A portfolio is a collection of facilities, such as a collection of buildings or a collection of assets.
+    A portfolio is a collection of facilities.
     """
     def __init__(self, operator, knowledge_graph: KnowledgeGraph, uri: str, user: User) -> dict:
         self.operator = operator
@@ -64,7 +61,7 @@ class Portfolio:
         
     def search_documents(self, params: dict) -> list:
         """
-        Search documents for metadata. These documents are drawings/plans, O&M manuals, etc.
+        Search contents of all upload documents to the portfolio. These documents are drawings/plans, O&M manuals, etc.
         """
         query = params.get("query")
         limit = params.get("limit", 15)

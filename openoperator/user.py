@@ -1,7 +1,3 @@
-"""
-This module contains the User class which handles user-related operations such as signup and login.
-"""
-
 import bcrypt
 import jwt
 

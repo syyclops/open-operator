@@ -70,24 +70,6 @@ class OpenOperator:
 
         self.base_uri = base_uri        
 
-    def get_user_from_access_token(self, token):
-        """
-        This is used to get the current user from the request.
-        It uses the JWT token to get the user.
-        If there is no user that matches the token, it returns None.
-        """
-        secret_key = self.secret_key
-        decoded_token = jwt.decode(token, secret_key, algorithms=["HS256"])
-        email = decoded_token["email"]
-
-        with self.knowledge_graph.create_session() as session:
-            result = session.run("MATCH (u:User {email: $email}) RETURN u", email=email)
-            user = result.single()
-            if user is None:
-                raise Exception("Invalid token")
-            user_data = user['u']
-
-        return User(email=user_data['email'], full_name=user_data['fullName'], password=user_data['password'], operator=self)
 
     def user(self, email: str, password: str, full_name: str) -> User:
         return User(self, email, password, full_name)
@@ -134,6 +116,23 @@ class OpenOperator:
 
         for response in self.llm.chat(messages, self.tools, available_functions, verbose):
             yield response
+
+    def get_user_from_access_token(self, token):
+        """
+        This is used to get a user from a bearer token. It is used in the server.
+        """
+        secret_key = self.secret_key
+        decoded_token = jwt.decode(token, secret_key, algorithms=["HS256"])
+        email = decoded_token["email"]
+
+        with self.knowledge_graph.create_session() as session:
+            result = session.run("MATCH (u:User {email: $email}) RETURN u", email=email)
+            user = result.single()
+            if user is None:
+                raise Exception("Invalid token")
+            user_data = user['u']
+
+        return User(email=user_data['email'], full_name=user_data['fullName'], password=user_data['password'], operator=self)
 
     def server(self, *args, **kwargs):
         server(self, *args, **kwargs)

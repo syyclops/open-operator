@@ -1,6 +1,3 @@
-"""
-This module contains the server function that starts the Open Operator API server.
-"""
 import mimetypes
 from typing import Generator
 from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException

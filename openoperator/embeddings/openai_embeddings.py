@@ -6,7 +6,6 @@ import numpy as np
 
 class OpenAIEmbeddings(Embeddings):
     def __init__(self, openai_api_key: str | None = None) -> None:
-        # Create openai client
         if openai_api_key is None:
             openai_api_key = os.environ['OPENAI_API_KEY']
         openai = OpenAI(api_key=openai_api_key)

@@ -1,6 +1,3 @@
-"""
-This module contains utility functions used by the OpenOperator package.
-"""
 from typing import List
 from urllib.parse import quote
 from sklearn.cluster import DBSCAN
