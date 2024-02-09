@@ -5,7 +5,6 @@ from sklearn.neighbors import NearestNeighbors
 from kneed import KneeLocator
 import numpy as np
 
-
 def split_string_with_limit(text: str, limit: int, encoding) -> List[str]:
     """
     Splits a string into multiple parts with a limit on the number of tokens in each part.
@@ -40,7 +39,6 @@ def create_uri(name: str) -> str:
     # name = name.replace("'", "_")  # Replace ' with _
     name = quote(name.lower())
     return name
-
 
 def dbscan_cluster(x):
     """

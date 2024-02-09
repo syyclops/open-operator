@@ -5,18 +5,19 @@ import json
 from io import BytesIO 
 from .ai import AI
 from ...utils import split_string_with_limit
-        
+
 class Openai(AI):
     def __init__(self, 
                  openai_api_key: str | None = None,
                  system_prompt: str | None = None,
                  model_name: str = "gpt-4",
-                 temperature: float = 0
+                 temperature: float = 0,
+                 base_url: str | None = None
                 ) -> None:
         # Create openai client
         if openai_api_key is None:
             openai_api_key = os.environ['OPENAI_API_KEY']
-        self.openai = OpenAI(api_key=openai_api_key)
+        self.openai = OpenAI(api_key=openai_api_key, base_url=base_url)
 
         self.model_name = model_name
         self.temperature = temperature

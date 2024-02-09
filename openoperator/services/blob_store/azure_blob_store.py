@@ -3,7 +3,6 @@ import os
 from azure.storage.blob import ContainerClient, ContentSettings
 import urllib
 
-
 class AzureBlobStore(BlobStore):
     def __init__(self, container_client_connection_string: str | None = None, container_name: str | None = None) -> None:
         # Create the container client

@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 from openoperator.services.vector_store.pg_vector_store import PGVectorStore
 import os
-from openoperator.schema.document import Document
+from openoperator.types import Document
 from openoperator.services.embeddings import Embeddings
 from openai.types import Embedding
 

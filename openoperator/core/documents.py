@@ -113,7 +113,6 @@ class Documents:
         except Exception as e:
             raise Exception(f"Error deleting document: {e}")
 
-
     def search(self, params: dict) -> list:
         """
         Search vector store for documents in the facility

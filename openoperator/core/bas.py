@@ -6,7 +6,6 @@ from ..services.embeddings import Embeddings
 import numpy as np
 from ..utils import dbscan_cluster
 
-
 class BAS:
     """
     This class handles the integration to the Building Automation System (BAS).

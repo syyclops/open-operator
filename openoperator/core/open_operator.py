@@ -34,7 +34,7 @@ class OpenOperator:
         knowledge_graph: KnowledgeGraph,
         ai: AI,
         base_uri: str = "https://openoperator.com/",
-        api_token_secret: str | None = None # Used to JWT on the server
+        api_token_secret: str | None = None # Used for JWT on the server
     ) -> None:
         self.blob_store = blob_store
         self.embeddings = embeddings
@@ -69,7 +69,6 @@ class OpenOperator:
         ]
 
         self.base_uri = base_uri        
-
 
     def user(self, email: str, password: str, full_name: str) -> User:
         return User(self, email, password, full_name)

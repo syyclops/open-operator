@@ -83,4 +83,3 @@ class User:
                 raise ValueError("Invalid password")
         except Exception as e:
             raise e
-        

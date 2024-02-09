@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-        
 class AI(ABC):
     """
     This is the abse class for all AI methods and models.

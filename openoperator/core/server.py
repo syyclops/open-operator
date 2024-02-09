@@ -6,9 +6,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
 from io import BytesIO
 from typing import List
-
-from ..schema.message import Message
-from ..schema.document_query import DocumentQuery
+from openoperator.types import DocumentQuery, Message
 from .user import User
 
 def server(operator, host="0.0.0.0", port=8080):
@@ -16,7 +14,6 @@ def server(operator, host="0.0.0.0", port=8080):
     Start the Open Operator API server.
     """
     app = FastAPI(title="Open Operator API")
-
     security = HTTPBearer()
 
     async def get_current_user(
@@ -97,7 +94,6 @@ def server(operator, host="0.0.0.0", port=8080):
     #     except Exception as e:
     #         print(e)
     #         return Response(content=f"Unable to validate spreadsheet: {e}", status_code=500)
-
 
     @app.get("/portfolio/list", tags=['Portfolio'])
     async def list_portfolios(current_user: User = Security(get_current_user)) -> JSONResponse:

@@ -1,7 +1,6 @@
 from typing import List
-from ...schema.document import Document
+from openoperator.types import Document
 from abc import ABC, abstractmethod
-
 
 class DocumentLoader(ABC):
     @abstractmethod 

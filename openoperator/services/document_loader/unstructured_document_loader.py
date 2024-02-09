@@ -5,7 +5,7 @@ from unstructured_client.models.errors import SDKError
 import os
 from typing import List
 from .document_loader import DocumentLoader
-from ...schema.document import Document
+from openoperator.types import Document
 
 class UnstructuredDocumentLoader(DocumentLoader):
     """
@@ -20,9 +20,7 @@ class UnstructuredDocumentLoader(DocumentLoader):
             unstructured_api_key = os.environ['UNSTRUCTURED_API_KEY']
         if unstructured_api_url is None:
             unstructured_api_url = os.environ['UNSTRUCTURED_URL']
-        
         s = UnstructuredClient(api_key_auth=unstructured_api_key, server_url=unstructured_api_url)
-
         self.unstructured_client = s
     
     def load(self, file_content: bytes, file_path: str) -> List[Document]:
@@ -49,13 +47,8 @@ class UnstructuredDocumentLoader(DocumentLoader):
             )
 
             res = self.unstructured_client.general.partition(req)
-
             docs = [Document(text=element['text'], metadata=element['metadata']) for element in res.elements]
-
-
-            # Remove any where text is empty
-            docs = [doc for doc in docs if doc.text]
-
+            docs = [doc for doc in docs if doc.text] # Remove any where text is empty
             return docs
         except SDKError as e:
             print("Error extracting metadata")
