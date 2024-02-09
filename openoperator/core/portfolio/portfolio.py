@@ -60,11 +60,11 @@ class Portfolio:
                 
         return Facility(portfolio=self, uri=facility_uri, knowledge_graph=self.operator.knowledge_graph, blob_store=self.operator.blob_store, vector_store=self.operator.vector_store, document_loader=self.operator.document_loader)
         
-    def search_documents(self, params: DocumentQuery) -> list:
+    def search_documents(self, params: dict) -> list:
         """
         Search contents of all upload documents to the portfolio. These documents are drawings/plans, O&M manuals, etc.
         """
-        query = params.query
-        limit = params.limit
+        query = params.get("query")
+        limit = params.get("limit") or 15
         return self.operator.vector_store.similarity_search(query=query, limit=limit, filter={"portfolio_uri": self.uri})
     

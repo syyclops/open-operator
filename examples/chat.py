@@ -37,8 +37,8 @@ def main():
         base_uri="https://syyclops.com/"
     )
 
-
-    portfolio = operator.portfolio(portfolio_uri)
+    user = operator.user(email="example@example.com", password="test_password", full_name="Example Full Name")
+    portfolio = operator.portfolio(user, portfolio_uri)
 
     messages = []
 
