@@ -1,7 +1,3 @@
----
-title: Setup
----
-
 ## Prerequisites
 
 - [Docker](https://www.docker.com/)

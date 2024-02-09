@@ -9,3 +9,4 @@ __pycache__/
 .pytest_cache/
 openoperator.egg-info/
 .DS_Store
+scripts/
