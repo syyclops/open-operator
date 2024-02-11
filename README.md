@@ -1,9 +1,14 @@
 <div align="center">
   <img height="400" src="./docs/assets/Futuristic%20Robot%20HVAC.png" style="border-radius: 8px;"/>
 
-  <h3 align="center">
-    <a href="https://github.com/syyclops/open-operator/discussions">Community</a>
+  <h3>
+
+[Documentation](/docs) | [Examples](/examples) | [Community](https://github.com/syyclops/open-operator/discussions)
+
   </h3>
+
+[![Unit Tests](https://github.com/syyclops/open-operator/actions/workflows/test.yml/badge.svg)](https://github.com/syyclops/open-operator/actions/workflows/test.yml)
+
 </div>
 
 ## What is Open Operator?
