@@ -1,5 +1,6 @@
 import pandas as pd
 import rdflib
+from neo4j.exceptions import Neo4jError
 from rdflib import Namespace, Literal
 import openpyxl
 from openpyxl.styles import PatternFill
@@ -311,17 +312,17 @@ class COBie:
                 result = session.run(query, uri=self.uri)
                 nodes = [record['n'] for record in result.data()]
         except Exception as e:
-            raise Exception(f"Error fetching nodes from the graph: {e}")
+            raise Neo4jError(f"Error fetching nodes from the graph: {e}")
 
         if not nodes:
-            raise Exception("No nodes found in the graph")
+            raise ValueError("No nodes found in the graph")
 
         # Process nodes to generate embeddings
         names = [str(node['name']) for node in nodes]
         embeddings = self.embeddings.create_embeddings(names)
 
         if len(embeddings) != len(nodes):
-            raise Exception("Number of embeddings does not match number of nodes")
+            raise ValueError("Number of embeddings does not match number of nodes")
 
         id_vector_pairs = []
         for node, embedding in zip(nodes, embeddings):
@@ -340,7 +341,7 @@ class COBie:
                 result = session.run(query, id_vector_pairs=id_vector_pairs)
                 result.consume()
         except Exception as e:
-            raise Exception(f"Error uploading vectors to the graph: {e}")
+            raise Neo4jError(f"Error uploading vectors to the graph: {e}")
         
         return
 

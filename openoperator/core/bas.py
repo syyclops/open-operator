@@ -1,10 +1,9 @@
 import json
 from rdflib import Graph, Namespace, Literal, URIRef
-from ..utils import create_uri
+from openoperator.services import Embeddings
 from uuid import uuid4
-from ..services.embeddings import Embeddings
 import numpy as np
-from ..utils import dbscan_cluster
+from ..utils import create_uri, dbscan_cluster
 
 class BAS:
     """

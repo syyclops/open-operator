@@ -1,10 +1,7 @@
 
 import fitz
 import io
-from ..services.blob_store.blob_store import BlobStore
-from ..services.document_loader.document_loader import DocumentLoader
-from ..services.vector_store.vector_store import VectorStore
-from ..services.knowledge_graph import KnowledgeGraph
+from openoperator.services import BlobStore, DocumentLoader, VectorStore, KnowledgeGraph
 
 class Documents:
     """
@@ -18,7 +15,7 @@ class Documents:
     - Delete a document from the facility
     - Search documents in the facility
     """
-    def __init__(self, facility: str, knowledge_graph: KnowledgeGraph, blob_store: BlobStore, document_loader: DocumentLoader, vector_store: VectorStore) -> None:
+    def __init__(self, facility, knowledge_graph: KnowledgeGraph, blob_store: BlobStore, document_loader: DocumentLoader, vector_store: VectorStore) -> None:
         self.vector_store = vector_store   
         self.blob_store = blob_store
         self.document_loader = document_loader

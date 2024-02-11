@@ -7,7 +7,7 @@ import uvicorn
 from io import BytesIO
 from typing import List
 from openoperator.types import DocumentQuery, Message
-from .user import User
+from openoperator.core.user import User
 
 def server(operator, host="0.0.0.0", port=8080):
     """

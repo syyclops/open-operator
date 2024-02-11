@@ -3,7 +3,6 @@ from ...services.knowledge_graph import KnowledgeGraph
 from .facility.facility import Facility
 from ...utils import create_uri
 from ..user import User
-from openoperator.types import DocumentQuery 
 
 class Portfolio:
     """
