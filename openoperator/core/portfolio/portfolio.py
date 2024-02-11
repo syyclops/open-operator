@@ -1,8 +1,7 @@
 from neo4j.exceptions import Neo4jError
-from ...services.knowledge_graph import KnowledgeGraph
-from .facility.facility import Facility
-from ...utils import create_uri
-from ..user import User
+from openoperator.services import KnowledgeGraph
+from openoperator.utils import create_uri
+from openoperator.core import User, Facility
 
 class Portfolio:
     """

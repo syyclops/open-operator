@@ -2,11 +2,8 @@ from neo4j.exceptions import Neo4jError
 import os
 import jwt
 from openoperator.services import BlobStore, Embeddings, DocumentLoader, VectorStore, KnowledgeGraph, AI
+from openoperator.core import Portfolio, Facility, User, server
 from openoperator.utils import create_uri
-from .portfolio.portfolio import Portfolio
-from .portfolio.facility.facility import Facility
-from .server import server
-from .user import User
 
 class OpenOperator: 
     """

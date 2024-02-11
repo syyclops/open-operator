@@ -3,7 +3,7 @@ from rdflib import Graph, Namespace, Literal, URIRef
 from openoperator.services import Embeddings
 from uuid import uuid4
 import numpy as np
-from ..utils import create_uri, dbscan_cluster
+from openoperator.utils import create_uri, dbscan_cluster
 
 class BAS:
     """
