@@ -28,4 +28,3 @@ operator = OpenOperator(
 )
 
 operator.server()
-

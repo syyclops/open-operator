@@ -1,4 +1,3 @@
-
 import fitz
 import io
 from openoperator.services import BlobStore, DocumentLoader, VectorStore, KnowledgeGraph
@@ -8,12 +7,8 @@ class Documents:
     This class handles everything related to documents in a facilty
 
     Its responsibilities are:
-    - List all the documents in the facility
-    - Upload a file for a facility
-    - Update the extraction status of a document in the knowledge graph
+    - Fetch, upload, and delete, search documents
     - Run the extraction process
-    - Delete a document from the facility
-    - Search documents in the facility
     """
     def __init__(self, facility, knowledge_graph: KnowledgeGraph, blob_store: BlobStore, document_loader: DocumentLoader, vector_store: VectorStore) -> None:
         self.vector_store = vector_store   

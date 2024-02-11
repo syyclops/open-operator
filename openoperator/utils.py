@@ -30,7 +30,6 @@ def split_string_with_limit(text: str, limit: int, encoding) -> List[str]:
 
     return text_parts
 
-
 def create_uri(name: str) -> str:
     """
     Create a URI from string.
@@ -48,8 +47,7 @@ def dbscan_cluster(x):
     # Find the optimal epsilon
     nbrs = NearestNeighbors(n_neighbors=5).fit(x)
 
-    distances = nbrs.kneighbors(x)
-
+    distances, indices = nbrs.kneighbors(x)
     distances = np.sort(distances, axis=0)
 
     kneedle = KneeLocator(

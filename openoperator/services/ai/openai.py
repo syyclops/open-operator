@@ -3,8 +3,8 @@ import os
 import tiktoken
 import json
 from io import BytesIO 
+from openoperator.utils import split_string_with_limit
 from .ai import AI
-from ...utils import split_string_with_limit
 
 class Openai(AI):
     def __init__(self, 

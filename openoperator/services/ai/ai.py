@@ -14,7 +14,6 @@ class AI(ABC):
                 ) -> None:
         pass
 
-
     @abstractmethod
     def chat(self, messages, tools = [], available_functions = {}, verbose: bool = False):
         pass
@@ -22,5 +21,3 @@ class AI(ABC):
     @abstractmethod
     def transcribe(self, audio) -> str:
         pass
-
-
