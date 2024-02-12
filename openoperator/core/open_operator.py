@@ -69,16 +69,19 @@ class OpenOperator:
         return Portfolio(self, knowledge_graph=self.knowledge_graph, uri=portfolio_uri, user=user)
 
     def portfolios(self, user: User) -> list:
-        with self.knowledge_graph.create_session() as session:
-            result = session.run("MATCH (u:User {email: $email})-[:HAS_ACCESS_TO]->(c:Customer) return c as Customer", email=user.email)
-            data = []
-            for record in result.data():
-                customer = record['Customer']
-                data.append({
-                    "name": customer['name'],
-                    "uri": customer['uri'],
-                })
-            return data
+        try:
+            with self.knowledge_graph.create_session() as session:
+                result = session.run("MATCH (u:User {email: $email})-[:HAS_ACCESS_TO]->(c:Customer) return c as Customer", email=user.email)
+                data = []
+                for record in result.data():
+                    customer = record['Customer']
+                    data.append({
+                        "name": customer['name'],
+                        "uri": customer['uri'],
+                    })
+                return data
+        except Neo4jError as e:
+            raise Exception(f"Error fetching portfolios: {e}")
          
     def create_portfolio(self, user: User, name: str) -> Portfolio:
         portfolio_uri = f"{self.base_uri}{create_uri(name)}"

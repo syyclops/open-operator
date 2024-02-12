@@ -79,6 +79,57 @@ class TestOpenOperator(unittest.TestCase):
 
         self.assertTrue("Error creating portfolio: Simulated database error" in str(context.exception))
 
+    def test_portfolios(self):
+        session_mock = self.setup_session_mock()
+        # Simulate a query result with two records
+        session_mock.run.return_value.data.return_value = [
+            {"Customer": {"name": "Customer 1", "uri": "https://openoperator.com/customer1"}},
+            {"Customer": {"name": "Customer 2", "uri": "https://openoperator.com/customer2"}},
+        ]
+
+        portfolios = self.operator.portfolios(self.user)
+
+        # Verify the returned data
+        assert portfolios == [
+            {"name": "Customer 1", "uri": "https://openoperator.com/customer1"},
+            {"name": "Customer 2", "uri": "https://openoperator.com/customer2"},
+        ]
+
+        # Assert that create_session was called once
+        self.knowledge_graph.create_session.assert_called_once()
+
+        session_query_string = session_mock.run.call_args[0][0]
+        # Assert that session.run was called with the expected query
+        assert "MATCH (u:User {email: $email})-[:HAS_ACCESS_TO]->(c:Customer) return c as Customer" in session_query_string
+
+    def test_portfolios_no_records(self):
+        session_mock = self.setup_session_mock()
+        # Simulate a query result with no records
+        session_mock.run.return_value.data.return_value = []
+
+        portfolios = self.operator.portfolios(self.user)
+
+        # Verify the returned data
+        assert portfolios == []
+
+        # Assert that create_session was called once
+        self.knowledge_graph.create_session.assert_called_once()
+
+        session_query_string = session_mock.run.call_args[0][0]
+        # Assert that session.run was called with the expected query
+        assert "MATCH (u:User {email: $email})-[:HAS_ACCESS_TO]->(c:Customer) return c as Customer" in session_query_string
+
+    def test_portfolios_exception(self):
+        session_mock = self.setup_session_mock()
+        # Simulate raising a Neo4jError on query execution
+        session_mock.run.side_effect = Neo4jError("Simulated database error")
+
+        with self.assertRaises(Exception) as context:
+            self.operator.portfolios(self.user)
+
+        self.assertTrue("Error fetching portfolios: Simulated database error" in str(context.exception))
+        
+
 
 if __name__ == '__main__':
     unittest.main()
