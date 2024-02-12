@@ -107,7 +107,7 @@ class OpenOperator:
         available_functions = {
             "search_building_documents": facility.documents.search if facility else portfolio.search_documents,
         }
-
+        
         for response in self.ai.chat(messages, self.tools, available_functions, verbose):
             yield response
 

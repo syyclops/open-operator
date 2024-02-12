@@ -60,21 +60,25 @@ Always respond with markdown formatted text."""
                 # If delta has tool calls add them to the list
                 if delta.tool_calls:
                     for tool_call in delta.tool_calls:
-                        # If tool_calls is empty then add the first tool call
-                        if not tool_calls:
+                        # If the tool_call index is greater than the length of tool_calls, append new tool calls
+                        while len(tool_calls) <= tool_call.index:
                             tool_calls.append({
                                 "function": {
-                                    "name": tool_call.function.name,
-                                    "arguments": tool_call.function.arguments,
+                                    "name": "",
+                                    "arguments": "",
                                 },
-                                "id": tool_call.id,
-                                "type": tool_call.type
+                                "id": "",
+                                "type": "function"
                             })
-                            continue
-        
-                    # If tool_calls is not empty then update the tool call if it already exists
-                    tool_calls[0]['function']['arguments'] += tool_call.function.arguments
 
+                        # Update the tool call at the correct index
+                        tc = tool_calls[tool_call.index]
+                        if tool_call.id:
+                            tc["id"] += tool_call.id
+                        if tool_call.function.name:
+                            tc["function"]["name"] += tool_call.function.name
+                        if tool_call.function.arguments:
+                            tc["function"]["arguments"] += tool_call.function.arguments
                     
                 # If the stream is done and is ready to use tools
                 if finish_reason == "tool_calls":
@@ -89,6 +93,7 @@ Always respond with markdown formatted text."""
                         function_name = tool_call['function']['name']
                         if verbose: print("Tool Selected: " + function_name)
                         function_to_call = available_functions[function_name]
+                        print(tool_call['function']['arguments'])
                         function_args = json.loads(tool_call['function']['arguments'])
                         if verbose: print("Tool args: " + str(function_args))
                         function_response = function_to_call(
@@ -115,7 +120,8 @@ Always respond with markdown formatted text."""
 
                 # If the stream is done because its the end of the conversation then return
                 if finish_reason == "stop":
-                    return content
+                    yield delta.content or ""
+                    return
 
                 # Update the content with the delta content
                 if delta.content:
