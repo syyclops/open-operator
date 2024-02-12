@@ -93,7 +93,7 @@ class OpenOperator:
                 if result.single() is None:
                     raise Exception("Error creating portfolio")
             except Neo4jError as e:
-                raise Exception(f"Error creating portfolio: {e.message}")
+                raise Exception(f"Error creating portfolio: {e}")
             
         return Portfolio(self, knowledge_graph=self.knowledge_graph, uri=portfolio_uri, user=user)
 

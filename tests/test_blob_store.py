@@ -3,7 +3,6 @@ from openoperator.services.blob_store import AzureBlobStore
 import os
 from azure.storage.blob import ContentSettings
 
-
 @patch('openoperator.services.blob_store.azure_blob_store.ContainerClient')
 def test_upload_file(mock_container_client_class):
     # Setup environment variables
