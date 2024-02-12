@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch, MagicMock
 from openoperator.services import Openai 
-from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
+from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta, ChoiceDeltaToolCall, ChoiceDeltaToolCallFunction
+import json
 
 # Test initialization with default parameters
 def test_openai_init_defaults():
@@ -49,3 +50,89 @@ def test_openai_chat(mock_openai):
         assert response == "Test response"
 
     mock_openai_instance.chat.completions.create.assert_called_once()
+
+@patch('openoperator.services.ai.openai.OpenAI')
+def test_openai_chat_multiple_chunks(mock_openai):
+    # Setup mock response to simulate multiple chunks
+    delta_chunk1 = ChoiceDelta(content="Part 1 ", role="assistant")
+    delta_chunk2 = ChoiceDelta(content="Part 2", role="assistant")
+    choice1 = Choice(delta=delta_chunk1, index='0')
+    choice2 = Choice(delta=delta_chunk2, finish_reason="stop", index='1')
+    chunk1 = ChatCompletionChunk(choices=[choice1], created=0, model='gpt-4', system_fingerprint='test', object='chat.completion.chunk', id='chunk1')
+    chunk2 = ChatCompletionChunk(choices=[choice2], created=0, model='gpt-4', system_fingerprint='test2', object='chat.completion.chunk', id='chunk2')
+
+    mock_stream = iter([chunk1, chunk2])
+    
+    mock_openai_instance = MagicMock()
+    mock_openai_instance.chat.completions.create.return_value = mock_stream
+    mock_openai.return_value = mock_openai_instance
+
+    ai = Openai(openai_api_key="dummy_key")
+    messages = [{"role": "user", "content": "Need a longer response"}]
+
+    full_response = ""
+    for response in ai.chat(messages):
+        full_response += response
+
+    assert full_response == "Part 1 Part 2"
+
+    assert mock_openai_instance.chat.completions.create.call_count == 1
+
+@patch('openoperator.services.ai.openai.OpenAI')
+def test_openai_chat_with_tools(mock_openai):
+    # Mock Openai response with tool calls 
+    function = ChoiceDeltaToolCallFunction(name="test_function", arguments="{\"query\": \"test\"}")
+    tool_call = ChoiceDeltaToolCall(index=0, type="function", function=function)
+    delta = ChoiceDelta(role="assistant", tool_calls=[tool_call], content="")
+    choice = Choice(delta=delta, index=0)
+    chunk1 = ChatCompletionChunk(choices=[choice], created=0, model='gpt-4', system_fingerprint='test', object='chat.completion.chunk', id='test')
+
+    delta2 = ChoiceDelta(content=None, role="assistant")
+    choice2 = Choice(delta=delta2, index=0, finish_reason="tool_calls")
+    chunk2 = ChatCompletionChunk(choices=[choice2], created=0, model='gpt-4', system_fingerprint='test', object='chat.completion.chunk', id='test')
+
+    mock_stream = iter([chunk1, chunk2])
+
+    # Mock openai response after tool call
+    delta3 = ChoiceDelta(content="Test function", role="assistant") 
+    choice3 = Choice(delta=delta3, index=0, finish_reason="stop")
+    chunk3 = ChatCompletionChunk(choices=[choice3], created=0, model='gpt-4', system_fingerprint='test', object='chat.completion.chunk', id='test')
+    
+    mock_openai_instance = MagicMock()
+    mock_openai_instance.chat.completions.create.side_effect = [mock_stream, iter([chunk3])]
+    mock_openai.return_value = mock_openai_instance
+
+    ai = Openai(openai_api_key="dummy_key")
+    messages = [{"role": "user", "content": "Hello, AI"}]   
+
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "test_function",
+                "description": "Test function",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "The search query to use.",
+                        },
+                    },
+                    "required": ["query"],
+                },
+            },
+        }
+    ]
+
+    available_functions = {
+        "test_function": Mock(return_value="Test function")
+    }
+
+    for response in ai.chat(messages, tools, available_functions):
+        assert response == "Test function"
+
+    assert mock_openai_instance.chat.completions.create.call_count == 2
+
+
+
