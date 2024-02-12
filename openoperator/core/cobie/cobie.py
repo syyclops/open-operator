@@ -67,10 +67,7 @@ class COBie:
                     "sheet": sheet,
                 })
                 errors_found = True
-
-                # highlight the sheet in red
-                cell = wb[sheet].cell(row=1, column=1)
-                cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type = "solid")
+        if errors_found: return errors_found, errors, file_content
 
         # Make sure there is only one record in the Facility sheet
         if len(df['Facility']) > 1:
@@ -88,7 +85,7 @@ class COBie:
         # No empty or N/A cells are present in column A of any sheet
         for sheet in expected_sheets:
             for idx, value in enumerate(df[sheet]['Name']):
-                if pd.isnull(value):
+                if pd.isnull(value) or value == None or value == "N/A" or pd.isna(value):
                     errors["Empty or N/A cells found in column A of sheet."].append({
                         "sheet": sheet,
                         "row": idx + 2,
@@ -102,8 +99,9 @@ class COBie:
 
         # Check Floor, Space, Type, Component sheets for duplicate names in column A
         for sheet in ['Floor', 'Space', 'Type', 'Component']:
+            seen_names = set()
             for idx, name in enumerate(df[sheet]['Name']):
-                if name in df[sheet]['Name'][idx + 1:]:
+                if name in seen_names:
                     errors["Duplicate names found in column A of sheet."].append({
                         "sheet": sheet,
                         "row": idx + 2,
@@ -113,6 +111,8 @@ class COBie:
 
                     cell = wb[sheet].cell(row=idx + 2, column=1)
                     cell.fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type = "solid")
+                else:
+                    seen_names.add(name)
 
         # Space Tab
         # Every value is linked to a value in the first column of the Floor tab
@@ -298,7 +298,6 @@ class COBie:
         with self.knowledge_graph.create_session() as session:
             result = session.run(query, uri=self.uri)
             return [record['n'] for record in result.data()]
-    
 
     def vectorize_graph(self):
         """
@@ -344,4 +343,3 @@ class COBie:
             raise Neo4jError(f"Error uploading vectors to the graph: {e}")
         
         return
-
