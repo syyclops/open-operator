@@ -36,7 +36,6 @@ class TestOpenOperator(unittest.TestCase):
         self.knowledge_graph.create_session.return_value = session_mock
         return session_mock
 
-
     def test_create_portfolio(self):
         session_mock = self.setup_session_mock()
         # Mock the session.run method to simulate a successful query execution
@@ -129,6 +128,45 @@ class TestOpenOperator(unittest.TestCase):
 
         self.assertTrue("Error fetching portfolios: Simulated database error" in str(context.exception))
         
+    def test_chat(self):
+        # Mock the portfolio's search_documents method
+        self.operator.portfolio = Mock()
+        portfolio = self.operator.portfolio(self.user, "https://openoperator.com/portfolio")
+        portfolio.search_documents = Mock(return_value="Search result")
+
+        self.ai.chat.return_value = iter(["AI response to search for documents"])
+
+        # Define the messages to simulate user interaction
+        messages = [
+            {"content": "Search for documents", "role": "user"}
+        ]
+
+        # Execute the chat function
+        responses = list(self.operator.chat(messages, portfolio))
+
+        # Verify
+        self.ai.chat.assert_called_once()  # Ensure the AI chat was called
+        self.assertEqual(len(responses), 1)  # Check if there is one response
+        self.assertEqual(responses[0], "AI response to search for documents")  # Validate the response content
+
+    def test_chat_with_ai_error(self):
+        # Mock the portfolio's search_documents method
+        self.operator.portfolio = Mock()
+        portfolio = self.operator.portfolio(self.user, "https://openoperator.com/portfolio")
+        portfolio.search_documents = Mock(return_value="Search result")
+
+        self.ai.chat.side_effect = Exception("AI error")
+
+        # Define the messages to simulate user interaction
+        messages = [
+            {"content": "Search for documents", "role": "user"}
+        ]
+
+        # Execute the chat function
+        with self.assertRaises(Exception) as context:
+            list(self.operator.chat(messages, portfolio))
+
+        self.assertTrue("AI error" in str(context.exception))
 
 
 if __name__ == '__main__':

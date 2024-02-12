@@ -58,7 +58,7 @@ Always respond with markdown formatted text."""
                 finish_reason = chunk.choices[0].finish_reason
 
                 # If delta has tool calls add them to the list
-                if delta.tool_calls:
+                if 'tool_calls' in delta and delta.tool_calls:
                     for tool_call in delta.tool_calls:
                         # If tool_calls is empty then add the first tool call
                         if not tool_calls:
