@@ -71,7 +71,7 @@ class Documents:
         except Exception as e:
             raise Exception(f"Error updating extraction status: {e}")
         
-    def run_extraction_process(self, file_content: bytes, file_name: str, file_url: str) -> None:
+    def run_extraction_process(self, file_content: bytes, file_name: str, file_url: str):
         try:
             docs = self.document_loader.load(file_content=file_content, file_path=file_name)
         except Exception as e:
@@ -90,7 +90,7 @@ class Documents:
             self.update_extraction_status(file_url, "failed")
             raise Exception(f"Error adding documents to vector store: {e}")
         
-        self.update_extraction_status(file_url, "success")
+        return self.update_extraction_status(file_url, "success")
         
     def delete(self, url):
         """
