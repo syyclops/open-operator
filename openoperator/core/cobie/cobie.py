@@ -298,7 +298,6 @@ class COBie:
         with self.knowledge_graph.create_session() as session:
             result = session.run(query, uri=self.uri)
             return [record['n'] for record in result.data()]
-    
 
     def vectorize_graph(self):
         """

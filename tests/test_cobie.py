@@ -1,12 +1,14 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 import unittest
 from openoperator.core.cobie.cobie import COBie 
 from openpyxl import Workbook
 from io import BytesIO
+from rdflib import Graph
 
 class TestCOBie(unittest.TestCase):
     def setUp(self) -> None:
         self.facility_mock = Mock()
+        self.facility_mock.uri = "https://openoperator.com/facility"
         self.embeddings_mock = Mock()
         self.cobie = COBie(facility=self.facility_mock, embeddings=self.embeddings_mock)
     
@@ -41,13 +43,13 @@ class TestCOBie(unittest.TestCase):
                 ["Test Component 2", "Test User", "2022-01-01", "Test Door", "Test Space 2"]
             ],
             "System": [
-                ["Name"],
-                ["Test System"]
+                ["Name", "CreatedBy", "CreatedOn", "Category", "ComponentNames"],
+                ["Test System", "Test User", "2022-01-01", "System", "Test Component"],
             ],
             "Attribute": [
-                ["Name", "CreatedBy", "CreatedOn", "Category", "ComponentName"],
-                ["Test Attribute", "Test User", "2022-01-01", "Attribute", "Test Component"],
-                ["Test Attribute 2", "Test User", "2022-01-01", "Attribute", "Test Component 2"]
+                ["Name", "CreatedBy", "CreatedOn", "Category", "SheetName", "RowName", "Value", "Unit"],
+                ["Test Attribute", "Test User", "2022-01-01", "Attribute", "Component", "Test Component", "Test Value", "Test Unit"],
+                ["Test Attribute 2", "Test User", "2022-01-01", "Attribute", "Component", "Test Component 2", "Test Value", "Test Unit"],
             ],
         }
 
@@ -142,6 +144,26 @@ class TestCOBie(unittest.TestCase):
         errors_found, errors, _ = self.cobie.validate_spreadsheet(file_content=file_content)
         assert errors_found == True
         assert "Component is not linked to an existing Space." in errors
+
+    def test_convert_to_graph_basic(self):
+        file_content = self.create_cobie_spreadsheet()
+        graph_string = self.cobie.convert_to_graph(file_content)
+
+        # Load into a graph and check for expected nodes and relationships
+        g = Graph()
+        g.parse(data=graph_string, format="turtle")
+
+        assert len(g) == 49
+        assert graph_string is not None
+        assert "https://openoperator.com/facility" in graph_string
+        assert "Test Space" in graph_string
+        assert "Test Space 2" in graph_string
+        assert "Test Floor" in graph_string
+        assert "Test Floor 2" in graph_string
+        assert "Test Door" in graph_string
+        assert "Test Component" in graph_string
+        assert "Test Component 2" in graph_string
+        
    
 
 if __name__ == "__main__":
