@@ -100,11 +100,9 @@ Always respond with markdown formatted text."""
                         if verbose: print("Tool args: " + str(function_args))
 
                         yield AiChatResponse(tool_selected=ToolCall(function_name=function_name, arguments=function_args))
-
                         function_response = function_to_call(
                             function_args
                         )
-
                         yield AiChatResponse(tool_finished=ToolResponse(name=function_name, content=function_response))
 
                         # Convert function response to string and limit to 7000 tokens
@@ -128,7 +126,6 @@ Always respond with markdown formatted text."""
                 # If the stream is done because its the end of the conversation then return
                 if finish_reason == "stop":
                     yield AiChatResponse(content=delta.content or "")
-                    # yield delta.content or ""
                     return
 
                 # Update the content with the delta content
@@ -138,8 +135,6 @@ Always respond with markdown formatted text."""
                 # If there are no tool calls and just streaming a normal response then print the chunks
                 if not tool_calls:
                     yield AiChatResponse(content=delta.content or "")
-                    # yield delta.content or ""
-                    # print(delta.content or "", end="", flush=True)
 
     def transcribe(self, audio: BytesIO) -> str:
         try:
