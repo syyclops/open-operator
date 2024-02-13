@@ -1,9 +1,11 @@
 from neo4j.exceptions import Neo4jError
 import os
 import jwt
+from typing import Generator
 from openoperator.services import BlobStore, Embeddings, DocumentLoader, VectorStore, KnowledgeGraph, AI
 from openoperator.core import Portfolio, Facility, User, server
 from openoperator.utils import create_uri
+from openoperator.types import AiChatResponse
 
 class OpenOperator: 
     """
@@ -100,7 +102,7 @@ class OpenOperator:
             
         return Portfolio(self, knowledge_graph=self.knowledge_graph, uri=portfolio_uri, user=user)
 
-    def chat(self, messages, portfolio: Portfolio, facility: Facility | None = None, verbose: bool = False):
+    def chat(self, messages, portfolio: Portfolio, facility: Facility | None = None, verbose: bool = False) -> Generator[AiChatResponse, None, None]:
         """
         Interact with the assistant.
         """
