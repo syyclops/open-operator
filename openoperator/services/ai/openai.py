@@ -2,8 +2,10 @@ from openai import OpenAI
 import os
 import tiktoken
 import json
-from io import BytesIO 
+from io import BytesIO
+from typing import Generator
 from openoperator.utils import split_string_with_limit
+from openoperator.types import AiChatResponse, ToolCall, ToolResponse
 from .ai import AI
 
 class Openai(AI):
@@ -32,7 +34,7 @@ Always respond with markdown formatted text."""
         self.system_prompt = system_prompt
 
 
-    def chat(self, messages, tools = [], available_functions = {}, verbose: bool = False):
+    def chat(self, messages, tools = [], available_functions = {}, verbose: bool = False) -> Generator[AiChatResponse, None, None]:
         # Add the system message to be the first message
         messages.insert(0, {
             "role": "system",
@@ -96,9 +98,12 @@ Always respond with markdown formatted text."""
                         print(tool_call['function']['arguments'])
                         function_args = json.loads(tool_call['function']['arguments'])
                         if verbose: print("Tool args: " + str(function_args))
+
+                        yield AiChatResponse(tool_selected=ToolCall(function_name=function_name, arguments=function_args))
                         function_response = function_to_call(
                             function_args
                         )
+                        yield AiChatResponse(tool_finished=ToolResponse(name=function_name, content=function_response))
 
                         # Convert function response to string and limit to 7000 tokens
                         encoding = tiktoken.get_encoding("cl100k_base")
@@ -120,7 +125,7 @@ Always respond with markdown formatted text."""
 
                 # If the stream is done because its the end of the conversation then return
                 if finish_reason == "stop":
-                    yield delta.content or ""
+                    yield AiChatResponse(content=delta.content or "")
                     return
 
                 # Update the content with the delta content
@@ -129,8 +134,7 @@ Always respond with markdown formatted text."""
 
                 # If there are no tool calls and just streaming a normal response then print the chunks
                 if not tool_calls:
-                    yield delta.content or ""
-                    # print(delta.content or "", end="", flush=True)
+                    yield AiChatResponse(content=delta.content or "")
 
     def transcribe(self, audio: BytesIO) -> str:
         try:
