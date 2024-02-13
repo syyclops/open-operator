@@ -57,7 +57,7 @@ def main():
 
         content = ""
         for response in operator.chat(messages, portfolio=portfolio, verbose=verbose):
-            content = response
+            content = response.content
             print(content, flush=True, end="")
 
         messages.append({

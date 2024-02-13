@@ -1,7 +1,7 @@
 from unittest.mock import Mock, patch, MagicMock
 from openoperator.services import Openai 
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta, ChoiceDeltaToolCall, ChoiceDeltaToolCallFunction
-import json
+from openoperator.types import AiChatResponse, ToolCall, ToolResponse
 
 # Test initialization with default parameters
 def test_openai_init_defaults():
@@ -47,7 +47,7 @@ def test_openai_chat(mock_openai):
     messages = [{"role": "user", "content": "Hello, AI"}]
 
     for response in ai.chat(messages):
-        assert response == "Test response"
+        assert response == AiChatResponse(content="Test response", tool_finished=None, tool_selected=None)
 
     mock_openai_instance.chat.completions.create.assert_called_once()
 
@@ -72,7 +72,7 @@ def test_openai_chat_multiple_chunks(mock_openai):
 
     full_response = ""
     for response in ai.chat(messages):
-        full_response += response
+        full_response += response.content
 
     assert full_response == "Part 1 Part 2"
 
@@ -126,12 +126,18 @@ def test_openai_chat_with_tools(mock_openai):
     ]
 
     available_functions = {
-        "test_function": Mock(return_value="Test function")
+        "test_function": Mock(return_value=[{"content": "Test function"}])
     }
 
-    for response in ai.chat(messages, tools, available_functions):
-        assert response == "Test function"
+    responses = []
 
+    for response in ai.chat(messages, tools, available_functions):
+        responses.append(response)
+
+    assert responses[0] == AiChatResponse(content=None, tool_selected=ToolCall(function_name="test_function", arguments={"query": "test"}), tool_finished=None)
+    assert responses[1] == AiChatResponse(content=None, tool_selected=None, tool_finished=ToolResponse(name="test_function", content=[{"content": "Test function"}]))
+    assert responses[2] == AiChatResponse(content="Test function", tool_selected=None, tool_finished=None)
+    assert len(responses) == 3
     assert mock_openai_instance.chat.completions.create.call_count == 2
 
 

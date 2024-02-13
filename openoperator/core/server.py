@@ -60,7 +60,7 @@ def server(operator, host="0.0.0.0", port=8080):
                 portfolio=portfolio,
                 facility=facility
             ):
-                yield response
+                yield str(response.model_dump())
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
     
