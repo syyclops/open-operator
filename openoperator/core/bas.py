@@ -1,5 +1,5 @@
 import json
-from rdflib import Graph, Namespace, Literal, URIRef
+from rdflib import Graph, Namespace, Literal, URIRef, RDF
 from openoperator.services import Embeddings
 from uuid import uuid4
 import numpy as np
@@ -21,18 +21,14 @@ class BAS:
     self.uri = facility.uri
     self.embeddings = embeddings
 
-  def upload_bacnet_data(self, file: bytes):
-    """
-    This function takes a json file of bacnet data, converts it to rdf and uploads it to the knowledge graph.
-    """
+  def convert_bacnet_data_to_rdf(self, file: bytes) -> Graph:
     try:
       # Load the file
       data = json.loads(file)
 
       # Define namespaces for the graph
-      RDF = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
       BACNET = Namespace("http://data.ashrae.org/bacnet/#")
-      A = RDF['type']
+      A = RDF.type
 
       g = Graph()
       g.bind("bacnet", BACNET)
@@ -62,8 +58,6 @@ class BAS:
 
           # Go through all the bacnet data and add it to the graph
           for key, value in bacnet_data.items():
-            if key == "object_type":
-              continue
             g.add((device_uri, BACNET[key], Literal(str(value))))
         else:
           # Create the bacnet point and add it to the graph
@@ -72,18 +66,26 @@ class BAS:
 
           # Go through all the bacnet data and add it to the graph
           for key, value in bacnet_data.items():
-            if key == "object_type":
-              continue
             g.add((point_uri, BACNET[key], Literal(str(value))))
 
             # Create relationship between the device and the point
             g.add((point_uri, BACNET.objectOf, device_uri))
 
-      # Serialize the graph to a file
+      return g
+    except Exception as e:
+      raise e
+
+  def upload_bacnet_data(self, file: bytes):
+    """
+    This function takes a json file of bacnet data, converts it to rdf and uploads it to the knowledge graph.
+    """
+    try:
+      g = self.convert_bacnet_data_to_rdf(file)
       graph_string = g.serialize(format='turtle', encoding='utf-8').decode()
       unique_id = str(uuid4())
       url = self.blob_store.upload_file(file_content=graph_string.encode(), file_name=f"{unique_id}_bacnet.ttl", file_type="text/turtle")
       self.knowledge_graph.import_rdf_data(url)
+      return g
     except Exception as e:
       raise e
         
