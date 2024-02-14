@@ -52,6 +52,60 @@ class TestBAS(unittest.TestCase):
     assert devices[0]['uri'] == "https://openoperator.com/facility/device"
     assert devices[1]['device_name'] == "test_device2"
 
+  def test_points(self):
+    session_mock = self.setup_session_mock()
+    # Mock the session.run method to simulate a successful query execution
+    mock_query_result = Mock()
+    mock_query_result.data.return_value = [
+      {
+        "p": {
+          "point_name": "test_point",
+          "uri": "https://openoperator.com/facility/point"
+        }
+      },
+      {
+        "p": {
+          "point_name": "test_point2",
+          "uri": "https://openoperator.com/facility/point2"
+        }
+      }
+    ]
+    session_mock.run.return_value = mock_query_result
+
+    points = self.bas.points()
+
+    assert len(points) == 2
+    assert points[0]['point_name'] == "test_point"
+    assert points[0]['uri'] == "https://openoperator.com/facility/point"
+    assert points[1]['point_name'] == "test_point2"
+
+  def test_points_with_device_uri(self):
+    session_mock = self.setup_session_mock()
+    # Mock the session.run method to simulate a successful query execution
+    mock_query_result = Mock()
+    mock_query_result.data.return_value = [
+      {
+        "p": {
+          "point_name": "test_point",
+          "uri": "https://openoperator.com/facility/point"
+        }
+      },
+      {
+        "p": {
+          "point_name": "test_point2",
+          "uri": "https://openoperator.com/facility/point2"
+        }
+      }
+    ]
+    session_mock.run.return_value = mock_query_result
+
+    points = self.bas.points(device_uri="https://openoperator.com/facility/device")
+
+    assert len(points) == 2
+    assert points[0]['point_name'] == "test_point"
+    assert points[0]['uri'] == "https://openoperator.com/facility/point"
+    assert points[1]['point_name'] == "test_point2"
+
   def create_bacnet_json_data(self) -> bytes:
     data = [
       {
@@ -149,3 +203,33 @@ class TestBAS(unittest.TestCase):
     session_mock.run.return_value = mock_query_result
     self.bas.upload_bacnet_data(bacnet_data)
     self.bas.blob_store.upload_file.assert_called_once()
+
+  @patch('openoperator.core.bas.BAS.devices')
+  @patch('openoperator.core.bas.BAS.points')
+  def test_vectorize_graph(self, mock_points, mock_devices):
+    mock_devices.return_value = [
+      {
+        "device_name": "test_device",
+        "uri": "https://openoperator.com/facility/device"
+      }
+    ]
+    mock_points.return_value = [
+      {
+        "object_name": "test_point",
+        "uri": "https://openoperator.com/facility/point"
+      }
+    ]
+    self.bas.embeddings.create_embeddings.return_value = [Mock(embedding=[0.1, 0.2, 0.3])]
+    session_mock = self.setup_session_mock()
+
+    self.bas.vectorize_graph()
+
+    assert self.bas.embeddings.create_embeddings.call_count == 2
+    self.bas.embeddings.create_embeddings.assert_called_with(['test_point'])
+
+    # Check calls to session.run contain the correct Cypher query for devices and points
+    device_query_call = [call for call in session_mock.run.call_args_list if "MATCH (n:Device)" in str(call)]
+    point_query_call = [call for call in session_mock.run.call_args_list if "MATCH (n:Point)" in str(call)]
+    self.assertTrue(device_query_call, "Device vectors not uploaded correctly.")
+    self.assertTrue(point_query_call, "Point vectors not uploaded correctly.")
+

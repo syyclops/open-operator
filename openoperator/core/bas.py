@@ -4,7 +4,7 @@ from openoperator.services import Embeddings
 from uuid import uuid4
 import numpy as np
 from neo4j.exceptions import Neo4jError
-from openoperator.utils import create_uri, dbscan_cluster
+from openoperator.utils import dbscan_cluster
 
 class BAS:
   """
