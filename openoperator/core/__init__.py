@@ -4,3 +4,4 @@ from .server import server
 from .user import User
 from .open_operator import OpenOperator
 from .documents import Documents
+from .bas import BAS

@@ -9,140 +9,139 @@ from openoperator.types import AiChatResponse, ToolCall, ToolResponse
 from .ai import AI
 
 class Openai(AI):
-    def __init__(self, 
-                 openai_api_key: str | None = None,
-                 system_prompt: str | None = None,
-                 model_name: str = "gpt-4",
-                 temperature: float = 0,
-                 base_url: str | None = None
-                ) -> None:
-        # Create openai client
-        if openai_api_key is None:
-            openai_api_key = os.environ['OPENAI_API_KEY']
-        self.openai = OpenAI(api_key=openai_api_key, base_url=base_url)
+  def __init__(self, 
+    openai_api_key: str | None = None,
+    system_prompt: str | None = None,
+    model_name: str = "gpt-4",
+    temperature: float = 0,
+    base_url: str | None = None
+  ) -> None:
+    # Create openai client
+    if openai_api_key is None:
+      openai_api_key = os.environ['OPENAI_API_KEY']
+    self.openai = OpenAI(api_key=openai_api_key, base_url=base_url)
 
-        self.model_name = model_name
-        self.temperature = temperature
+    self.model_name = model_name
+    self.temperature = temperature
 
-        if system_prompt is None:
-            system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
+    if system_prompt is None:
+      system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
 Your goal is to help facility owners, managers, and operators manage their facilities and buildings more efficiently.
 Make sure to always follow ASHRAE guildelines.
 Don't be too wordy. Don't be too short. Be just right.
 Don't make up information. If you don't know, say you don't know.
 Always respond with markdown formatted text."""
-        self.system_prompt = system_prompt
+    self.system_prompt = system_prompt
 
+  def chat(self, messages, tools = [], available_functions = {}, verbose: bool = False) -> Generator[AiChatResponse, None, None]:
+    # Add the system message to be the first message
+    messages.insert(0, {
+      "role": "system",
+      "content": self.system_prompt
+    })
 
-    def chat(self, messages, tools = [], available_functions = {}, verbose: bool = False) -> Generator[AiChatResponse, None, None]:
-        # Add the system message to be the first message
-        messages.insert(0, {
-            "role": "system",
-            "content": self.system_prompt
-        })
+    while True:
+      # Send the conversation and available functions to the model
+      stream = self.openai.chat.completions.create(
+        model=self.model_name,
+        messages=messages,
+        tools=tools,
+        tool_choice="auto",
+        stream=True,
+        temperature=self.temperature
+      )
 
-        while True:
-            # Send the conversation and available functions to the model
-            stream = self.openai.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                tools=tools,
-                tool_choice="auto",
-                stream=True,
-                temperature=self.temperature
+      tool_calls = []
+      content = ""
+
+      for chunk in stream:
+        delta = chunk.choices[0].delta
+        finish_reason = chunk.choices[0].finish_reason
+
+        # If delta has tool calls add them to the list
+        if delta.tool_calls:
+          for tool_call in delta.tool_calls:
+              # If the tool_call index is greater than the length of tool_calls, append new tool calls
+            while len(tool_calls) <= tool_call.index:
+              tool_calls.append({
+                  "function": {
+                      "name": "",
+                      "arguments": "",
+                  },
+                  "id": "",
+                  "type": "function"
+              })
+
+            # Update the tool call at the correct index
+            tc = tool_calls[tool_call.index]
+            if tool_call.id:
+              tc["id"] += tool_call.id
+            if tool_call.function.name:
+              tc["function"]["name"] += tool_call.function.name
+            if tool_call.function.arguments:
+              tc["function"]["arguments"] += tool_call.function.arguments
+            
+        # If the stream is done and is ready to use tools
+        if finish_reason == "tool_calls":
+          # Extend the conversation with the assistant's reply
+          messages.append({
+              "role": "assistant",
+              "content": content,
+              "tool_calls": tool_calls
+          })
+
+          for tool_call in tool_calls:
+            function_name = tool_call['function']['name']
+            if verbose: print("Tool Selected: " + function_name)
+            function_to_call = available_functions[function_name]
+            print(tool_call['function']['arguments'])
+            function_args = json.loads(tool_call['function']['arguments'])
+            if verbose: print("Tool args: " + str(function_args))
+
+            yield AiChatResponse(tool_selected=ToolCall(function_name=function_name, arguments=function_args))
+            function_response = function_to_call(
+                function_args
+            )
+            yield AiChatResponse(tool_finished=ToolResponse(name=function_name, content=function_response))
+
+            # Convert function response to string and limit to 7000 tokens
+            encoding = tiktoken.get_encoding("cl100k_base")
+            texts = split_string_with_limit(str(function_response), 7000, encoding)
+
+            if verbose:
+              print("Tool response:")
+              print(json.dumps(function_response, indent=2))
+
+            # Extend conversation with function response
+            messages.append(
+                {
+                    "tool_call_id": tool_call['id'],
+                    "role": "tool",
+                    "name": function_name,
+                    "content": texts[0]
+                }
             )
 
-            tool_calls = []
-            content = ""
+        # If the stream is done because its the end of the conversation then return
+        if finish_reason == "stop":
+          yield AiChatResponse(content=delta.content or "")
+          return
 
-            for chunk in stream:
-                delta = chunk.choices[0].delta
-                finish_reason = chunk.choices[0].finish_reason
+        # Update the content with the delta content
+        if delta.content:
+          content += delta.content
 
-                # If delta has tool calls add them to the list
-                if delta.tool_calls:
-                    for tool_call in delta.tool_calls:
-                        # If the tool_call index is greater than the length of tool_calls, append new tool calls
-                        while len(tool_calls) <= tool_call.index:
-                            tool_calls.append({
-                                "function": {
-                                    "name": "",
-                                    "arguments": "",
-                                },
-                                "id": "",
-                                "type": "function"
-                            })
+        # If there are no tool calls and just streaming a normal response then print the chunks
+        if not tool_calls:
+          yield AiChatResponse(content=delta.content or "")
 
-                        # Update the tool call at the correct index
-                        tc = tool_calls[tool_call.index]
-                        if tool_call.id:
-                            tc["id"] += tool_call.id
-                        if tool_call.function.name:
-                            tc["function"]["name"] += tool_call.function.name
-                        if tool_call.function.arguments:
-                            tc["function"]["arguments"] += tool_call.function.arguments
-                    
-                # If the stream is done and is ready to use tools
-                if finish_reason == "tool_calls":
-                    # Extend the conversation with the assistant's reply
-                    messages.append({
-                        "role": "assistant",
-                        "content": content,
-                        "tool_calls": tool_calls
-                    })
+  def transcribe(self, audio: BytesIO) -> str:
+    try:
+      transcript = self.openai.audio.transcriptions.create(
+        model="whisper-1",
+        file=audio,
+      )
 
-                    for tool_call in tool_calls:
-                        function_name = tool_call['function']['name']
-                        if verbose: print("Tool Selected: " + function_name)
-                        function_to_call = available_functions[function_name]
-                        print(tool_call['function']['arguments'])
-                        function_args = json.loads(tool_call['function']['arguments'])
-                        if verbose: print("Tool args: " + str(function_args))
-
-                        yield AiChatResponse(tool_selected=ToolCall(function_name=function_name, arguments=function_args))
-                        function_response = function_to_call(
-                            function_args
-                        )
-                        yield AiChatResponse(tool_finished=ToolResponse(name=function_name, content=function_response))
-
-                        # Convert function response to string and limit to 7000 tokens
-                        encoding = tiktoken.get_encoding("cl100k_base")
-                        texts = split_string_with_limit(str(function_response), 7000, encoding)
-
-                        if verbose:
-                            print("Tool response:")
-                            print(json.dumps(function_response, indent=2))
-
-                        # Extend conversation with function response
-                        messages.append(
-                            {
-                                "tool_call_id": tool_call['id'],
-                                "role": "tool",
-                                "name": function_name,
-                                "content": texts[0]
-                            }
-                        )
-
-                # If the stream is done because its the end of the conversation then return
-                if finish_reason == "stop":
-                    yield AiChatResponse(content=delta.content or "")
-                    return
-
-                # Update the content with the delta content
-                if delta.content:
-                    content += delta.content
-
-                # If there are no tool calls and just streaming a normal response then print the chunks
-                if not tool_calls:
-                    yield AiChatResponse(content=delta.content or "")
-
-    def transcribe(self, audio: BytesIO) -> str:
-        try:
-            transcript = self.openai.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio,
-            )
-
-            return transcript.text
-        except Exception as e:
-            raise Exception(f"Error transcribing audio: {e}")
+      return transcript.text
+    except Exception as e:
+      raise e
