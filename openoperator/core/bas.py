@@ -173,9 +173,8 @@ class BAS:
 
     embeddings = [device['embedding'] for device in devices]
     embeddings = np.vstack(embeddings)
-
     cluster_assignments = dbscan_cluster(embeddings)
-
+    
     # Create a dictionary of clusters, with the key being the cluster number and the value being the list of documents and metadata
     clusters = {}
     for i in range(len(cluster_assignments)):

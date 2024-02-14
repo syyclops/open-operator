@@ -233,3 +233,34 @@ class TestBAS(unittest.TestCase):
     self.assertTrue(device_query_call, "Device vectors not uploaded correctly.")
     self.assertTrue(point_query_call, "Point vectors not uploaded correctly.")
 
+  @patch('openoperator.core.bas.BAS.devices')
+  def test_cluster_devices(self, mock_devices):
+    mock_devices.return_value = [
+      {
+        "device_name": "test_device",
+        "uri": "https://openoperator.com/facility/device",
+        "embedding": [0.0023064255, 0.0023064255, 0.0023064255, 0.0023064255]
+      },
+      {
+        "device_name": "test_device2",
+        "uri": "https://openoperator.com/facility/device2",
+        "embedding": [0.0023064255, 0.0023064255, 0.0023064255, 0.0023064255]
+      },
+      {
+        "device_name": "test_device3",
+        "uri": "https://openoperator.com/facility/device3",
+        "embedding": [0.0023064255, 0.0023064255, 0.0023064255, 0.0023064255]
+      },
+      {
+        "device_name": "outlier",
+        "uri": "https://openoperator.com/facility/outlier",
+        "embedding": [0.1, 0.1, 0.1, 0.1]
+      }
+    ]
+
+    clusters = self.bas.cluster_devices()
+
+    assert len(clusters) == 2
+    assert len(clusters[0]) == 3
+    assert len(clusters[-1]) == 1
+    assert "test_device" in clusters[0]
