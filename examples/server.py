@@ -18,13 +18,13 @@ knowledge_graph = KnowledgeGraph()
 ai = Openai(model_name="gpt-4-0125-preview")
 
 operator = OpenOperator(
-    blob_store=blob_store,
-    document_loader=document_loader,
-    vector_store=vector_store,
-    embeddings=embeddings,
-    knowledge_graph=knowledge_graph,
-    ai=ai,
-    base_uri="https://syyclops.com/"
+  blob_store=blob_store,
+  document_loader=document_loader,
+  vector_store=vector_store,
+  embeddings=embeddings,
+  knowledge_graph=knowledge_graph,
+  ai=ai,
+  base_uri="https://syyclops.com/"
 )
 
 operator.server()
