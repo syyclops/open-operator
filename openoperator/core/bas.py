@@ -40,6 +40,7 @@ class BAS:
           continue
         if item['Bacnet Data'] == "{}":
           continue
+        name = item['Name']
         bacnet_data = json.loads(item['Bacnet Data'])[0]
 
         # Check if the necessary keys are in bacnet_data
@@ -50,7 +51,7 @@ class BAS:
         if bacnet_data['device_name'] == None or bacnet_data['device_name'] == "":
           continue
 
-        device_uri = URIRef(self.uri + '/device/' + bacnet_data['device_address'] + "-" + bacnet_data['device_id'] + '/' + create_uri(bacnet_data['device_name']))
+        device_uri = URIRef(self.uri + "/" + bacnet_data['device_address'] + "-" + bacnet_data['device_id'] + "/device/" + bacnet_data['device_id'])
         # Check if its a bacnet device or a bacnet object
         if bacnet_data['object_type'] == "device":
           # Create the bacnet device and add it to the graph
@@ -61,15 +62,14 @@ class BAS:
             g.add((device_uri, BACNET[key], Literal(str(value))))
         else:
           # Create the bacnet point and add it to the graph
-          point_uri = URIRef(device_uri + '/point/' + bacnet_data['object_type'] + "/" + create_uri(bacnet_data['object_name']) + "/" + bacnet_data['object_index'])
+          point_uri = URIRef(self.uri + '/' + bacnet_data['device_address'] + '-' + bacnet_data['device_id'] + '/' + bacnet_data['object_type'] + '/' + bacnet_data['object_index'])
           g.add((point_uri, A, BACNET.Point))
+          g.add((point_uri, BACNET.timeseriesId, Literal(name)))
+          g.add((point_uri, BACNET.objectOf, device_uri)) # Create relationship between the device and the point
 
           # Go through all the bacnet data and add it to the graph
           for key, value in bacnet_data.items():
             g.add((point_uri, BACNET[key], Literal(str(value))))
-
-            # Create relationship between the device and the point
-            g.add((point_uri, BACNET.objectOf, device_uri))
 
       return g
     except Exception as e:
@@ -144,7 +144,6 @@ class BAS:
     
     points = self.points()
     texts = [point['object_name'] for point in points]
-
     embeddings = self.embeddings.create_embeddings(texts)
 
     id_vector_pairs = []

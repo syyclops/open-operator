@@ -81,7 +81,21 @@ class TestBAS(unittest.TestCase):
         "Collect Config": "[{}]",
         "Updated": "2022-07-07 15:22:54.247305",
         "Created": "2022-01-10 22:09:55.502661"
-      }
+      },
+      {
+        "Name": "example/example/192.168.1.40-8000/analogValue/22",
+        "Site": "Example Site",
+        "Client": "Example Client",
+        "Point Type": "",
+        "Collect Enabled": "True",
+        "Collect Interval": "300",
+        "Marker Tags": "",
+        "Kv Tags": "[{}]",
+        "Bacnet Data": "[{\"device_id\":\"8000\",\"device_name\":\"AHU1\",\"object_name\":\"AHU01-DAT-SP1\",\"object_type\":\"analogValue\",\"object_index\":\"22\",\"object_units\":\"degreesFahrenheit\",\"present_value\":\"70.0\",\"device_address\":\"192.168.1.40\",\"scrape_enabled\":\"False\",\"scrape_interval\":\"0\",\"device_description\":\"\",\"object_description\":\"\"}]",
+        "Collect Config": "[{}]",
+        "Updated": "2022-07-07 15:22:47.873095",
+        "Created": "2022-01-10 22:09:56.009211"
+      },
     ]
     return bytes(json.dumps(data), 'utf-8')
   
@@ -90,18 +104,19 @@ class TestBAS(unittest.TestCase):
     g = self.bas.convert_bacnet_data_to_rdf(bacnet_data)
     
     BACNET = Namespace("http://data.ashrae.org/bacnet/#")
-    device_uri = URIRef("https://openoperator.com/exampleCustomer/exampleFacility/device/301:14-3014/vav-d2-37")
+    device_uri = URIRef("https://openoperator.com/exampleCustomer/exampleFacility/301:14-3014/device/3014")
     assert (device_uri, RDF.type, BACNET.Device) in g
     assert (device_uri, BACNET.device_id, Literal("3014")) in g
     assert (device_uri, BACNET.device_name, Literal("VAV-D2-37")) in g
     assert (device_uri, BACNET.device_address, Literal("301:14")) in g
     assert (device_uri, BACNET.scrape_enabled, Literal("False")) in g
 
-    point_uri = URIRef("https://openoperator.com/exampleCustomer/exampleFacility/device/301:14-3014/vav-d2-37/point/analogInput/3a14-space-co2/1")
+    point_uri = URIRef("https://openoperator.com/exampleCustomer/exampleFacility/301:14-3014/analogInput/1")
     assert (point_uri, RDF.type, BACNET.Point) in g
     assert (point_uri, BACNET.objectOf, device_uri) in g
     assert (point_uri, BACNET.object_name, Literal("3A14-Space-Co2")) in g
     assert (point_uri, BACNET.object_type, Literal("analogInput")) in g
+    assert(point_uri, BACNET.timeseriesId, Literal("example/example/301:14-3014/analogInput/1")) in g
 
   def test_convert_bacnet_data_to_rdf_no_data(self):
     bacnet_data = bytes(json.dumps([]), 'utf-8')
