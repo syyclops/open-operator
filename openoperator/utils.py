@@ -44,15 +44,15 @@ def dbscan_cluster(x):
   DBSCAN clustering algorithm.
   """
   # Find the optimal epsilon
-  nbrs = NearestNeighbors(n_neighbors=5).fit(x)
-
+  n_neighbors = min(5, len(x))
+  nbrs = NearestNeighbors(n_neighbors=n_neighbors).fit(x)
   distances, _ = nbrs.kneighbors(x)
   distances = np.sort(distances, axis=0)
   kneedle = KneeLocator(
     range(1, distances.shape[0] + 1), distances[:, 1], curve="convex", direction="increasing"
   )
-
-  db = DBSCAN(eps=kneedle.knee_y, min_samples=3).fit(x)
+  eps = kneedle.knee_y if kneedle.knee_y else 0.1
+  db = DBSCAN(eps=eps, min_samples=3).fit(x)
   labels = db.labels_
 
   # Number of clusters in labels, ignoring noise if present.

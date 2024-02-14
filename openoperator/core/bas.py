@@ -4,7 +4,7 @@ from openoperator.services import Embeddings
 from uuid import uuid4
 import numpy as np
 from neo4j.exceptions import Neo4jError
-from openoperator.utils import create_uri, dbscan_cluster
+from openoperator.utils import dbscan_cluster
 
 class BAS:
   """
@@ -173,9 +173,8 @@ class BAS:
 
     embeddings = [device['embedding'] for device in devices]
     embeddings = np.vstack(embeddings)
-
     cluster_assignments = dbscan_cluster(embeddings)
-
+    
     # Create a dictionary of clusters, with the key being the cluster number and the value being the list of documents and metadata
     clusters = {}
     for i in range(len(cluster_assignments)):
