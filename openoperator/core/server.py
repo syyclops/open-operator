@@ -218,7 +218,7 @@ def server(operator, host="0.0.0.0", port=8080):
 
     return {"message": "Files uploaded successfully", "uploaded_files": uploaded_files_info}
 
-  ## BAS INTEGRATION ROUTES
+  ## BACNET INTEGRATION ROUTES
   @app.post("/portfolio/facility/bacnet/import", tags=['BACnet'])
   async def upload_bacnet_data(
     portfolio_uri: str,
@@ -231,12 +231,12 @@ def server(operator, host="0.0.0.0", port=8080):
       operator.portfolio(
         current_user,
         portfolio_uri
-      ).facility(facility_uri).bas.upload_bacnet_data(file_content)
+      ).facility(facility_uri).bacnet.upload_bacnet_data(file_content)
 
       operator.portfolio(
         current_user,
         portfolio_uri
-      ).facility(facility_uri).bas.vectorize_graph()
+      ).facility(facility_uri).bacnet.vectorize_graph()
 
       return "BACnet data uploaded successfully"
     except HTTPException as e:
@@ -269,8 +269,28 @@ def server(operator, host="0.0.0.0", port=8080):
     return JSONResponse(
       operator.portfolio(
           current_user, portfolio_uri
-      ).facility(facility_uri).bas.cluster_devices()
+      ).facility(facility_uri).bacnet.cluster_devices()
     )
+  
+  @app.get("/portfolio/facility/bacnet/device/link", tags=['BACnet'])
+  async def link_bacnet_device(
+    portfolio_uri: str,
+    facility_uri: str,
+    device_uri: str,
+    component_uri: str,
+    current_user: User = Security(get_current_user)
+  ) -> JSONResponse:
+    try:
+      return JSONResponse(
+        operator.portfolio(
+            current_user, portfolio_uri
+        ).facility(facility_uri).bacnet.link_bacnet_device_to_cobie_component(device_uri, component_uri)
+      )
+    except HTTPException as e:
+      return JSONResponse(
+          content={"message": f"Unable to link device to component: {e}"},
+          status_code=500
+      )
 
   @app.get("/portfolio/facility/bacnet/points", tags=['BACnet'])
   async def list_points(
@@ -283,12 +303,12 @@ def server(operator, host="0.0.0.0", port=8080):
       return JSONResponse(
         operator.portfolio(
             current_user, portfolio_uri
-        ).facility(facility_uri).bas.points()
+        ).facility(facility_uri).bacnet.points()
       )
     return JSONResponse(
       operator.portfolio(
           current_user, portfolio_uri
-          ).facility(facility_uri).bas.points(device_uri)
+          ).facility(facility_uri).bacnet.points(device_uri)
       )
   
   print("\nServer is running. Visit http://localhost:8080/docs to see documentation\n")

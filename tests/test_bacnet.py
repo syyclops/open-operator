@@ -264,3 +264,30 @@ class TestBACnet(unittest.TestCase):
     assert len(clusters[0]) == 3
     assert len(clusters[-1]) == 1
     assert "test_device" in clusters[0]
+
+  def test_link_bacnet_device_to_cobie_component(self):
+    session_mock = self.setup_session_mock()
+    mock_query_result = Mock()
+    mock_query_result.data.return_value = [
+      {
+        "d": {
+          "device_name": "test_device",
+          "uri": "https://openoperator.com/facility/device"
+        },
+        "c": {
+          "component_name": "test_component",
+          "uri": "https://openoperator.com/facility/component"
+        }
+      }
+    ]
+    session_mock.run.return_value = mock_query_result
+    self.bacnet.link_bacnet_device_to_cobie_component("https://openoperator.com/facility/device", "https://openoperator.com/facility/component")
+    session_mock.run.assert_called_once()
+
+  def test_link_bacnet_device_device_not_found(self):
+    session_mock = self.setup_session_mock()
+    mock_query_result = Mock()
+    mock_query_result.data.return_value = None
+    session_mock.run.return_value = mock_query_result
+    with self.assertRaises(Exception):
+      self.bacnet.link_bacnet_device_to_cobie_component("https://openoperator.com/facility/device", "https://openoperator.com/facility/component")

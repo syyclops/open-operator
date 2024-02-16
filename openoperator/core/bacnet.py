@@ -205,3 +205,20 @@ class BACnet:
       clusters[cluster].append(points[i]['object_name'])
     
     return clusters
+  
+  def link_bacnet_device_to_cobie_component(self, device_uri: str, component_uri: str):
+    """
+    Link a bacnet device to a cobie component.
+    """
+    query = """MATCH (d:Device {uri: $device_uri})
+                MATCH (c:Component {uri: $component_uri})
+                MERGE (d)-[:isDeviceOf]->(c)
+                RETURN d, c"""
+    try:
+      with self.knowledge_graph.create_session() as session:
+        result = session.run(query, device_uri=device_uri, component_uri=component_uri)
+        if result.single() is None:
+          raise ValueError("Error linking device to component")
+        return [record for record in result.data()]
+    except Neo4jError as e:
+      raise e
