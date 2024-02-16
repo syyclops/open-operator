@@ -5,6 +5,7 @@ from uuid import uuid4
 import numpy as np
 from neo4j.exceptions import Neo4jError
 from openoperator.utils import dbscan_cluster
+from typing import List
 
 class BACnet:
   """
@@ -224,12 +225,11 @@ class BACnet:
     except Neo4jError as e:
       raise e
   
-  def timeseries(self, start_time: str, end_time: str, timeseriesId: str):
+  def timeseries(self, start_time: str, end_time: str, timeseriesIds: List[str]):
     """
     Get the timeseries data for the bacnet points in the facility.
     """
     try:
-      timeseriesIds = [timeseriesId]
       return self.timescale.get_timeseries(timeseriesIds, start_time, end_time)
     except Exception as e:
       raise e
