@@ -12,7 +12,8 @@ class TestBACnet(unittest.TestCase):
     facility.knowledge_graph = mock_kg
     facility.uri = "https://openoperator.com/exampleCustomer/exampleFacility"
     embeddings = Mock()
-    self.bacnet = BACnet(facility, embeddings)
+    timescale = Mock()
+    self.bacnet = BACnet(facility, embeddings, timescale)
 
   def setup_session_mock(self):
     # Create the session mock

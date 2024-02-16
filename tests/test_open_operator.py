@@ -13,11 +13,13 @@ class TestOpenOperator(unittest.TestCase):
     self.ai = Mock()
     self.base_uri = "https://openoperator.com/"
     self.api_token_secret = "secret"
+    self.timescale = Mock()
     self.operator = OpenOperator(
         self.blob_store,
         self.embeddings,
         self.document_loader,
         self.vector_store,
+        self.timescale,
         self.knowledge_graph,
         self.ai,
         self.base_uri,
