@@ -12,9 +12,10 @@ class Timescale:
         cur.execute(f'SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = \'{collection_name}\')') # Check if table exists
         exists = cur.fetchone()[0]
         if not exists:
-          cur.execute(f'CREATE TABLE {collection_name} (ts timestamptz NOT NULL, value double precision NOT NULL, timeseriesid text NOT NULL')
-        cur.execute(f'SELECT EXISTS (SELECT FROM timescaledb_information.hypertable WHERE table_name = \'{collection_name}\')') # Check if hypertable exists
-        exists = cur.fetchone()[0]
+          cur.execute(f'CREATE TABLE {collection_name} (ts timestamptz NOT NULL, value FLOAT NOT NULL, timeseriesid TEXT NOT NULL)')
+        cur.execute(f'SELECT * FROM timescaledb_information.hypertables WHERE hypertable_name = \'{collection_name}\'') # Check if hypertable exists
+        fetch_result = cur.fetchone()
+        exists = fetch_result[0] if fetch_result is not None else None
         if not exists:
           cur.execute(f'SELECT create_hypertable(\'{collection_name}\', \'ts\')')
         # Check if the table has the timeseriesid index
