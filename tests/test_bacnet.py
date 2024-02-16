@@ -53,6 +53,26 @@ class TestBACnet(unittest.TestCase):
     assert devices[0]['uri'] == "https://openoperator.com/facility/device"
     assert devices[1]['device_name'] == "test_device2"
 
+  def test_devices_of_component(self):
+    session_mock = self.setup_session_mock()
+    # Mock the session.run method to simulate a successful query execution
+    mock_query_result = Mock()
+    mock_query_result.data.return_value = [
+      {
+        "d": {
+          "device_name": "test_device",
+          "uri": "https://openoperator.com/facility/device"
+        }
+      }
+    ]
+    session_mock.run.return_value = mock_query_result
+
+    devices = self.bacnet.devices("https://openoperator.com/facility/component")
+
+    assert len(devices) == 1
+    assert devices[0]['device_name'] == "test_device"
+    assert devices[0]['uri'] == "https://openoperator.com/facility/device"
+
   def test_points(self):
     session_mock = self.setup_session_mock()
     # Mock the session.run method to simulate a successful query execution

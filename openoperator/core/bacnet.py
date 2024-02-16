@@ -91,14 +91,17 @@ class BACnet:
     except Exception as e:
       raise e
         
-  def devices(self):
+  def devices(self, component_uri: str | None = None):
     """
     Get the bacnet devices in the facility.
     """
-    query = "MATCH (d:Device) where d.uri starts with $uri RETURN d"
+    query = "MATCH (d:Device) where d.uri starts with $uri"
+    if component_uri:
+      query += " MATCH (d)-[:isDeviceOf]->(c:Component {uri: $component_uri})"
+    query += " RETURN d"
     try:
       with self.knowledge_graph.create_session() as session:
-        result = session.run(query, uri=self.uri)
+        result = session.run(query, uri=self.uri, component_uri=component_uri)
         devices = [record['d'] for record in result.data()]
       return devices
     except Exception as e:

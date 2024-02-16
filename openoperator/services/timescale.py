@@ -36,3 +36,16 @@ class Timescale:
         return cur.fetchall()
     except Exception as e:
       raise e
+    
+  def get_latest_values(self, timeseriesIds: List[str]):
+    """
+    Get the most recent reading for a list of timeseriesIds. Limit to the last 30 minutes.
+    """
+    ids = ', '.join([f'\'{id}\'' for id in timeseriesIds])
+    query = f"SELECT DISTINCT ON (timeseriesid) * FROM timeseries WHERE timeseriesid IN ({ids}) AND ts >= NOW() - INTERVAL '30 minutes' ORDER BY timeseriesid, ts DESC"
+    try:
+      with self.postgres.cursor() as cur:
+        cur.execute(query)
+        return cur.fetchall()
+    except Exception as e:
+      raise e
