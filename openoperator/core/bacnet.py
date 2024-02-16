@@ -1,10 +1,10 @@
 import json
-from rdflib import Graph, Namespace, Literal, URIRef
+from rdflib import Graph, Namespace, Literal, URIRef, RDF
 from openoperator.services import Embeddings
 from uuid import uuid4
 import numpy as np
 from neo4j.exceptions import Neo4jError
-from openoperator.utils import create_uri, dbscan_cluster
+from openoperator.utils import dbscan_cluster
 
 class BACnet:
   """
@@ -21,18 +21,14 @@ class BACnet:
     self.uri = facility.uri
     self.embeddings = embeddings
 
-  def upload_bacnet_data(self, file: bytes):
-    """
-    This function takes a json file of bacnet data, converts it to rdf and uploads it to the knowledge graph.
-    """
+  def convert_bacnet_data_to_rdf(self, file: bytes) -> Graph:
     try:
       # Load the file
       data = json.loads(file)
 
       # Define namespaces for the graph
-      RDF = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
       BACNET = Namespace("http://data.ashrae.org/bacnet/#")
-      A = RDF['type']
+      A = RDF.type
 
       g = Graph()
       g.bind("bacnet", BACNET)
@@ -44,6 +40,7 @@ class BACnet:
           continue
         if item['Bacnet Data'] == "{}":
           continue
+        name = item['Name']
         bacnet_data = json.loads(item['Bacnet Data'])[0]
 
         # Check if the necessary keys are in bacnet_data
@@ -54,7 +51,7 @@ class BACnet:
         if bacnet_data['device_name'] == None or bacnet_data['device_name'] == "":
           continue
 
-        device_uri = URIRef(self.uri + '/device/' + bacnet_data['device_address'] + "-" + bacnet_data['device_id'] + '/' + create_uri(bacnet_data['device_name']))
+        device_uri = URIRef(self.uri + "/" + bacnet_data['device_address'] + "-" + bacnet_data['device_id'] + "/device/" + bacnet_data['device_id'])
         # Check if its a bacnet device or a bacnet object
         if bacnet_data['object_type'] == "device":
           # Create the bacnet device and add it to the graph
@@ -62,28 +59,33 @@ class BACnet:
 
           # Go through all the bacnet data and add it to the graph
           for key, value in bacnet_data.items():
-            if key == "object_type":
-              continue
             g.add((device_uri, BACNET[key], Literal(str(value))))
         else:
           # Create the bacnet point and add it to the graph
-          point_uri = URIRef(device_uri + '/point/' + bacnet_data['object_type'] + "/" + create_uri(bacnet_data['object_name']) + "/" + bacnet_data['object_index'])
+          point_uri = URIRef(self.uri + '/' + bacnet_data['device_address'] + '-' + bacnet_data['device_id'] + '/' + bacnet_data['object_type'] + '/' + bacnet_data['object_index'])
           g.add((point_uri, A, BACNET.Point))
+          g.add((point_uri, BACNET.timeseriesId, Literal(name)))
+          g.add((point_uri, BACNET.objectOf, device_uri)) # Create relationship between the device and the point
 
           # Go through all the bacnet data and add it to the graph
           for key, value in bacnet_data.items():
-            if key == "object_type":
-              continue
             g.add((point_uri, BACNET[key], Literal(str(value))))
 
-            # Create relationship between the device and the point
-            g.add((point_uri, BACNET.objectOf, device_uri))
+      return g
+    except Exception as e:
+      raise e
 
-      # Serialize the graph to a file
+  def upload_bacnet_data(self, file: bytes):
+    """
+    This function takes a json file of bacnet data, converts it to rdf and uploads it to the knowledge graph.
+    """
+    try:
+      g = self.convert_bacnet_data_to_rdf(file)
       graph_string = g.serialize(format='turtle', encoding='utf-8').decode()
       unique_id = str(uuid4())
       url = self.blob_store.upload_file(file_content=graph_string.encode(), file_name=f"{unique_id}_bacnet.ttl", file_type="text/turtle")
       self.knowledge_graph.import_rdf_data(url)
+      return g
     except Exception as e:
       raise e
         
@@ -142,7 +144,6 @@ class BACnet:
     
     points = self.points()
     texts = [point['object_name'] for point in points]
-
     embeddings = self.embeddings.create_embeddings(texts)
 
     id_vector_pairs = []
@@ -172,9 +173,8 @@ class BACnet:
 
     embeddings = [device['embedding'] for device in devices]
     embeddings = np.vstack(embeddings)
-
     cluster_assignments = dbscan_cluster(embeddings)
-
+    
     # Create a dictionary of clusters, with the key being the cluster number and the value being the list of documents and metadata
     clusters = {}
     for i in range(len(cluster_assignments)):
