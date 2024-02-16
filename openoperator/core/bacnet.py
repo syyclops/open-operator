@@ -20,6 +20,7 @@ class BACnet:
     self.blob_store = facility.blob_store
     self.uri = facility.uri
     self.embeddings = embeddings
+    self.timescale = timescale
 
   def convert_bacnet_data_to_rdf(self, file: bytes) -> Graph:
     try:

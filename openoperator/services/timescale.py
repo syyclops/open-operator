@@ -28,7 +28,8 @@ class Timescale:
       raise e
   
   def get_timeseries(self, timeseriesIds: List[str], start_time: str, end_time: str):
-    query = f'SELECT * FROM timeseries WHERE timeseriesid IN ({", ".join(timeseriesIds)}) AND ts >= {start_time} AND ts <= {end_time}'
+    ids = ', '.join([f'\'{id}\'' for id in timeseriesIds])
+    query = f"SELECT * FROM timeseries WHERE timeseriesid IN ({ids}) AND ts >= '{start_time}' AND ts <= '{end_time}'"
     try:
       with self.postgres.cursor() as cur:
         cur.execute(query)

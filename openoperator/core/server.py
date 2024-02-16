@@ -311,7 +311,7 @@ def server(operator, host="0.0.0.0", port=8080):
           ).facility(facility_uri).bacnet.points(device_uri)
       )
   
-  @app.get("/portfolio/facility/bacnet/point/{point_uri}/timeseries", tags=['BACnet'])
+  @app.get("/portfolio/facility/bacnet/point/timeseries", tags=['BACnet'])
   async def get_timeseries(
     portfolio_uri: str,
     facility_uri: str,
@@ -320,6 +320,8 @@ def server(operator, host="0.0.0.0", port=8080):
     end_time: str,
     current_user: User = Security(get_current_user)
   ) -> JSONResponse:
+    print("Getting timeseries")
+    print(point_uri)
     return JSONResponse(
       operator.portfolio(
           current_user, portfolio_uri
