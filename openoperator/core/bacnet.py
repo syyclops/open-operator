@@ -6,14 +6,14 @@ import numpy as np
 from neo4j.exceptions import Neo4jError
 from openoperator.utils import create_uri, dbscan_cluster
 
-class BAS:
+class BACnet:
   """
-  This class handles the integration to the Building Automation System (BAS).
+  This class handles the BACnet integration with the knowledge graph.
 
   It is responsible for:
-  - Uploading data from BAS to the knowledge graph
-  - Converting bacnet data to rdf, and transforming into the brickschema
+  - Importing bacnet devices and points
   - Aligning devices with components from the cobie schema
+  - Aligning points with components from the brick schema
   """
   def __init__(self, facility, embeddings: Embeddings) -> None:
     self.knowledge_graph = facility.knowledge_graph 

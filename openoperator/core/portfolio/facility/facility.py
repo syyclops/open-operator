@@ -3,7 +3,7 @@ from openoperator.services.blob_store import BlobStore
 from openoperator.services.vector_store import VectorStore
 from openoperator.services.document_loader import DocumentLoader
 from openoperator.core.cobie import COBie
-from openoperator.core.bas import BAS
+from openoperator.core.bacnet import BACnet 
 from openoperator.core.documents import Documents
 
 class Facility:
@@ -32,7 +32,7 @@ class Facility:
 
     self.documents = Documents(facility=self, knowledge_graph=self.knowledge_graph, blob_store=self.blob_store, document_loader=self.document_loader, vector_store=self.vector_store)
     self.cobie = COBie(self, self.portfolio.operator.embeddings)
-    self.bas = BAS(self, self.portfolio.operator.embeddings)
+    self.bacnet = BACnet(self, self.portfolio.operator.embeddings)
       
   def details(self) -> dict:
     with self.knowledge_graph.create_session() as session:
