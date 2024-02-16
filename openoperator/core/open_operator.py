@@ -2,7 +2,7 @@ from neo4j.exceptions import Neo4jError
 import os
 import jwt
 from typing import Generator
-from openoperator.services import BlobStore, Embeddings, DocumentLoader, VectorStore, KnowledgeGraph, AI
+from openoperator.services import BlobStore, Embeddings, DocumentLoader, VectorStore, KnowledgeGraph, AI, Timescale
 from openoperator.core import Portfolio, Facility, User, server
 from openoperator.utils import create_uri
 from openoperator.types import AiChatResponse
@@ -24,6 +24,7 @@ class OpenOperator:
     embeddings: Embeddings,
     document_loader: DocumentLoader,
     vector_store: VectorStore,
+    timescale: Timescale,
     knowledge_graph: KnowledgeGraph,
     ai: AI,
     base_uri: str = "https://openoperator.com/",
@@ -33,6 +34,7 @@ class OpenOperator:
     self.embeddings = embeddings
     self.document_loader = document_loader  
     self.vector_store = vector_store
+    self.timescale = timescale
     self.knowledge_graph = knowledge_graph  
     self.ai = ai
 

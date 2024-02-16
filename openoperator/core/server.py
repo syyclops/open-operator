@@ -311,5 +311,20 @@ def server(operator, host="0.0.0.0", port=8080):
           ).facility(facility_uri).bacnet.points(device_uri)
       )
   
+  @app.get("/portfolio/facility/bacnet/point/{point_uri}/timeseries", tags=['BACnet'])
+  async def get_timeseries(
+    portfolio_uri: str,
+    facility_uri: str,
+    point_uri: str,
+    start_time: str,
+    end_time: str,
+    current_user: User = Security(get_current_user)
+  ) -> JSONResponse:
+    return JSONResponse(
+      operator.portfolio(
+          current_user, portfolio_uri
+      ).facility(facility_uri).bacnet.timeseries(start_time, end_time, point_uri)
+    )
+  
   print("\nServer is running. Visit http://localhost:8080/docs to see documentation\n")
   uvicorn.run(app, host=host, port=port)

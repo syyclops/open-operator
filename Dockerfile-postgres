@@ -1,0 +1,35 @@
+ARG PG_MAJOR=14
+FROM postgres:$PG_MAJOR
+ARG PG_MAJOR
+
+RUN apt-get update && \
+		apt-mark hold locales && \
+    apt-get install git -y && \
+    apt-get install -y cmake && \
+		apt-get install -y --no-install-recommends build-essential postgresql-server-dev-$PG_MAJOR
+
+# Install TimescaleDB
+WORKDIR /tmp
+RUN git clone https://github.com/timescale/timescaledb
+WORKDIR /tmp/timescaledb
+RUN git checkout 2.14.0
+RUN ./bootstrap -DREGRESS_CHECKS=OFF
+RUN cd build && make && make install
+
+# Install pgvector
+WORKDIR /tmp
+RUN git clone --branch v0.6.0 https://github.com/pgvector/pgvector.git
+WORKDIR /tmp/pgvector
+RUN make clean && \
+    make OPTFLAGS="" && \
+    make install
+
+# Add timescaledb and pgvector to the list of shared_preload_libraries
+# RUN echo "shared_preload_libraries = 'timescaledb'" >> /var/lib/postgresql/data/postgresql.conf
+
+# Cleanup
+RUN apt-mark unhold locales && \
+    apt-get remove -y build-essential postgresql-server-dev-$PG_MAJOR && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/* && \
+    rm -rf /tmp/*

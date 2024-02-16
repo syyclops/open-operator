@@ -1,6 +1,6 @@
 import json
 from rdflib import Graph, Namespace, Literal, URIRef, RDF
-from openoperator.services import Embeddings
+from openoperator.services import Embeddings, Timescale
 from uuid import uuid4
 import numpy as np
 from neo4j.exceptions import Neo4jError
@@ -15,7 +15,7 @@ class BACnet:
   - Aligning devices with components from the cobie schema
   - Aligning points with components from the brick schema
   """
-  def __init__(self, facility, embeddings: Embeddings) -> None:
+  def __init__(self, facility, embeddings: Embeddings, timescale: Timescale) -> None:
     self.knowledge_graph = facility.knowledge_graph 
     self.blob_store = facility.blob_store
     self.uri = facility.uri
@@ -221,4 +221,14 @@ class BACnet:
           raise ValueError("Error linking device to component")
         return [record for record in result.data()]
     except Neo4jError as e:
+      raise e
+  
+  def timeseries(self, start_time: str, end_time: str, timeseriesId: str):
+    """
+    Get the timeseries data for the bacnet points in the facility.
+    """
+    try:
+      timeseriesIds = [timeseriesId]
+      return self.timescale.get_timeseries(timeseriesIds, start_time, end_time)
+    except Exception as e:
       raise e

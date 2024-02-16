@@ -13,46 +13,49 @@ services:
   #     - neo4j
   #     - postgres
 
-  unstructured:
-    image: quay.io/unstructured-io/unstructured-api:latest
-    ports:
-      - 8000:8000
-    networks:
-      - local
+  # unstructured:
+  #   image: quay.io/unstructured-io/unstructured-api:latest
+  #   ports:
+  #     - 8000:8000
+  #   networks:
+  #     - local
 
   postgres:
-    image: ankane/pgvector
+    build:
+      context: .
+      dockerfile: ./Dockerfile-postgres
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
     volumes:
       - ./.postgresql/data:/var/lib/postgresql/data
+      - ./postgresql.conf:/var/lib/postgresql/data/postgresql.conf
       # - ./db.sql:/docker-entrypoint-initdb.d/db.sql
     ports:
       - 5432:5432
     networks:
       - local
 
-  neo4j:
-    image: neo4j:5.15
-    volumes:
-      - $HOME/neo4j/data:/data
-      - $HOME/neo4j/logs:/logs
-      - $HOME/neo4j/import:/var/lib/neo4j/import
-      - $HOME/neo4j/plugins:/plugins
-    environment:
-      NEO4J_AUTH: ${NEO4J_USER}/${NEO4J_PASSWORD}
-      NEO4J_apoc_export_file_enabled: true
-      NEO4J_apoc_import_file_enabled: true
-      NEO4J_apoc_import_file_use__neo4j__config: true
-      NEO4J_dbms_security_procedures_unrestricted: apoc.*,semantics.*
-      NEO4J_PLUGINS: '["apoc", "n10s"]'
-    ports:
-      - 7474:7474
-      - 7687:7687
-    networks:
-      - local
+  # neo4j:
+  #   image: neo4j:5.15
+  #   volumes:
+  #     - $HOME/neo4j/data:/data
+  #     - $HOME/neo4j/logs:/logs
+  #     - $HOME/neo4j/import:/var/lib/neo4j/import
+  #     - $HOME/neo4j/plugins:/plugins
+  #   environment:
+  #     NEO4J_AUTH: ${NEO4J_USER}/${NEO4J_PASSWORD}
+  #     NEO4J_apoc_export_file_enabled: true
+  #     NEO4J_apoc_import_file_enabled: true
+  #     NEO4J_apoc_import_file_use__neo4j__config: true
+  #     NEO4J_dbms_security_procedures_unrestricted: apoc.*,semantics.*
+  #     NEO4J_PLUGINS: '["apoc", "n10s"]'
+  #   ports:
+  #     - 7474:7474
+  #     - 7687:7687
+  #   networks:
+  #     - local
 
 networks:
   local:
