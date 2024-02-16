@@ -1,11 +1,10 @@
 import mimetypes
-from typing import Generator
-from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks
+from typing import Generator, List
+from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks, Query
 from fastapi.responses import StreamingResponse, Response, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
 from io import BytesIO
-from typing import List
 from openoperator.types import DocumentQuery, Message
 from openoperator.core.user import User
 
@@ -218,9 +217,9 @@ def server(operator, host="0.0.0.0", port=8080):
 
     return {"message": "Files uploaded successfully", "uploaded_files": uploaded_files_info}
 
-  ## BAS INTEGRATION ROUTES
-  @app.post("/portfolio/facility/bas/upload_json_scan", tags=['BAS'])
-  async def upload_bacnet(
+  ## BACNET INTEGRATION ROUTES
+  @app.post("/portfolio/facility/bacnet/import", tags=['BACnet'])
+  async def upload_bacnet_data(
     portfolio_uri: str,
     facility_uri: str,
     file: UploadFile,
@@ -231,18 +230,18 @@ def server(operator, host="0.0.0.0", port=8080):
       operator.portfolio(
         current_user,
         portfolio_uri
-      ).facility(facility_uri).bas.upload_bacnet_data(file_content)
+      ).facility(facility_uri).bacnet.upload_bacnet_data(file_content)
 
       operator.portfolio(
         current_user,
         portfolio_uri
-      ).facility(facility_uri).bas.vectorize_graph()
+      ).facility(facility_uri).bacnet.vectorize_graph()
 
       return "BACnet data uploaded successfully"
     except HTTPException as e:
       return Response(content=str(e), status_code=500)
 
-  @app.get("/portfolio/facility/bas/devices", tags=['BAS'])
+  @app.get("/portfolio/facility/bacnet/devices", tags=['BACnet'])
   async def list_devices(
     portfolio_uri: str,
     facility_uri: str,
@@ -252,15 +251,47 @@ def server(operator, host="0.0.0.0", port=8080):
       return JSONResponse(
         operator.portfolio(
           current_user, portfolio_uri
-        ).facility(facility_uri).bas.devices()
+        ).facility(facility_uri).bacnet.devices()
       )
     except HTTPException as e:
       return JSONResponse(
           content={"message": f"Unable to list devices: {e}"},
           status_code=500
       )
+    
+  @app.get("/portfolio/facility/bacnet/devices/cluster", tags=['BACnet'])
+  async def list_device_cluster(
+    portfolio_uri: str,
+    facility_uri: str,
+    current_user: User = Security(get_current_user)
+  ) -> JSONResponse:
+    return JSONResponse(
+      operator.portfolio(
+          current_user, portfolio_uri
+      ).facility(facility_uri).bacnet.cluster_devices()
+    )
+  
+  @app.get("/portfolio/facility/bacnet/device/link", tags=['BACnet'])
+  async def link_bacnet_device(
+    portfolio_uri: str,
+    facility_uri: str,
+    device_uri: str,
+    component_uri: str,
+    current_user: User = Security(get_current_user)
+  ) -> JSONResponse:
+    try:
+      return JSONResponse(
+        operator.portfolio(
+            current_user, portfolio_uri
+        ).facility(facility_uri).bacnet.link_bacnet_device_to_cobie_component(device_uri, component_uri)
+      )
+    except HTTPException as e:
+      return JSONResponse(
+          content={"message": f"Unable to link device to component: {e}"},
+          status_code=500
+      )
 
-  @app.get("/portfolio/facility/bas/points", tags=['BAS'])
+  @app.get("/portfolio/facility/bacnet/points", tags=['BACnet'])
   async def list_points(
     portfolio_uri: str,
     facility_uri: str,
@@ -271,26 +302,28 @@ def server(operator, host="0.0.0.0", port=8080):
       return JSONResponse(
         operator.portfolio(
             current_user, portfolio_uri
-        ).facility(facility_uri).bas.points()
+        ).facility(facility_uri).bacnet.points()
       )
     return JSONResponse(
       operator.portfolio(
           current_user, portfolio_uri
-          ).facility(facility_uri).bas.points(device_uri)
+          ).facility(facility_uri).bacnet.points(device_uri)
       )
   
-  @app.get("/portfolio/facility/bas/deviceCluster", tags=['BAS'])
-  async def list_device_cluster(
+  @app.get("/portfolio/facility/bacnet/points/timeseries", tags=['BACnet'])
+  async def get_timeseries(
     portfolio_uri: str,
     facility_uri: str,
+    timeseriesIds: List[str] = Query(...),
+    start_time: str = Query(...),
+    end_time: str = Query(...),
     current_user: User = Security(get_current_user)
   ) -> JSONResponse:
     return JSONResponse(
       operator.portfolio(
           current_user, portfolio_uri
-      ).facility(facility_uri).bas.cluster_devices()
+      ).facility(facility_uri).bacnet.timeseries(start_time, end_time, timeseriesIds)
     )
-
+  
   print("\nServer is running. Visit http://localhost:8080/docs to see documentation\n")
-
   uvicorn.run(app, host=host, port=port)

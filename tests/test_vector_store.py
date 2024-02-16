@@ -1,38 +1,36 @@
 from unittest.mock import MagicMock, patch
 from openoperator.services.vector_store.pg_vector_store import PGVectorStore
+from openoperator.services.postgres import Postgres
 import os
 from openoperator.types import Document
 from openoperator.services.embeddings import Embeddings
 from openai.types import Embedding
 
-@patch('openoperator.services.vector_store.pg_vector_store.psycopg')
 @patch('openoperator.services.vector_store.pg_vector_store.register_vector')
-def test_add_documents(mock_register_vector, mock_psycopg):
+@patch('openoperator.services.postgres.Postgres')
+def test_add_documents(mock_postgres, mock_register_vector):
   # Setup environment variables
-  os.environ['POSTGRES_CONNECTION_STRING'] = 'connection_string'
   os.environ['POSTGRES_EMBEDDINGS_TABLE'] = 'table_name'
 
-  # Create a mock psycopg instance
+  # Create a mock Postgres instance
+  mock_postgres_instance = MagicMock(spec=Postgres)
+  mock_postgres.return_value = mock_postgres_instance
+
+  # Mock the conn attribute
   mock_conn = MagicMock()
-  mock_psycopg.connect.return_value = mock_conn
+  mock_postgres_instance.conn = mock_conn
 
   # Create a mock cursor instance
   mock_cursor = MagicMock()
-  mock_conn.cursor.return_value = mock_cursor
+  mock_postgres_instance.cursor.return_value.__enter__.return_value = mock_cursor
 
   # Mock the embeddings
   mock_embeddings = MagicMock(spec=Embeddings)
 
-  # Initialize PGVectorStore, this should use the mocked psycopg
-  store = PGVectorStore(mock_embeddings)
+  # Initialize PGVectorStore, this should use the mocked Postgres
+  store = PGVectorStore(mock_postgres_instance, mock_embeddings)
 
-  mock_register_vector.assert_called_once_with(mock_conn)
-
-  # Verify psycopg.connect was called correctly
-  mock_psycopg.connect.assert_called_once_with('connection_string')
-
-  # Verify cursor was called correctly
-  mock_conn.cursor.assert_called_once()
+  mock_register_vector.assert_called_once_with(mock_postgres_instance.conn)
 
   # Perform the add_documents
   documents = [
@@ -45,4 +43,8 @@ def test_add_documents(mock_register_vector, mock_psycopg):
   ]
   store.add_documents(documents)
 
-  assert mock_conn.cursor.call_count == 2
+  # Verify cursor was called correctly
+  assert mock_postgres_instance.cursor.call_count == 2
+
+  # Verify execute was called correctly
+  mock_cursor.execute.assert_called()

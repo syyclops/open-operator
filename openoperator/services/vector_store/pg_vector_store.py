@@ -1,10 +1,9 @@
-
-import psycopg
 from pgvector.psycopg import register_vector
 import json
 import numpy as np
 import os
 from typing import List
+from ..postgres import Postgres
 from .vector_store import VectorStore
 from ..embeddings.embeddings import Embeddings
 from openoperator.types import Document
@@ -17,24 +16,21 @@ class PGVectorStore(VectorStore):
   - Create text embeddings for documents and upload to the vector store
   - Search the vector store for similar documents
   """
-  def __init__(self, embeddings: Embeddings, collection_name: str | None = None, connection_string: str | None = None) -> None:
-    if connection_string is None:
-      connection_string = os.environ['POSTGRES_CONNECTION_STRING']
+  def __init__(self, postgres: Postgres, embeddings: Embeddings, collection_name: str | None = None) -> None:
     if collection_name is None:
       collection_name = os.environ['POSTGRES_EMBEDDINGS_TABLE']
-
+    self.postgres = postgres
     self.embeddings = embeddings
 
     try:
       # Connect to postgres
-      self.conn = psycopg.connect(connection_string)
       self.collection_name = collection_name
 
       # Make sure pgvector is installed and table is created
-      self.conn.autocommit = True
-      with self.conn.cursor() as cur:
+      self.postgres.conn.autocommit = True
+      with self.postgres.cursor() as cur:
         cur.execute('CREATE EXTENSION IF NOT EXISTS vector')
-        register_vector(self.conn)
+        register_vector(self.postgres.conn)
 
         # Check if table exists
         cur.execute(f'SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = \'{collection_name}\')')
@@ -50,7 +46,7 @@ class PGVectorStore(VectorStore):
     """
     Creates text embeddings for a list of documents and uploads them to the vector store.
     """
-    with self.conn.cursor() as cur:
+    with self.postgres.cursor() as cur:
       # Create the embeddings
       docs = [doc.text for doc in documents]
       embeddings = self.embeddings.create_embeddings(docs)
@@ -91,8 +87,8 @@ class PGVectorStore(VectorStore):
     params.append(limit)
     
     # Query postgres
-    with self.conn.cursor() as cur:
-      register_vector(self.conn)
+    with self.postgres.cursor() as cur:
+      register_vector(self.postgres.conn)
       records = cur.execute(query, params).fetchall()
       
       # Convert the list of tuples to a list of dicts
@@ -104,7 +100,7 @@ class PGVectorStore(VectorStore):
     """
     Deletes documents from the vector store.
     """
-    with self.conn.cursor() as cur:
+    with self.postgres.cursor() as cur:
       query = f"DELETE FROM {self.collection_name} WHERE "
       params = []
       for i, (key, value) in enumerate(filter.items()):

@@ -23,6 +23,7 @@ class KnowledgeGraph():
     namespaces = [
       ("cobie", "http://checksem.u-bourgogne.fr/ontology/cobie24#"),
       ("bacnet", "http://data.ashrae.org/bacnet/#"),
+      ("brick", "https://brickschema.org/schema/1.3/Brick#"),
     ]
 
     # Set up the graph

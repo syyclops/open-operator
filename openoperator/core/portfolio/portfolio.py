@@ -38,7 +38,15 @@ class Portfolio:
       raise e
   
   def facility(self, facility_uri: str) -> Facility:
-    return Facility(portfolio=self, knowledge_graph=self.knowledge_graph, uri=facility_uri, blob_store=self.operator.blob_store, vector_store=self.operator.vector_store, document_loader=self.operator.document_loader)
+    return Facility(
+      portfolio=self, 
+      knowledge_graph=self.knowledge_graph, 
+      uri=facility_uri, 
+      blob_store=self.operator.blob_store, 
+      vector_store=self.operator.vector_store, 
+      document_loader=self.operator.document_loader,
+      timescale=self.operator.timescale
+    )
       
   def create_facility(self, name: str) -> Facility:
     facility_uri = f"{self.uri}/{create_uri(name)}"
@@ -61,7 +69,10 @@ class Portfolio:
        uri=facility_uri, 
        knowledge_graph=self.operator.knowledge_graph, 
        blob_store=self.operator.blob_store, 
-       vector_store=self.operator.vector_store, document_loader=self.operator.document_loader)
+       vector_store=self.operator.vector_store, 
+       document_loader=self.operator.document_loader,
+      timescale=self.operator.timescale
+    )
       
   def search_documents(self, params: dict) -> list:
     """
@@ -69,4 +80,8 @@ class Portfolio:
     """
     query = params.get("query")
     limit = params.get("limit") or 15
-    return self.operator.vector_store.similarity_search(query=query, limit=limit, filter={"portfolio_uri": self.uri})
+    return self.operator.vector_store.similarity_search(
+      query=query, 
+      limit=limit, 
+      filter={"portfolio_uri": self.uri}
+    )
