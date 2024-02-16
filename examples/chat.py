@@ -1,10 +1,5 @@
 from openoperator import OpenOperator
-from openoperator.services.blob_store import AzureBlobStore
-from openoperator.services.document_loader import UnstructuredDocumentLoader
-from openoperator.services.vector_store import PGVectorStore
-from openoperator.services.embeddings import OpenAIEmbeddings
-from openoperator.services.knowledge_graph import KnowledgeGraph
-from openoperator.services.ai import Openai
+from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, Openai, Postgres, Timescale
 
 import argparse
 from dotenv import load_dotenv
@@ -22,7 +17,9 @@ def main():
   blob_store = AzureBlobStore()
   document_loader = UnstructuredDocumentLoader()
   embeddings = OpenAIEmbeddings()
-  vector_store = PGVectorStore(embeddings=embeddings)
+  postgres = Postgres()
+  vector_store = PGVectorStore(postgres=postgres, embeddings=embeddings)
+  timescale = Timescale(postgres=postgres)
   knowledge_graph = KnowledgeGraph()
   ai = Openai(model_name="gpt-4-0125-preview")
 
@@ -30,6 +27,7 @@ def main():
     blob_store=blob_store,
     document_loader=document_loader,
     vector_store=vector_store,
+    timescale=timescale,
     embeddings=embeddings,
     knowledge_graph=knowledge_graph,
     ai=ai,
