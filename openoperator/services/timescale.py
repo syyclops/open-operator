@@ -38,7 +38,7 @@ class Timescale:
     except Exception as e:
       raise e
     
-  def get_latest_values(self, timeseriesIds: List[str]):
+  def get_latest_values(self, timeseriesIds: List[str]) -> List[TimeseriesReading]:
     """
     Get the most recent reading for a list of timeseriesIds. Limit to the last 30 minutes.
     """
@@ -47,6 +47,6 @@ class Timescale:
     try:
       with self.postgres.cursor() as cur:
         cur.execute(query)
-        return cur.fetchall()
+        return [TimeseriesReading(ts=row[0].isoformat(), value=row[1], timeseriesid=row[2]) for row in cur.fetchall()]
     except Exception as e:
       raise e

@@ -63,6 +63,7 @@ class BACnet:
 
           # Go through all the bacnet data and add it to the graph
           for key, value in bacnet_data.items():
+            if key == "present_value" or key == "scrape_enabled": continue
             g.add((device_uri, BACNET[key], Literal(str(value))))
         else:
           # Create the bacnet point and add it to the graph
@@ -73,6 +74,7 @@ class BACnet:
 
           # Go through all the bacnet data and add it to the graph
           for key, value in bacnet_data.items():
+            if key == "present_value" or key == "scrape_enabled": continue
             g.add((point_uri, BACNET[key], Literal(str(value))))
 
           g.add((point_uri, BACNET.collect_enabled, Literal(collect_enabled, datatype=XSD.boolean)))
@@ -113,7 +115,7 @@ class BACnet:
         
   def points(self, device_uri: str | None = None, collect_enabled: bool = None):
     """
-    Get the bacnet points in the facility or a specific device.
+    Get the bacnet points in the facility or a specific device. Then fetch their latest values. 
     """
     query = "MATCH (p:Point"
     if collect_enabled: query += " {collect_enabled: true}"
@@ -122,8 +124,17 @@ class BACnet:
     query += " WHERE p.uri STARTS WITH $uri RETURN p"
     with self.knowledge_graph.create_session() as session:
       result = session.run(query, uri=self.uri, device_uri=device_uri)
-      return [record['p'] for record in result.data()]
-        
+      points = [record['p'] for record in result.data()]
+    
+    ids = [point['timeseriesId'] for point in points]
+    readings = self.timescale.get_latest_values(ids)
+    readings_dict = {reading.timeseriesid: reading.value for reading in readings}
+
+    for point in points:
+      if point['timeseriesId'] in readings_dict:
+        point['value'] = readings_dict[point['timeseriesId']]
+    return points
+
   def vectorize_graph(self):
     """
     For each device and point in the facility, create an embedding and upload it to the graph.

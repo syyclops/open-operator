@@ -81,17 +81,25 @@ class TestBACnet(unittest.TestCase):
       {
         "p": {
           "point_name": "test_point",
-          "uri": "https://openoperator.com/facility/point"
+          "uri": "https://openoperator.com/facility/point",
+          "timeseriesId": "example/example/301:14-3014/analogInput/1"
         }
       },
       {
         "p": {
           "point_name": "test_point2",
-          "uri": "https://openoperator.com/facility/point2"
+          "uri": "https://openoperator.com/facility/point2",
+          "timeseriesId": "example/example/301:14-3014/analogInput/2"
         }
       }
     ]
     session_mock.run.return_value = mock_query_result
+
+     # Mock the get_latest_values method to return a list of mock readings
+    mock_reading = Mock()
+    mock_reading.timeseriesid = "example/example/301:14-3014/analogInput/1"
+    mock_reading.value = 123
+    self.bacnet.timescale.get_latest_values.return_value = [mock_reading]
 
     points = self.bacnet.points()
 
@@ -108,17 +116,24 @@ class TestBACnet(unittest.TestCase):
       {
         "p": {
           "point_name": "test_point",
-          "uri": "https://openoperator.com/facility/point"
+          "uri": "https://openoperator.com/facility/point",
+          "timeseriesId": "example/example/301:14-3014/analogInput/1"
         }
       },
       {
         "p": {
           "point_name": "test_point2",
-          "uri": "https://openoperator.com/facility/point2"
+          "uri": "https://openoperator.com/facility/point2",
+          "timeseriesId": "example/example/301:14-3014/analogInput/2"
         }
       }
     ]
     session_mock.run.return_value = mock_query_result
+
+    mock_reading = Mock()
+    mock_reading.timeseriesid = "example/example/301:14-3014/analogInput/1"
+    mock_reading.value = 123
+    self.bacnet.timescale.get_latest_values.return_value = [mock_reading]
 
     points = self.bacnet.points(device_uri="https://openoperator.com/facility/device")
 
@@ -184,7 +199,6 @@ class TestBACnet(unittest.TestCase):
     assert (device_uri, BACNET.device_id, Literal("3014")) in g
     assert (device_uri, BACNET.device_name, Literal("VAV-D2-37")) in g
     assert (device_uri, BACNET.device_address, Literal("301:14")) in g
-    assert (device_uri, BACNET.scrape_enabled, Literal("False")) in g
 
     point_uri = URIRef("https://openoperator.com/exampleCustomer/exampleFacility/301:14-3014/analogInput/1")
     assert (point_uri, RDF.type, BACNET.Point) in g
