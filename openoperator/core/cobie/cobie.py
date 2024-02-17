@@ -231,6 +231,8 @@ class COBie:
         # Add objects
         i = 0
         for obj in objects:
+          if pd.isnull(obj): # Make sure the object is not None
+            continue
           predicate = predicates[i]
 
           # Check if it should be a relationship or a literal
@@ -256,18 +258,18 @@ class COBie:
 
     # Create the attributes
     print("Processing Attribute sheet...")
-    for _, row in df['Attribute'].iterrows():
-      target_sheet = row['SheetName']
-      target_row_name = row['RowName']
-      target_uri = facility_uri["/" + target_sheet.lower() + "/" + create_uri(target_row_name)]
+    # for _, row in df['Attribute'].iterrows():
+    #   target_sheet = row['SheetName']
+    #   target_row_name = row['RowName']
+    #   target_uri = facility_uri["/" + target_sheet.lower() + "/" + create_uri(target_row_name)]
 
-      attribute_uri = target_uri + "/attribute/" + create_uri(row['Name'])
+    #   attribute_uri = target_uri + "/attribute/" + create_uri(row['Name'])
 
-      g.add((attribute_uri, A, COBIE['Attribute']))
-      g.add((attribute_uri, COBIE['name'], Literal(row['Name'])))
-      g.add((attribute_uri, COBIE['value'], Literal(row['Value'])))
-      g.add((attribute_uri, COBIE['unit'], Literal(row['Unit'])))
-      g.add((attribute_uri, COBIE['attributeTo'], target_uri))
+    #   g.add((attribute_uri, A, COBIE['Attribute']))
+    #   g.add((attribute_uri, COBIE['name'], Literal(row['Name'])))
+    #   g.add((attribute_uri, COBIE['value'], Literal(row['Value'])))
+    #   g.add((attribute_uri, COBIE['unit'], Literal(row['Unit'])))
+    #   g.add((attribute_uri, COBIE['attributeTo'], target_uri))
 
     # Serialize the graph to a file
     graph_string = g.serialize(format='turtle', encoding='utf-8').decode()
@@ -275,13 +277,14 @@ class COBie:
     return graph_string
 
 
-  def upload_cobie_spreadsheet(self, file: str | bytes) -> Tuple[bool, Dict]:
+  def upload_cobie_spreadsheet(self, file: str | bytes, validate: bool = True) -> Tuple[bool, Dict]:
     """
     Convert a cobie spreadsheet to rdf graph, upload it to the blob store and import it to the knowledge graph.
     """
-    errors_found, errors, _ = self.validate_spreadsheet(file)
-    if errors_found:
-      return errors_found, errors
+    if validate:
+      errors_found, errors, _ = self.validate_spreadsheet(file)
+      if errors_found:
+        return errors_found, errors
     
     rdf_graph_str = self.convert_to_graph(file)
     unique_id = str(uuid4())

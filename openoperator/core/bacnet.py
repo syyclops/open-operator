@@ -6,7 +6,6 @@ from uuid import uuid4
 import numpy as np
 from neo4j.exceptions import Neo4jError
 from openoperator.utils import dbscan_cluster
-from typing import List
 
 class BACnet:
   """
@@ -240,6 +239,6 @@ class BACnet:
         result = session.run(query, device_uri=device_uri, component_uri=component_uri)
         if result.single() is None:
           raise ValueError("Error linking device to component")
-        return [record for record in result.data()]
+        return "Device linked to component"
     except Neo4jError as e:
       raise e

@@ -322,7 +322,7 @@ class TestBACnet(unittest.TestCase):
   def test_link_bacnet_device_device_not_found(self):
     session_mock = self.setup_session_mock()
     mock_query_result = Mock()
-    mock_query_result.data.return_value = None
+    mock_query_result.single.return_value = None
     session_mock.run.return_value = mock_query_result
     with self.assertRaises(Exception):
       self.bacnet.link_bacnet_device_to_cobie_component("https://openoperator.com/facility/device", "https://openoperator.com/facility/component")

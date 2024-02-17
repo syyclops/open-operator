@@ -134,6 +134,23 @@ def server(operator, host="0.0.0.0", port=8080):
     return JSONResponse(
       operator.portfolio(current_user, portfolio_uri).create_facility(building_name).details()
     )
+  
+  @app.post("/portfolio/facility/cobie/import", tags=['Facility'])
+  async def import_cobie_spreadsheet(
+    portfolio_uri: str, 
+    facility_uri: str, 
+    file: UploadFile, 
+    validate: bool = True,
+    current_user: User = Security(get_current_user)
+  ):
+    try:
+      file_content = await file.read()
+      errors_found, errors = operator.portfolio(current_user, portfolio_uri).facility(facility_uri).cobie.upload_cobie_spreadsheet(file_content, validate)
+      if errors_found:
+        return JSONResponse(content={"errors": errors}, status_code=400)
+      return "COBie spreadsheet imported successfully"
+    except HTTPException as e:
+      return Response(content=str(e), status_code=500)
     
   ## DOCUMENTS ROUTES
 
@@ -245,12 +262,13 @@ def server(operator, host="0.0.0.0", port=8080):
   async def list_devices(
     portfolio_uri: str,
     facility_uri: str,
+    component_uri: str | None = None,
     current_user: User = Security(get_current_user)
   ) -> JSONResponse:
     try:
       devices = operator.portfolio(
         current_user, portfolio_uri
-      ).facility(facility_uri).bacnet.devices()
+      ).facility(facility_uri).bacnet.devices(component_uri)
       for device in devices: # Remove the embedding from the response
         device.pop('embedding', None)
       return JSONResponse(devices)

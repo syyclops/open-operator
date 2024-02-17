@@ -153,7 +153,7 @@ class TestCOBie(unittest.TestCase):
     g = Graph()
     g.parse(data=graph_string, format="turtle")
 
-    assert len(g) == 49
+    assert len(g) == 39
     assert graph_string is not None
     assert "https://openoperator.com/facility" in graph_string
     assert "Test Space" in graph_string
