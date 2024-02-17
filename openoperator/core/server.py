@@ -257,18 +257,39 @@ def server(operator, host="0.0.0.0", port=8080):
       return "BACnet data uploaded successfully"
     except HTTPException as e:
       return Response(content=str(e), status_code=500)
+    
+  @app.post("/portfolio/facility/bacnet/classify", tags=['BACnet'])
+  async def assign_brick_class(
+    portfolio_uri: str,
+    facility_uri: str,
+    uris: List[str] ,
+    brick_class: str,
+    current_user: User = Security(get_current_user)
+  ) -> JSONResponse:
+    try:
+      operator.portfolio(
+        current_user,
+        portfolio_uri
+      ).facility(facility_uri).bacnet.assign_brick_class(uris, brick_class)
+      return JSONResponse(content={"message": "Brick class assigned successfully"})
+    except HTTPException as e:
+      return JSONResponse(
+          content={"message": f"Unable to assign brick class: {e}"},
+          status_code=500
+      )
 
   @app.get("/portfolio/facility/bacnet/devices", tags=['BACnet'])
   async def list_devices(
     portfolio_uri: str,
     facility_uri: str,
     component_uri: str | None = None,
+    brick_class: str | None = None,
     current_user: User = Security(get_current_user)
   ) -> JSONResponse:
     try:
       devices = operator.portfolio(
         current_user, portfolio_uri
-      ).facility(facility_uri).bacnet.devices(component_uri)
+      ).facility(facility_uri).bacnet.devices(component_uri, brick_class)
       for device in devices: # Remove the embedding from the response
         device.pop('embedding', None)
       return JSONResponse(devices)

@@ -6,6 +6,7 @@ from uuid import uuid4
 import numpy as np
 from neo4j.exceptions import Neo4jError
 from openoperator.utils import dbscan_cluster
+from typing import List
 
 class BACnet:
   """
@@ -96,11 +97,13 @@ class BACnet:
     except Exception as e:
       raise e
         
-  def devices(self, component_uri: str | None = None):
+  def devices(self, component_uri: str | None = None, brick_class: str | None = None):
     """
     Get the bacnet devices in the facility.
     """
-    query = "MATCH (d:Device) where d.uri starts with $uri"
+    query = "MATCH (d:Device"
+    if brick_class: query += f":{brick_class}"
+    query += ") where d.uri starts with $uri"
     if component_uri:
       query += " MATCH (d)-[:isDeviceOf]->(c:Component {uri: $component_uri})"
     query += " RETURN d"
@@ -110,6 +113,17 @@ class BACnet:
         devices = [record['d'] for record in result.data()]
       return devices
     except Exception as e:
+      raise e
+  
+  def assign_brick_class(self, uris: List[str], brick_class: str):
+    """
+    Assign a brick class to a bacnet device or point. Add it as a label to the node.
+    """
+    query = f"MATCH (n) WHERE n.uri IN $uris SET n:{brick_class} RETURN n"
+    try:
+      with self.knowledge_graph.create_session() as session:
+        session.run(query, uris=uris)
+    except Neo4jError as e:
       raise e
         
   def points(self, device_uri: str | None = None, collect_enabled: bool = None):
