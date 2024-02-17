@@ -12,9 +12,11 @@ class TestTimescale(unittest.TestCase):
 
   def test_init(self):
     with patch.object(self.postgres, 'cursor', return_value=MagicMock()) as mock_cursor:
-      mock_cursor().__enter__().fetchone.return_value = [False]
+      # Mock the fetchone() calls to return False, simulating that the table, hypertable, and index do not exist
+      mock_cursor().__enter__().fetchone.side_effect = [[False], None, None]
       self.timescale.__init__(self.postgres)
-      self.assertEqual(mock_cursor().__enter__().execute.call_count, 6)
+      # Assert that execute was called 7 times (for all the possible execute calls)
+      self.assertEqual(mock_cursor().__enter__().execute.call_count, 7)
 
   def test_get_timeseries(self):
     timeseriesIds = ['id1', 'id2']
