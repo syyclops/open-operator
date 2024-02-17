@@ -29,11 +29,11 @@ class Timescale:
   
   def get_timeseries(self, timeseriesIds: List[str], start_time: str, end_time: str):
     ids = ', '.join([f'\'{id}\'' for id in timeseriesIds])
-    query = f"SELECT * FROM timeseries WHERE timeseriesid IN ({ids}) AND ts >= '{start_time}' AND ts <= '{end_time}'"
+    query = f"SELECT * FROM timeseries WHERE timeseriesid IN ({ids}) AND ts >= %s AND ts <= %s"
     try:
       with self.postgres.cursor() as cur:
-        cur.execute(query)
-        return cur.fetchall()
+        cur.execute(query, (start_time, end_time))
+        return [{'ts': row[0].isoformat(), 'value': row[1], 'timeseriesid': row[2]} for row in cur.fetchall()]
     except Exception as e:
       raise e
     
