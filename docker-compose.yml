@@ -23,7 +23,7 @@ services:
   postgres:
     build:
       context: .
-      dockerfile: ./Dockerfile-postgres
+      dockerfile: ./Dockerfile.pg
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
