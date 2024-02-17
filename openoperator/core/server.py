@@ -5,7 +5,7 @@ from fastapi.responses import StreamingResponse, Response, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
 from io import BytesIO
-from openoperator.types import DocumentQuery, Message
+from openoperator.types import DocumentQuery, Message, TimeseriesReading
 from openoperator.core.user import User
 
 def server(operator, host="0.0.0.0", port=8080):
@@ -310,7 +310,7 @@ def server(operator, host="0.0.0.0", port=8080):
           ).facility(facility_uri).bacnet.points(device_uri)
       )
   
-  @app.get("/portfolio/facility/bacnet/points/timeseries", tags=['BACnet'])
+  @app.get("/portfolio/facility/bacnet/points/timeseries", tags=['BACnet'], response_model=List[TimeseriesReading])
   async def get_timeseries(
     portfolio_uri: str,
     facility_uri: str,
@@ -319,11 +319,15 @@ def server(operator, host="0.0.0.0", port=8080):
     end_time: str = Query(...),
     current_user: User = Security(get_current_user)
   ) -> JSONResponse:
-    return JSONResponse(
-      operator.portfolio(
-          current_user, portfolio_uri
-      ).facility(facility_uri).bacnet.timeseries(start_time, end_time, timeseriesIds)
-    )
-  
+    try:
+      data = operator.portfolio(current_user, portfolio_uri).facility(facility_uri).bacnet.timeseries(start_time, end_time, timeseriesIds)
+      data = [reading.model_dump() for reading in data]
+      return JSONResponse(data)
+    except HTTPException as e:
+      return JSONResponse(
+          content={"message": f"Unable to get timeseries: {e}"},
+          status_code=500
+      )
+    
   print("\nServer is running. Visit http://localhost:8080/docs to see documentation\n")
   uvicorn.run(app, host=host, port=port)

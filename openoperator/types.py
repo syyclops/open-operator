@@ -27,3 +27,8 @@ class AiChatResponse(BaseModel):
   tool_selected: Optional[ToolCall] = None
   tool_finished: Optional[ToolResponse] = None
   content: Optional[str] = None
+
+class TimeseriesReading(BaseModel):
+  ts: str
+  value: float
+  timeseriesid: str
