@@ -24,8 +24,8 @@ RUN make clean && \
     make OPTFLAGS="" && \
     make install
 
-# Add timescaledb and pgvector to the list of shared_preload_libraries
-# RUN echo "shared_preload_libraries = 'timescaledb'" >> /var/lib/postgresql/data/postgresql.conf
+# Copy custom PostgreSQL configuration file
+COPY --chown=postgres:postgres ./postgresql.conf /etc/postgresql/postgresql.conf
 
 # Cleanup
 RUN apt-mark unhold locales && \
@@ -33,3 +33,5 @@ RUN apt-mark unhold locales && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf /tmp/*
+
+CMD [ "postgres", "-c", "config_file=/etc/postgresql/postgresql.conf" ]

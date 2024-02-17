@@ -7,24 +7,14 @@ class Timescale:
     self.postgres = postgres
     collection_name = 'timeseries'
     try:
-      self.postgres.conn.autocommit = True
       with self.postgres.cursor() as cur:
         cur.execute('CREATE EXTENSION IF NOT EXISTS timescaledb') # Create timescaledb extension
-        cur.execute(f'SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = \'{collection_name}\')') # Check if table exists
-        exists = cur.fetchone()[0]
-        if not exists:
-          cur.execute(f'CREATE TABLE {collection_name} (ts timestamptz NOT NULL, value FLOAT NOT NULL, timeseriesid TEXT NOT NULL)')
+        cur.execute(f'SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = \'{collection_name}\')') # Check if timeseries table exists
+        if not cur.fetchone()[0]: cur.execute(f'CREATE TABLE {collection_name} (ts timestamptz NOT NULL, value FLOAT NOT NULL, timeseriesid TEXT NOT NULL)') # Create timeseries table if it doesn't exist
         cur.execute(f'SELECT * FROM timescaledb_information.hypertables WHERE hypertable_name = \'{collection_name}\'') # Check if hypertable exists
-        fetch_result = cur.fetchone()
-        exists = fetch_result[0] if fetch_result is not None else None
-        if not exists:
-          cur.execute(f'SELECT create_hypertable(\'{collection_name}\', \'ts\')')
-        # Check if the table has the timeseriesid index
-        cur.execute(f'SELECT indexname FROM pg_indexes WHERE tablename = \'{collection_name}\' AND indexname = \'{collection_name}_timeseriesid_ts_idx\'')
-        exists = cur.fetchone()
-        if not exists:
-          cur.execute(f'CREATE INDEX {collection_name}_timeseriesid_ts_idx ON {collection_name} (timeseriesid, ts DESC)')
-
+        if not cur.fetchone(): cur.execute(f'SELECT create_hypertable(\'{collection_name}\', \'ts\')') # Create hypertable if it doesn't exist
+        cur.execute(f'SELECT indexname FROM pg_indexes WHERE tablename = \'{collection_name}\' AND indexname = \'{collection_name}_timeseriesid_ts_idx\'') # Check if the table has the timeseriesid index
+        if not cur.fetchone(): cur.execute(f'CREATE INDEX {collection_name}_timeseriesid_ts_idx ON {collection_name} (timeseriesid, ts DESC)') # Create the timeseriesid index if it doesn't exist
     except Exception as e:
       raise e
   
