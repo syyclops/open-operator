@@ -243,12 +243,3 @@ class BACnet:
         return [record for record in result.data()]
     except Neo4jError as e:
       raise e
-  
-  def timeseries(self, start_time: str, end_time: str, timeseriesIds: List[str]):
-    """
-    Get the timeseries data for the bacnet points in the facility.
-    """
-    try:
-      return self.timescale.get_timeseries(timeseriesIds, start_time, end_time)
-    except Exception as e:
-      raise e

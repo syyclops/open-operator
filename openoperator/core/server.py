@@ -305,17 +305,16 @@ def server(operator, host="0.0.0.0", port=8080):
       point.pop('embedding', None)
     return JSONResponse(points)
   
-  @app.get("/portfolio/facility/bacnet/points/timeseries", tags=['BACnet'], response_model=List[TimeseriesReading])
-  async def get_timeseries(
-    portfolio_uri: str,
-    facility_uri: str,
+  ## TIMESERIES
+  @app.get("/timeseries", tags=['Timeseries'], response_model=List[TimeseriesReading])
+  async def get_timeseries_data(
     timeseriesIds: List[str] = Query(...),
     start_time: str = Query(...),
     end_time: str = Query(...),
     current_user: User = Security(get_current_user)
   ) -> JSONResponse:
     try:
-      data = operator.portfolio(current_user, portfolio_uri).facility(facility_uri).bacnet.timeseries(start_time, end_time, timeseriesIds)
+      data = operator.timescale.get_timeseries(timeseriesIds, start_time, end_time)
       data = [reading.model_dump() for reading in data]
       return JSONResponse(data)
     except HTTPException as e:
