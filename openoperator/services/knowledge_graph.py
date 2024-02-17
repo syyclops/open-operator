@@ -58,6 +58,6 @@ class KnowledgeGraph():
         query = f'call n10s.rdf.import.fetch("{url}", "{format}") yield terminationStatus, triplesLoaded, triplesParsed, namespaces, extraInfo'
         result = session.run(query)
 
-    termination_status = result.data()[0]['terminationStatus'] 
-    if termination_status != "OK":
-      raise ValueError(f"Error importing RDF data: {result.data()[0]}")
+      termination_status = result.data()[0]['terminationStatus'] 
+      if termination_status != "OK":
+        raise ValueError(f"Error importing RDF data: {result.data()[0]}")

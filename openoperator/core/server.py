@@ -248,11 +248,12 @@ def server(operator, host="0.0.0.0", port=8080):
     current_user: User = Security(get_current_user)
   ) -> JSONResponse:
     try:
-      return JSONResponse(
-        operator.portfolio(
-          current_user, portfolio_uri
-        ).facility(facility_uri).bacnet.devices()
-      )
+      devices = operator.portfolio(
+        current_user, portfolio_uri
+      ).facility(facility_uri).bacnet.devices()
+      for device in devices: # Remove the embedding from the response
+        device.pop('embedding', None)
+      return JSONResponse(devices)
     except HTTPException as e:
       return JSONResponse(
           content={"message": f"Unable to list devices: {e}"},
@@ -296,19 +297,13 @@ def server(operator, host="0.0.0.0", port=8080):
     portfolio_uri: str,
     facility_uri: str,
     device_uri: str | None = None,
+    collect_enabled: bool | None = None,
     current_user: User = Security(get_current_user)
   ) -> JSONResponse:
-    if device_uri is None:
-      return JSONResponse(
-        operator.portfolio(
-            current_user, portfolio_uri
-        ).facility(facility_uri).bacnet.points()
-      )
-    return JSONResponse(
-      operator.portfolio(
-          current_user, portfolio_uri
-          ).facility(facility_uri).bacnet.points(device_uri)
-      )
+    points = operator.portfolio(current_user, portfolio_uri).facility(facility_uri).bacnet.points(device_uri, collect_enabled)
+    for point in points: # Remove the embedding from the response
+      point.pop('embedding', None)
+    return JSONResponse(points)
   
   @app.get("/portfolio/facility/bacnet/points/timeseries", tags=['BACnet'], response_model=List[TimeseriesReading])
   async def get_timeseries(

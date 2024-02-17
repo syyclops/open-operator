@@ -1,5 +1,6 @@
 import json
 from rdflib import Graph, Namespace, Literal, URIRef, RDF
+from rdflib.namespace import XSD
 from openoperator.services import Embeddings, Timescale
 from uuid import uuid4
 import numpy as np
@@ -43,6 +44,7 @@ class BACnet:
         if item['Bacnet Data'] == "{}":
           continue
         name = item['Name']
+        collect_enabled = item['Collect Enabled']
         bacnet_data = json.loads(item['Bacnet Data'])[0]
 
         # Check if the necessary keys are in bacnet_data
@@ -72,6 +74,8 @@ class BACnet:
           # Go through all the bacnet data and add it to the graph
           for key, value in bacnet_data.items():
             g.add((point_uri, BACNET[key], Literal(str(value))))
+
+          g.add((point_uri, BACNET.collect_enabled, Literal(collect_enabled, datatype=XSD.boolean)))
 
       return g
     except Exception as e:
@@ -107,13 +111,14 @@ class BACnet:
     except Exception as e:
       raise e
         
-  def points(self, device_uri: str | None = None):
+  def points(self, device_uri: str | None = None, collect_enabled: bool = None):
     """
     Get the bacnet points in the facility or a specific device.
     """
-    query = "MATCH (p:Point)"
-    if device_uri:
-      query += "-[:objectOf]->(d:Device {uri: $device_uri})"
+    query = "MATCH (p:Point"
+    if collect_enabled: query += " {collect_enabled: true}"
+    query += ")"
+    if device_uri: query += "-[:objectOf]->(d:Device {uri: $device_uri})"
     query += " WHERE p.uri STARTS WITH $uri RETURN p"
     with self.knowledge_graph.create_session() as session:
       result = session.run(query, uri=self.uri, device_uri=device_uri)
