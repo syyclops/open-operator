@@ -34,6 +34,6 @@ class Device:
         name = point['object_name']
         element = root.find(f".//*[@id='{name}']")
         if element is not None and "value" in point:
-          element.text += format(point['value'], '.2f')
+          element.text = format(point['value'], '.2f')
       updated_svg = ET.tostring(root, encoding='unicode')
       return updated_svg
