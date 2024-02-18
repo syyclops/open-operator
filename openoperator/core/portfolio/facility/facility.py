@@ -3,6 +3,8 @@ from openoperator.services import BlobStore, DocumentLoader, VectorStore, Timesc
 from openoperator.core.cobie import COBie
 from openoperator.core.bacnet import BACnet 
 from openoperator.core.documents import Documents
+from openoperator.core.portfolio.facility.device_manager import DeviceManager
+from openoperator.core.portfolio.facility.point_manager import PointManager
 
 class Facility:
   """
@@ -21,16 +23,18 @@ class Facility:
     vector_store: VectorStore,
     document_loader: DocumentLoader,
     timescale: Timescale
-    ) -> None:
+  ) -> None:
     self.portfolio = portfolio
     self.knowledge_graph = knowledge_graph
     self.uri = uri
     self.blob_store = blob_store
     self.vector_store = vector_store
     self.document_loader = document_loader
-
+  
     self.documents = Documents(facility=self, knowledge_graph=self.knowledge_graph, blob_store=self.blob_store, document_loader=self.document_loader, vector_store=self.vector_store)
     self.cobie = COBie(self, self.portfolio.operator.embeddings)
+    self.device_manager = DeviceManager(self, embeddings=self.portfolio.operator.embeddings, timescale=timescale)
+    self.point_manager = PointManager(self, embeddings=self.portfolio.operator.embeddings, timescale=timescale)
     self.bacnet = BACnet(self, self.portfolio.operator.embeddings, timescale)
       
   def details(self) -> dict:

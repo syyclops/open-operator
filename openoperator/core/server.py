@@ -112,7 +112,7 @@ def server(operator, host="0.0.0.0", port=8080):
     portfolio = operator.create_portfolio(current_user, portfolio_name)
     return JSONResponse(portfolio.details())
 
-  @app.get("/portfolio/facilities", tags=['Portfolio'])
+  @app.get("/facilities", tags=['Portfolio'])
   async def list_facilities(
     portfolio_uri: str,
     current_user: User = Security(get_current_user)
@@ -125,7 +125,7 @@ def server(operator, host="0.0.0.0", port=8080):
                   status_code=500
               )
 
-  @app.post("/portfolio/facility/create", tags=['Facility'])
+  @app.post("/facility/create", tags=['Facility'])
   async def create_facility(
     portfolio_uri: str,
     building_name: str,
@@ -135,7 +135,7 @@ def server(operator, host="0.0.0.0", port=8080):
       operator.portfolio(current_user, portfolio_uri).create_facility(building_name).details()
     )
   
-  @app.post("/portfolio/facility/cobie/import", tags=['Facility'])
+  @app.post("/cobie/import", tags=['Facility'])
   async def import_cobie_spreadsheet(
     portfolio_uri: str, 
     facility_uri: str, 
@@ -153,8 +153,7 @@ def server(operator, host="0.0.0.0", port=8080):
       return Response(content=str(e), status_code=500)
     
   ## DOCUMENTS ROUTES
-
-  @app.get("/portfolio/facility/documents", tags=['Documents'])
+  @app.get("/documents", tags=['Documents'])
   async def list_documents(
     portfolio_uri: str,
     facility_uri: str,
@@ -164,7 +163,7 @@ def server(operator, host="0.0.0.0", port=8080):
       operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents.list()
     )
     
-  @app.post("/portfolio/facility/documents/search", tags=['Documents'])
+  @app.post("/documents/search", tags=['Documents'])
   async def search_documents(
     portfolio_uri: str,
     facility_uri: str,
@@ -175,7 +174,7 @@ def server(operator, host="0.0.0.0", port=8080):
       operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents.search(query.model_dump())
     )
 
-  @app.delete("/portfolio/facility/document/delete", tags=['Documents'])
+  @app.delete("/document/delete", tags=['Documents'])
   async def delete_document(
     portfolio_uri: str,
     facility_uri: str,
@@ -196,7 +195,7 @@ def server(operator, host="0.0.0.0", port=8080):
         status_code=500
       )
 
-  @app.post("/portfolio/facility/documents/upload", tags=['Documents'])
+  @app.post("/documents/upload", tags=['Documents'])
   async def upload_files(
     background_tasks: BackgroundTasks,
     files: List[UploadFile],
@@ -233,9 +232,97 @@ def server(operator, host="0.0.0.0", port=8080):
         )
 
     return {"message": "Files uploaded successfully", "uploaded_files": uploaded_files_info}
+  
+  ### DEVICES ROUTES
+  @app.get("/devices", tags=['Devices'])
+  async def list_devices(
+    portfolio_uri: str,
+    facility_uri: str,
+    component_uri: str | None = None,
+    brick_class: str | None = None,
+    current_user: User = Security(get_current_user)
+  ) -> JSONResponse:
+    try:
+      devices = operator.portfolio(
+        current_user, portfolio_uri
+      ).facility(facility_uri).device_manager.devices(component_uri, brick_class)
+      for device in devices: # Remove the embedding from the response
+        device.pop('embedding', None)
+      return JSONResponse(devices)
+    except HTTPException as e:
+      return JSONResponse(
+          content={"message": f"Unable to list devices: {e}"},
+          status_code=500
+      )
+
+  @app.get("/devices/cluster", tags=['Devices'])
+  async def list_device_cluster(
+    portfolio_uri: str,
+    facility_uri: str,
+    current_user: User = Security(get_current_user)
+  ) -> JSONResponse:
+    return JSONResponse(
+      operator.portfolio(
+          current_user, portfolio_uri
+      ).facility(facility_uri).device_manager.cluster_devices()
+    )
+  
+  @app.post("/devices/classify", tags=['Devices'])
+  async def assign_brick_class(
+    portfolio_uri: str,
+    facility_uri: str,
+    uris: List[str] ,
+    brick_class: str,
+    current_user: User = Security(get_current_user)
+  ) -> JSONResponse:
+    try:
+      operator.portfolio(
+        current_user,
+        portfolio_uri
+      ).facility(facility_uri).device_manager.assign_brick_class(uris, brick_class)
+      return JSONResponse(content={"message": "Brick class assigned successfully"})
+    except HTTPException as e:
+      return JSONResponse(
+          content={"message": f"Unable to assign brick class: {e}"},
+          status_code=500
+      )
+    
+  @app.get("/device/link", tags=['Devices'])
+  async def link_to_component(
+    portfolio_uri: str,
+    facility_uri: str,
+    device_uri: str,
+    component_uri: str,
+    current_user: User = Security(get_current_user)
+  ) -> JSONResponse:
+    try:
+      return JSONResponse(
+        operator.portfolio(
+            current_user, portfolio_uri
+        ).facility(facility_uri).device_manager.link_to_component(device_uri, component_uri)
+      )
+    except HTTPException as e:
+      return JSONResponse(
+          content={"message": f"Unable to link device to component: {e}"},
+          status_code=500
+      )
+    
+  ### POINTS ROUTES
+  @app.get("/points", tags=['Points'])
+  async def list_points(
+    portfolio_uri: str,
+    facility_uri: str,
+    device_uri: str | None = None,
+    collect_enabled: bool | None = None,
+    current_user: User = Security(get_current_user)
+  ) -> JSONResponse:
+    points = operator.portfolio(current_user, portfolio_uri).facility(facility_uri).point_manager.points(device_uri, collect_enabled)
+    for point in points: # Remove the embedding from the response
+      point.pop('embedding', None)
+    return JSONResponse(points)
 
   ## BACNET INTEGRATION ROUTES
-  @app.post("/portfolio/facility/bacnet/import", tags=['BACnet'])
+  @app.post("/bacnet/import", tags=['BACnet'])
   async def upload_bacnet_data(
     portfolio_uri: str,
     facility_uri: str,
@@ -257,92 +344,6 @@ def server(operator, host="0.0.0.0", port=8080):
       return "BACnet data uploaded successfully"
     except HTTPException as e:
       return Response(content=str(e), status_code=500)
-    
-  @app.post("/portfolio/facility/bacnet/classify", tags=['BACnet'])
-  async def assign_brick_class(
-    portfolio_uri: str,
-    facility_uri: str,
-    uris: List[str] ,
-    brick_class: str,
-    current_user: User = Security(get_current_user)
-  ) -> JSONResponse:
-    try:
-      operator.portfolio(
-        current_user,
-        portfolio_uri
-      ).facility(facility_uri).bacnet.assign_brick_class(uris, brick_class)
-      return JSONResponse(content={"message": "Brick class assigned successfully"})
-    except HTTPException as e:
-      return JSONResponse(
-          content={"message": f"Unable to assign brick class: {e}"},
-          status_code=500
-      )
-
-  @app.get("/portfolio/facility/bacnet/devices", tags=['BACnet'])
-  async def list_devices(
-    portfolio_uri: str,
-    facility_uri: str,
-    component_uri: str | None = None,
-    brick_class: str | None = None,
-    current_user: User = Security(get_current_user)
-  ) -> JSONResponse:
-    try:
-      devices = operator.portfolio(
-        current_user, portfolio_uri
-      ).facility(facility_uri).bacnet.devices(component_uri, brick_class)
-      for device in devices: # Remove the embedding from the response
-        device.pop('embedding', None)
-      return JSONResponse(devices)
-    except HTTPException as e:
-      return JSONResponse(
-          content={"message": f"Unable to list devices: {e}"},
-          status_code=500
-      )
-    
-  @app.get("/portfolio/facility/bacnet/devices/cluster", tags=['BACnet'])
-  async def list_device_cluster(
-    portfolio_uri: str,
-    facility_uri: str,
-    current_user: User = Security(get_current_user)
-  ) -> JSONResponse:
-    return JSONResponse(
-      operator.portfolio(
-          current_user, portfolio_uri
-      ).facility(facility_uri).bacnet.cluster_devices()
-    )
-  
-  @app.get("/portfolio/facility/bacnet/device/link", tags=['BACnet'])
-  async def link_bacnet_device(
-    portfolio_uri: str,
-    facility_uri: str,
-    device_uri: str,
-    component_uri: str,
-    current_user: User = Security(get_current_user)
-  ) -> JSONResponse:
-    try:
-      return JSONResponse(
-        operator.portfolio(
-            current_user, portfolio_uri
-        ).facility(facility_uri).bacnet.link_bacnet_device_to_cobie_component(device_uri, component_uri)
-      )
-    except HTTPException as e:
-      return JSONResponse(
-          content={"message": f"Unable to link device to component: {e}"},
-          status_code=500
-      )
-
-  @app.get("/portfolio/facility/bacnet/points", tags=['BACnet'])
-  async def list_points(
-    portfolio_uri: str,
-    facility_uri: str,
-    device_uri: str | None = None,
-    collect_enabled: bool | None = None,
-    current_user: User = Security(get_current_user)
-  ) -> JSONResponse:
-    points = operator.portfolio(current_user, portfolio_uri).facility(facility_uri).bacnet.points(device_uri, collect_enabled)
-    for point in points: # Remove the embedding from the response
-      point.pop('embedding', None)
-    return JSONResponse(points)
   
   ## TIMESERIES
   @app.get("/timeseries", tags=['Timeseries'], response_model=List[TimeseriesReading])

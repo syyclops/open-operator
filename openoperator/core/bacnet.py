@@ -3,11 +3,6 @@ from rdflib import Graph, Namespace, Literal, URIRef, RDF
 from rdflib.namespace import XSD
 from openoperator.services import Embeddings, Timescale
 from uuid import uuid4
-import numpy as np
-from neo4j.exceptions import Neo4jError
-from openoperator.utils import dbscan_cluster
-from typing import List
-
 class BACnet:
   """
   This class handles the BACnet integration with the knowledge graph.
@@ -28,21 +23,15 @@ class BACnet:
     try:
       # Load the file
       data = json.loads(file)
-
-      # Define namespaces for the graph
       BACNET = Namespace("http://data.ashrae.org/bacnet/#")
       A = RDF.type
-
       g = Graph()
       g.bind("bacnet", BACNET)
       g.bind("rdf", RDF)
 
       # Loop through the bacnet json file
       for item in data:
-        if item['Bacnet Data'] == None:
-          continue
-        if item['Bacnet Data'] == "{}":
-          continue
+        if item['Bacnet Data'] == None or item['Bacnet Data'] == "{}": continue
         name = item['Name']
         collect_enabled = item['Collect Enabled']
         bacnet_data = json.loads(item['Bacnet Data'])[0]
@@ -78,7 +67,6 @@ class BACnet:
             g.add((point_uri, BACNET[key], Literal(str(value))))
 
           g.add((point_uri, BACNET.collect_enabled, Literal(collect_enabled, datatype=XSD.boolean)))
-
       return g
     except Exception as e:
       raise e
@@ -95,164 +83,4 @@ class BACnet:
       self.knowledge_graph.import_rdf_data(url)
       return g
     except Exception as e:
-      raise e
-        
-  def devices(self, component_uri: str | None = None, brick_class: str | None = None):
-    """
-    Get the bacnet devices in the facility.
-    """
-    query = "MATCH (d:Device"
-    if brick_class: query += f":{brick_class}"
-    query += ") where d.uri starts with $uri"
-    if component_uri:
-      query += " MATCH (d)-[:isDeviceOf]->(c:Component {uri: $component_uri})"
-    query += " RETURN d"
-    try:
-      with self.knowledge_graph.create_session() as session:
-        result = session.run(query, uri=self.uri, component_uri=component_uri)
-        devices = [record['d'] for record in result.data()]
-      return devices
-    except Exception as e:
-      raise e
-  
-  def assign_brick_class(self, uris: List[str], brick_class: str):
-    """
-    Assign a brick class to a bacnet device or point. Add it as a label to the node.
-    """
-    query = f"MATCH (n) WHERE n.uri IN $uris SET n:{brick_class} RETURN n"
-    try:
-      with self.knowledge_graph.create_session() as session:
-        session.run(query, uris=uris)
-    except Neo4jError as e:
-      raise e
-        
-  def points(self, device_uri: str | None = None, collect_enabled: bool = None):
-    """
-    Get the bacnet points in the facility or a specific device. Then fetch their latest values. 
-    """
-    query = "MATCH (p:Point"
-    if collect_enabled: query += " {collect_enabled: true}"
-    query += ")"
-    if device_uri: query += "-[:objectOf]->(d:Device {uri: $device_uri})"
-    query += " WHERE p.uri STARTS WITH $uri RETURN p"
-    with self.knowledge_graph.create_session() as session:
-      result = session.run(query, uri=self.uri, device_uri=device_uri)
-      points = [record['p'] for record in result.data()]
-    
-    ids = [point['timeseriesId'] for point in points]
-    readings = self.timescale.get_latest_values(ids)
-    readings_dict = {reading.timeseriesid: reading.value for reading in readings}
-
-    for point in points:
-      if point['timeseriesId'] in readings_dict:
-        point['value'] = readings_dict[point['timeseriesId']]
-    return points
-
-  def vectorize_graph(self):
-    """
-    For each device and point in the facility, create an embedding and upload it to the graph.
-    """
-    devices = self.devices()
-
-    texts = [device['device_name'] for device in devices]
-
-    embeddings = self.embeddings.create_embeddings(texts)
-
-    id_vector_pairs = []
-    for i, device in enumerate(devices):
-      id_vector_pairs.append({
-          "id": device['uri'],
-          "vector": np.array(embeddings[i].embedding)
-      })
-
-    # Upload the vectors to the graph
-    query = """UNWIND $id_vector_pairs as pair
-                MATCH (n:Device) WHERE n.uri = pair.id
-                CALL db.create.setNodeVectorProperty(n, 'embedding', pair.vector)
-                RETURN n"""
-    try:
-      with self.knowledge_graph.create_session() as session:
-        session.run(query, id_vector_pairs=id_vector_pairs)
-    except Neo4jError as e:
-      raise e
-    
-    points = self.points()
-    texts = [point['object_name'] for point in points]
-    embeddings = self.embeddings.create_embeddings(texts)
-
-    id_vector_pairs = []
-    for i, point in enumerate(points):
-      id_vector_pairs.append({
-          "id": point['uri'],
-          "vector": np.array(embeddings[i].embedding)
-      })
-
-    # Upload the vectors to the graph
-    query = """UNWIND $id_vector_pairs as pair
-                MATCH (n:Point) WHERE n.uri = pair.id
-                CALL db.create.setNodeVectorProperty(n, 'embedding', pair.vector)
-                RETURN n"""
-    
-    try:
-      with self.knowledge_graph.create_session() as session:
-        session.run(query, id_vector_pairs=id_vector_pairs)
-    except Neo4jError as e:
-      raise e
-        
-  def cluster_devices(self):
-    """
-    Cluster the bacnet devices using the embeddings that were created from vectorizing the graph.
-    """
-    devices = self.devices()
-
-    embeddings = [device['embedding'] for device in devices]
-    embeddings = np.vstack(embeddings)
-    cluster_assignments = dbscan_cluster(embeddings)
-    
-    # Create a dictionary of clusters, with the key being the cluster number and the value being the list of documents and metadata
-    clusters = {}
-    for i in range(len(cluster_assignments)):
-      cluster = cluster_assignments[i]
-      if cluster not in clusters:
-        clusters[cluster] = []
-      clusters[cluster].append(devices[i]['device_name']) 
-
-    return clusters
-    
-  def cluster_points(self):
-    """
-    Cluster the bacnet points using the embeddings that were created from vectorizing the graph.
-    """
-    points = self.points()
-
-    embeddings = [point['embedding'] for point in points]
-    embeddings = np.vstack(embeddings)
-
-    cluster_assignments = dbscan_cluster(embeddings)
-
-    # Create a dictionary of clusters, with the key being the cluster number and the value being the list of documents and metadata
-    clusters = {}
-    for i in range(len(cluster_assignments)):
-      cluster = cluster_assignments[i]
-      if cluster not in clusters:
-        clusters[cluster] = []
-      clusters[cluster].append(points[i]['object_name'])
-    
-    return clusters
-  
-  def link_bacnet_device_to_cobie_component(self, device_uri: str, component_uri: str):
-    """
-    Link a bacnet device to a cobie component.
-    """
-    query = """MATCH (d:Device {uri: $device_uri})
-                MATCH (c:Component {uri: $component_uri})
-                MERGE (d)-[:isDeviceOf]->(c)
-                RETURN d, c"""
-    try:
-      with self.knowledge_graph.create_session() as session:
-        result = session.run(query, device_uri=device_uri, component_uri=component_uri)
-        if result.single() is None:
-          raise ValueError("Error linking device to component")
-        return "Device linked to component"
-    except Neo4jError as e:
       raise e
