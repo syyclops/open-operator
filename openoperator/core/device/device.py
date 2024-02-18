@@ -24,13 +24,16 @@ class Device:
     brick_class = next((label.replace("brick_", "") for label in device_details['labels'] if "brick_" in label), None)
     if brick_class is None:
       return None
+    points = self.point_manager.points(self.device_uri, collect_enabled=True)
     # Search the device_graphcs directory for the device graphic
     svg_graphic = os.path.join(os.path.dirname(__file__), "device_graphics", f"{brick_class}.svg")
     if os.path.exists(svg_graphic):
       tree = ET.parse(svg_graphic)
       root = tree.getroot()
-      element = root.find(".//*[@id='amps_1']")
-      if element is not None:
-        element.text += "100"
+      for point in points:
+        name = point['object_name']
+        element = root.find(f".//*[@id='{name}']")
+        if element is not None and "value" in point:
+          element.text += format(point['value'], '.2f')
       updated_svg = ET.tostring(root, encoding='unicode')
       return updated_svg
