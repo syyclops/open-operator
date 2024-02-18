@@ -1,8 +1,8 @@
 from neo4j.exceptions import Neo4jError
 from openoperator.services import KnowledgeGraph
 from openoperator.utils import create_uri
-from openoperator.core.user import User
-from openoperator.core.portfolio.facility.facility import Facility
+from ..facility.facility import Facility
+from ..user import User
 class Portfolio:
   """
   A portfolio is a collection of facilities.

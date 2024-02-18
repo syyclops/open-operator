@@ -1,4 +1,4 @@
-from openoperator.core.portfolio.facility.point_manager import PointManager
+from openoperator.core.point import PointManager
 import unittest
 from unittest.mock import Mock, patch
 

@@ -3,8 +3,8 @@ from openoperator.services import BlobStore, DocumentLoader, VectorStore, Timesc
 from openoperator.core.cobie import COBie
 from openoperator.core.bacnet import BACnet 
 from openoperator.core.documents import Documents
-from openoperator.core.portfolio.facility.device_manager import DeviceManager
-from openoperator.core.portfolio.facility.point_manager import PointManager
+from openoperator.core.device import DeviceManager
+from openoperator.core.point import PointManager
 
 class Facility:
   """

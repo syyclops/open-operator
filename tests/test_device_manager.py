@@ -1,4 +1,4 @@
-from openoperator.core.portfolio.facility.device_manager import DeviceManager
+from openoperator.core.device import DeviceManager
 import unittest
 from unittest.mock import Mock, patch
 
@@ -99,7 +99,7 @@ class TestDeviceManager(unittest.TestCase):
     mock_reading.value = 123
     self.device_manager.timescale.get_latest_values.return_value = [mock_reading]
 
-  @patch('openoperator.core.portfolio.facility.device_manager.DeviceManager.devices')
+  @patch('openoperator.core.device.device_manager.DeviceManager.devices')
   def test_vectorize_graph(self, mock_devices):
     mock_devices.return_value = [
       {
@@ -118,7 +118,7 @@ class TestDeviceManager(unittest.TestCase):
     device_query_call = [call for call in session_mock.run.call_args_list if "MATCH (n:Device)" in str(call)]
     self.assertTrue(device_query_call, "Device vectors not uploaded correctly.")
 
-  @patch('openoperator.core.portfolio.facility.device_manager.DeviceManager.devices')
+  @patch('openoperator.core.device.device_manager.DeviceManager.devices')
   def test_cluster_devices(self, mock_devices):
     mock_devices.return_value = [
       {
