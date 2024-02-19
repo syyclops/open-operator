@@ -29,9 +29,9 @@ class TestTimescale(unittest.TestCase):
       ]
       result = self.timescale.get_timeseries(timeseriesIds, start_time, end_time)
       expected_result = [
-        TimeseriesReading(ts='2022-01-01T00:00:00+00:00', value=1.0, timeseriesid='id1'),
-        TimeseriesReading(ts='2022-12-31T23:59:59+00:00', value=2.0, timeseriesid='id2')
-      ]
+        {'data': [{'timeseriesid': 'id1', 'ts': '2022-01-01T00:00:00+00:00', 'value': 1.0}], 'label': 'id1'},
+        {'data': [{'timeseriesid': 'id2', 'ts': '2022-12-31T23:59:59+00:00', 'value': 2.0}], 'label': 'id2'}
+      ] 
       self.assertEqual(result, expected_result)
       ids = ', '.join([f'\'{id}\'' for id in timeseriesIds])
       mock_cursor().__enter__().execute.assert_called_with(f"SELECT * FROM timeseries WHERE timeseriesid IN ({ids}) AND ts >= %s AND ts <= %s", (start_time, end_time))

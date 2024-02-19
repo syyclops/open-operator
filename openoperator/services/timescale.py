@@ -18,13 +18,18 @@ class Timescale:
     except Exception as e:
       raise e
   
-  def get_timeseries(self, timeseriesIds: List[str], start_time: str, end_time: str) -> List[TimeseriesReading]:
+  def get_timeseries(self, timeseriesIds: List[str], start_time: str, end_time: str) -> List[dict]:
     ids = ', '.join([f'\'{id}\'' for id in timeseriesIds])
     query = f"SELECT * FROM timeseries WHERE timeseriesid IN ({ids}) AND ts >= %s AND ts <= %s"
     try:
       with self.postgres.cursor() as cur:
         cur.execute(query, (start_time, end_time))
-        return [TimeseriesReading(ts=row[0].isoformat(), value=row[1], timeseriesid=row[2]) for row in cur.fetchall()]
+        rows = cur.fetchall()
+        result = []
+        for id in timeseriesIds:
+          data = [TimeseriesReading(ts=row[0].isoformat(), value=row[1], timeseriesid=row[2]).model_dump() for row in rows if row[2] == id]
+          result.append({'data': data, 'label': id})
+        return result
     except Exception as e:
       raise e
     

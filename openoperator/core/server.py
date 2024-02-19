@@ -395,7 +395,7 @@ def server(operator, host="0.0.0.0", port=8080):
   ) -> JSONResponse:
     try:
       data = operator.timescale.get_timeseries(timeseriesIds, start_time, end_time)
-      data = [reading.model_dump() for reading in data]
+      # data = [reading.model_dump() for reading in data]
       return JSONResponse(data)
     except HTTPException as e:
       return JSONResponse(
