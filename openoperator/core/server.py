@@ -3,6 +3,7 @@ from typing import Generator, List
 from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks, Query
 from fastapi.responses import StreamingResponse, Response, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from io import BytesIO
 from openoperator.types import DocumentQuery, Message, TimeseriesReading
@@ -13,6 +14,13 @@ def server(operator, host="0.0.0.0", port=8080):
   Start the Open Operator API server.
   """
   app = FastAPI(title="Open Operator API")
+  app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+  )
   security = HTTPBearer()
 
   async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
