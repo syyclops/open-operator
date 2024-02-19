@@ -11,26 +11,30 @@ class PointManager:
     self.embeddings = embeddings
     self.timescale = timescale
 
-  def points(self, device_uri: str | None = None, collect_enabled: bool = True):
+  def points(self, device_uri: str | None = None, collect_enabled: bool = True, component_uri: str | None = None):
     """
     Get the points in the facility or a specific device. Then fetch their latest values. 
     """
     query = "MATCH (p:Point"
     if collect_enabled: query += " {collect_enabled: true}"
     query += ")"
-    if device_uri: query += "-[:objectOf]->(d:Device {uri: $device_uri})"
+    if device_uri: 
+      query += "-[:objectOf]->(d:Device {uri: $device_uri})"
+    elif component_uri: 
+      query += "-[:objectOf]-(d:Device)-[:isDeviceOf]-(c:Component {uri: $component_uri})"
     query += " WHERE p.uri STARTS WITH $uri RETURN p"
     with self.knowledge_graph.create_session() as session:
-      result = session.run(query, uri=self.uri, device_uri=device_uri)
+      result = session.run(query, uri=self.uri, device_uri=device_uri, component_uri=component_uri)
       points = [record['p'] for record in result.data()]
     
     ids = [point['timeseriesId'] for point in points]
     readings = self.timescale.get_latest_values(ids)
-    readings_dict = {reading.timeseriesid: reading.value for reading in readings}
+    readings_dict = {reading.timeseriesid: {"value": reading.value, "ts": reading.ts} for reading in readings}
 
     for point in points:
       if point['timeseriesId'] in readings_dict:
-        point['value'] = readings_dict[point['timeseriesId']]
+        point['value'] = readings_dict[point['timeseriesId']]['value']
+        point['ts'] = readings_dict[point['timeseriesId']]['ts']
     return points
   
   def cluster_points(self):

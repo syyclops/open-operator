@@ -361,10 +361,11 @@ def server(operator, host="0.0.0.0", port=8080):
     portfolio_uri: str,
     facility_uri: str,
     device_uri: str | None = None,
+    component_uri: str | None = None,
     collect_enabled: bool | None = None,
     current_user: User = Security(get_current_user)
   ) -> JSONResponse:
-    points = operator.portfolio(current_user, portfolio_uri).facility(facility_uri).point_manager.points(device_uri, collect_enabled)
+    points = operator.portfolio(current_user, portfolio_uri).facility(facility_uri).point_manager.points(device_uri, collect_enabled, component_uri)
     for point in points: # Remove the embedding from the response
       point.pop('embedding', None)
     return JSONResponse(points)

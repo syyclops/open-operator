@@ -19169,12 +19169,12 @@ sBZxzFAi1Y17fgAAAABJRU5ErkJggg==">
     <text id="Power CH3 A" x="1100" y="190" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="end" dominant-baseline="middle"></text>
 
     <text id="Voltage L1 to N A title" x="50" y="1000" style="font-size:45px; fill: white;  font-family: 'Inter';" text-anchor="start" dominant-baseline="middle">Voltage L1 to N A: </text>
-    <text id="Voltage L1 to N A" x="50" y="1040" style="font-size:45px; fill: white;  font-family: 'Inter';" text-anchor="start" dominant-baseline="middle"></text>
+    <text id="Voltage L1 to N A" x="50" y="1050" style="font-size:45px; fill: white;  font-family: 'Inter';" text-anchor="start" dominant-baseline="middle"></text>
 
     <text id="Voltage L2 to N A title" x="600" y="1000" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="middle" dominant-baseline="middle">Voltage L2 to N A:</text>
-    <text id="Voltage L2 to N A" x="600" y="1040" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="middle" dominant-baseline="middle"></text>
+    <text id="Voltage L2 to N A" x="600" y="1050" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="middle" dominant-baseline="middle"></text>
 
     <text id="Voltage L3 to N A title" x="1150" y="1000" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="end" dominant-baseline="middle">Voltage L3 to N A: </text>
-    <text id="Voltage L3 to N A" x="1150" y="1040" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="end" dominant-baseline="middle"></text>
+    <text id="Voltage L3 to N A" x="1150" y="1050" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="end" dominant-baseline="middle"></text>
 </g>
 </svg>
