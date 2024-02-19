@@ -3,7 +3,7 @@ from openoperator.services import BlobStore, DocumentLoader, VectorStore, Timesc
 from openoperator.core.cobie import COBie
 from openoperator.core.bacnet import BACnet 
 from openoperator.core.documents import Documents
-from openoperator.core.device import DeviceManager
+from openoperator.core.device import DeviceManager, Device
 from openoperator.core.point import PointManager
 
 class Facility:
@@ -41,3 +41,6 @@ class Facility:
     with self.knowledge_graph.create_session() as session:
       result = session.run("MATCH (n:Facility {uri: $facility_uri}) RETURN n", facility_uri=self.uri)
       return result.data()[0]['n']
+    
+  def device(self, device_uri: str) -> Device:
+    return Device(device_uri=device_uri, knowledge_graph=self.knowledge_graph, point_manager=self.point_manager)

@@ -287,6 +287,26 @@ def server(operator, host="0.0.0.0", port=8080):
           status_code=500
       )
     
+  @app.put("/device/update", tags=['Devices'])
+  async def update_device(
+    portfolio_uri: str,
+    facility_uri: str,
+    device_uri: str,
+    new_details: dict,
+    current_user: User = Security(get_current_user)
+  ) -> JSONResponse:
+    try:
+      operator.portfolio(
+        current_user,
+        portfolio_uri
+      ).facility(facility_uri).device(device_uri).update(new_details)
+      return JSONResponse(content={"message": "Device updated successfully"})
+    except HTTPException as e:
+      return JSONResponse(
+          content={"message": f"Unable to update device: {e}"},
+          status_code=500
+      )
+    
   @app.get("/device/link", tags=['Devices'])
   async def link_to_component(
     portfolio_uri: str,
@@ -304,6 +324,26 @@ def server(operator, host="0.0.0.0", port=8080):
     except HTTPException as e:
       return JSONResponse(
           content={"message": f"Unable to link device to component: {e}"},
+          status_code=500
+      )
+  
+  @app.get("/device/graphic", tags=['Devices'])
+  async def get_device_graphic(
+    portfolio_uri: str,
+    facility_uri: str,
+    device_uri: str,
+    current_user: User = Security(get_current_user)
+  ) -> JSONResponse:
+    try:
+      return Response(
+        operator.portfolio(
+            current_user, portfolio_uri
+        ).facility(facility_uri).device(device_uri).graphic(), 
+        media_type="image/svg+xml"
+      )
+    except HTTPException as e:
+      return JSONResponse(
+          content={"message": f"Unable to get device graphic: {e}"},
           status_code=500
       )
     

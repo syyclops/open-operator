@@ -5,9 +5,6 @@ import numpy as np
 from openoperator.utils import dbscan_cluster
 
 class DeviceManager:
-  """
-  This class handles the Devices of a facility
-  """
   def __init__(self, facility, embeddings: Embeddings, timescale: Timescale) -> None:
     self.knowledge_graph = facility.knowledge_graph 
     self.blob_store = facility.blob_store
