@@ -369,6 +369,20 @@ def server(operator, host="0.0.0.0", port=8080):
     for point in points: # Remove the embedding from the response
       point.pop('embedding', None)
     return JSONResponse(points)
+  
+  @app.get("/points/history", tags=['Points'])
+  async def get_points_history(
+    portfolio_uri: str,
+    facility_uri: str,
+    start_time: str,
+    end_time: str,
+    device_uri: str | None = None,
+    component_uri: str | None = None,
+    current_user: User = Security(get_current_user)
+  ) -> JSONResponse:
+    return JSONResponse(
+      operator.portfolio(current_user, portfolio_uri).facility(facility_uri).point_manager.points_history(start_time, end_time, device_uri, component_uri)
+    )
 
   ## BACNET INTEGRATION ROUTES
   @app.post("/bacnet/import", tags=['BACnet'])

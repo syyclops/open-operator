@@ -37,6 +37,21 @@ class PointManager:
         point['ts'] = readings_dict[point['timeseriesId']]['ts']
     return points
   
+  def points_history(self, start_time: str, end_time: str, device_uri: str | None = None, component_uri: str | None = None):
+    points = self.points(device_uri=device_uri, collect_enabled=True, component_uri=component_uri)
+    ids = []
+    for point in points: 
+      point.pop('embedding', None)
+      ids.append(point['timeseriesId'])
+
+    data = self.timescale.get_timeseries(ids, start_time, end_time)
+    data_dict = {item['timeseriesid']: item['data'] for item in data}
+
+    for point in points:
+      point['data'] = data_dict.get(point['timeseriesId'], [])
+
+    return points
+  
   def cluster_points(self):
     """
     Cluster the points using the embeddings that were created from vectorizing the graph.

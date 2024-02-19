@@ -28,7 +28,7 @@ class Timescale:
         result = []
         for id in timeseriesIds:
           data = [TimeseriesReading(ts=row[0].isoformat(), value=row[1], timeseriesid=row[2]).model_dump() for row in rows if row[2] == id]
-          result.append({'data': data, 'label': id})
+          result.append({'data': data, 'timeseriesid': id})
         return result
     except Exception as e:
       raise e

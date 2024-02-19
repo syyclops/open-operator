@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch 
 from openoperator.services.timescale import Timescale
-from openoperator.types import TimeseriesReading
 import datetime
 
 class TestTimescale(unittest.TestCase):
@@ -29,8 +28,8 @@ class TestTimescale(unittest.TestCase):
       ]
       result = self.timescale.get_timeseries(timeseriesIds, start_time, end_time)
       expected_result = [
-        {'data': [{'timeseriesid': 'id1', 'ts': '2022-01-01T00:00:00+00:00', 'value': 1.0}], 'label': 'id1'},
-        {'data': [{'timeseriesid': 'id2', 'ts': '2022-12-31T23:59:59+00:00', 'value': 2.0}], 'label': 'id2'}
+        {'data': [{'timeseriesid': 'id1', 'ts': '2022-01-01T00:00:00+00:00', 'value': 1.0}], 'timeseriesid': 'id1'},
+        {'data': [{'timeseriesid': 'id2', 'ts': '2022-12-31T23:59:59+00:00', 'value': 2.0}], 'timeseriesid': 'id2'}
       ] 
       self.assertEqual(result, expected_result)
       ids = ', '.join([f'\'{id}\'' for id in timeseriesIds])
