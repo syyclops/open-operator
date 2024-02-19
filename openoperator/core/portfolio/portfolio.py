@@ -62,15 +62,15 @@ class Portfolio:
         if result.single() is None:
           raise ValueError("Error creating facility")
       except Neo4jError as e:
-        raise e      
+        raise e
             
     return Facility(
-       portfolio=self, 
-       uri=facility_uri, 
-       knowledge_graph=self.operator.knowledge_graph, 
-       blob_store=self.operator.blob_store, 
-       vector_store=self.operator.vector_store, 
-       document_loader=self.operator.document_loader,
+      portfolio=self, 
+      uri=facility_uri, 
+      knowledge_graph=self.operator.knowledge_graph, 
+      blob_store=self.operator.blob_store, 
+      vector_store=self.operator.vector_store, 
+      document_loader=self.operator.document_loader,
       timescale=self.operator.timescale
     )
       

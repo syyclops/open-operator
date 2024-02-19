@@ -387,7 +387,12 @@ def server(operator, host="0.0.0.0", port=8080):
       operator.portfolio(
         current_user,
         portfolio_uri
-      ).facility(facility_uri).bacnet.vectorize_graph()
+      ).facility(facility_uri).device_manager.vectorize()
+
+      operator.portfolio(
+        current_user,
+        portfolio_uri
+      ).facility(facility_uri).point_manager.vectorize_graph()
 
       return "BACnet data uploaded successfully"
     except HTTPException as e:
