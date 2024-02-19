@@ -33,7 +33,7 @@ class TestTimescale(unittest.TestCase):
       ] 
       self.assertEqual(result, expected_result)
       ids = ', '.join([f'\'{id}\'' for id in timeseriesIds])
-      mock_cursor().__enter__().execute.assert_called_with(f"SELECT * FROM timeseries WHERE timeseriesid IN ({ids}) AND ts >= %s AND ts <= %s", (start_time, end_time))
+      mock_cursor().__enter__().execute.assert_called_with(f"SELECT * FROM timeseries WHERE timeseriesid IN ({ids}) AND ts >= %s AND ts <= %s ORDER BY ts ASC", (start_time, end_time))
 
 if __name__ == '__main__':
   unittest.main()

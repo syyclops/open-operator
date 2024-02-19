@@ -2,6 +2,7 @@ from openoperator.services import Embeddings, Timescale
 import numpy as np
 from openoperator.utils import dbscan_cluster
 from neo4j.exceptions import Neo4jError
+from collections import OrderedDict
 
 class PointManager:
   def __init__(self, facility, embeddings: Embeddings, timescale: Timescale) -> None:
@@ -29,7 +30,7 @@ class PointManager:
     
     ids = [point['timeseriesId'] for point in points]
     readings = self.timescale.get_latest_values(ids)
-    readings_dict = {reading.timeseriesid: {"value": reading.value, "ts": reading.ts} for reading in readings}
+    readings_dict = OrderedDict((reading.timeseriesid, {"value": reading.value, "ts": reading.ts}) for reading in readings)
 
     for point in points:
       if point['timeseriesId'] in readings_dict:
@@ -50,7 +51,18 @@ class PointManager:
     for point in points:
       point['data'] = data_dict.get(point['timeseriesId'], [])
 
-    return points
+    # Group points by object_units
+    grouped_points = {}
+    for point in points:
+      object_unit = point['object_units']
+      if object_unit not in grouped_points:
+        grouped_points[object_unit] = []
+      grouped_points[object_unit].append(point)
+
+    # Convert the dictionary to a list of groups
+    grouped_points_list = [{'object_unit': k, 'points': v} for k, v in grouped_points.items()]
+
+    return grouped_points_list
   
   def cluster_points(self):
     """
