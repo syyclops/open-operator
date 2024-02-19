@@ -19159,22 +19159,22 @@ sBZxzFAi1Y17fgAAAABJRU5ErkJggg==">
 </g>
 
 <g id="points">
-    <text id="Power CH1 A title" x="100" y="150" style="font-size:40px; fill: black;  font-family: 'Inter';" text-anchor="start" dominant-baseline="middle">Power CH1 A:</text>
-    <text id="Power CH1 A" x="100" y="190" style="font-size:40px; fill: black;  font-family: 'Inter';" text-anchor="start" dominant-baseline="middle"></text>
+    <text id="Power CH1 A title" x="100" y="150" style="font-size:45px; fill: white;  font-family: 'Inter';" text-anchor="start" dominant-baseline="middle">Power CH1 A:</text>
+    <text id="Power CH1 A" x="100" y="190" style="font-size:45px; fill: white;  font-family: 'Inter';" text-anchor="start" dominant-baseline="middle"></text>
 
-    <text id="Power CH2 A title" x="600" y="150" style="font-size:40px; fill: black; font-family: 'Inter';" text-anchor="middle" dominant-baseline="middle">Power CH2 A:</text>
-    <text id="Power CH2 A" x="600" y="190" style="font-size:40px; fill: black; font-family: 'Inter';" text-anchor="middle" dominant-baseline="middle"></text>
+    <text id="Power CH2 A title" x="600" y="150" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="middle" dominant-baseline="middle">Power CH2 A:</text>
+    <text id="Power CH2 A" x="600" y="190" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="middle" dominant-baseline="middle"></text>
 
-    <text id="Power CH3 A title" x="1100" y="150" style="font-size:40px; fill: black; font-family: 'Inter';" text-anchor="end" dominant-baseline="middle">Power CH3 A: </text>
-    <text id="Power CH3 A" x="1100" y="190" style="font-size:40px; fill: black; font-family: 'Inter';" text-anchor="end" dominant-baseline="middle"></text>
+    <text id="Power CH3 A title" x="1100" y="150" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="end" dominant-baseline="middle">Power CH3 A: </text>
+    <text id="Power CH3 A" x="1100" y="190" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="end" dominant-baseline="middle"></text>
 
-    <text id="Voltage L1 to N A title" x="100" y="1000" style="font-size:40px; fill: black;  font-family: 'Inter';" text-anchor="start" dominant-baseline="middle">Voltage L1 to N A: </text>
-    <text id="Voltage L1 to N A" x="100" y="1040" style="font-size:40px; fill: black;  font-family: 'Inter';" text-anchor="start" dominant-baseline="middle"></text>
+    <text id="Voltage L1 to N A title" x="100" y="1000" style="font-size:45px; fill: white;  font-family: 'Inter';" text-anchor="start" dominant-baseline="middle">Voltage L1 to N A: </text>
+    <text id="Voltage L1 to N A" x="100" y="1040" style="font-size:45px; fill: white;  font-family: 'Inter';" text-anchor="start" dominant-baseline="middle"></text>
 
-    <text id="Voltage L2 to N A title" x="600" y="1000" style="font-size:40px; fill: black; font-family: 'Inter';" text-anchor="middle" dominant-baseline="middle">Voltage L2 to N A:</text>
-    <text id="Voltage L2 to N A" x="600" y="1040" style="font-size:40px; fill: black; font-family: 'Inter';" text-anchor="middle" dominant-baseline="middle"></text>
+    <text id="Voltage L2 to N A title" x="600" y="1000" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="middle" dominant-baseline="middle">Voltage L2 to N A:</text>
+    <text id="Voltage L2 to N A" x="600" y="1040" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="middle" dominant-baseline="middle"></text>
 
-    <text id="Voltage L3 to N A title" x="1100" y="1000" style="font-size:40px; fill: black; font-family: 'Inter';" text-anchor="end" dominant-baseline="middle">Voltage L3 to N A: </text>
-    <text id="Voltage L3 to N A" x="1100" y="1040" style="font-size:40px; fill: black; font-family: 'Inter';" text-anchor="end" dominant-baseline="middle"></text>
+    <text id="Voltage L3 to N A title" x="1100" y="1000" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="end" dominant-baseline="middle">Voltage L3 to N A: </text>
+    <text id="Voltage L3 to N A" x="1100" y="1040" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="end" dominant-baseline="middle"></text>
 </g>
 </svg>
