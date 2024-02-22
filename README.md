@@ -29,21 +29,24 @@ cd open-opertor/
 python3 -m pip install -e .
 ```
 
-## Get started using the package locally
+## Local Server Quickstart
+
+1. Set the required environment variables:
 
 ```
 cp .env.example .env
 export OPENAI_API_KEY=<your secret key>
 export AZURE_STORAGE_CONNECTION_STRING=<your azure storage container>
 export AZURE_CONTAINER_NAME=<your azure container name>
+```
+
+2. Start the docker containers.
+
+```
 docker-compose.yml up -d
 ```
 
-Then you can check out an example use of the package in [create_a_operator.ipynb](./examples/creating_a_operator.ipynb)
-
-or
-
-start a simple rest api [server](./examples/server.py)
+3. View the api docs at: http://localhost:8080/docs
 
 ## Useful Resources
 
