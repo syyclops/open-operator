@@ -36,7 +36,7 @@ class UnstructuredDocumentLoader(DocumentLoader):
           file_name=file_path,
         ),
         # Other partition params
-        strategy="auto",
+        strategy="fast",
         pdf_infer_table_structure=True,
         skip_infer_table_types=[""],
         max_characters=1500,
