@@ -71,7 +71,7 @@ class OpenOperator:
   def portfolio(self, user: User, portfolio_uri: str) -> Portfolio:
     return Portfolio(self, knowledge_graph=self.knowledge_graph, uri=portfolio_uri, user=user)
 
-  def portfolios(self, user: User) -> list[Portfolio]:
+  def portfolios(self, user: User) -> list[PortfolioModel]:
     try:
       with self.knowledge_graph.create_session() as session:
         result = session.run("MATCH (u:User {email: $email})-[:HAS_ACCESS_TO]->(c:Customer) return c as Customer", email=user.email)
