@@ -3,6 +3,7 @@ from openoperator.services import KnowledgeGraph
 from openoperator.utils import create_uri
 from ..facility.facility import Facility
 from ..user import User
+
 class Portfolio:
   """
   A portfolio is a collection of facilities.

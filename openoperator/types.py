@@ -28,7 +28,14 @@ class AiChatResponse(BaseModel):
   tool_finished: Optional[ToolResponse] = None
   content: Optional[str] = None
 
+class Transcription(BaseModel):
+  text: str
+
 class TimeseriesReading(BaseModel):
   ts: str
   value: float
   timeseriesid: str
+
+class PortfolioModel(BaseModel):
+  name: str
+  uri: str

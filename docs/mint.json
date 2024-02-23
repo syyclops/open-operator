@@ -1,0 +1,67 @@
+{
+  "name": "Open Operator",
+  "logo": "/assets/logo192.png",
+  "favicon": "/assets/logo192.png",
+  "colors": {
+    "primary": "#000000",
+    "light": "#FFFFFF",
+    "dark": "#000000",
+    "background": {
+      "light": "#FFFFFF",
+      "dark": "#000000"
+    },
+    "anchors": {
+      "from": "#000000",
+      "to": "#000000"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/syyclops/open-operator"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Join Discord",
+    "url": "https://discord.gg/VmfmMfDREU"
+  },
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "getting-started/introduction",
+        "getting-started/quickstart"
+      ]
+    },
+    {
+      "group": "Endpoints",
+      "pages": [
+        {
+          "group": "Portfolio",
+          "pages": [
+            "api/portfolio/list-portfolios",
+            "api/portfolio/list-facilities"
+          ]
+        },
+        {
+          "group": "Facility",
+          "pages": [
+            "api/facility/create-facility"
+          ]
+        }
+      ]
+    }
+  ],
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api"
+    }
+  ],
+  "primaryTab": {
+    "name": "Documentation"
+  },
+  "openapi": [
+    "https://open-operator-server.azurewebsites.net/openapi.json"
+  ]
+}
