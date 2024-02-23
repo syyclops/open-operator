@@ -31,7 +31,7 @@ class KnowledgeGraph():
       # Check constraint for unique URIs
       result = session.run("SHOW CONSTRAINTS")
       if "n10s_unique_uri" not in [record['name'] for record in result.data()]:
-        session.run("CREATE CONSTRAINT n10s_unique_uri FOR (r:Resource) REQUIRE r.uri IS UNIQUE")
+        session.run("CREATE CONSTRAINT n10s_unique_uri IF NOT EXISTS FOR (r:Resource) REQUIRE r.uri IS UNIQUE")
 
       # Check if the graph is already configured
       result = session.run("MATCH (n:`_GraphConfig`) RETURN n")

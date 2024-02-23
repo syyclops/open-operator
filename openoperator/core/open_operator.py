@@ -3,7 +3,7 @@ import os
 import jwt
 from typing import Generator
 from openoperator.services import BlobStore, Embeddings, DocumentLoader, VectorStore, KnowledgeGraph, AI, Timescale
-from openoperator.core import Portfolio, Facility, User, server
+from openoperator.core import Portfolio, Facility, User
 from openoperator.utils import create_uri
 from openoperator.types import AiChatResponse
 
@@ -136,6 +136,3 @@ class OpenOperator:
       user_data = user['u']
 
     return User(email=user_data['email'], full_name=user_data['fullName'], password=user_data['password'], operator=self)
-
-  def server(self, *args, **kwargs):
-    server(self, *args, **kwargs)

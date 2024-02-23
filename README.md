@@ -29,28 +29,28 @@ cd open-opertor/
 python3 -m pip install -e .
 ```
 
-## Get started using the package locally
+## Local Server Quickstart
+
+1. Set the required environment variables:
 
 ```
 cp .env.example .env
 export OPENAI_API_KEY=<your secret key>
 export AZURE_STORAGE_CONNECTION_STRING=<your azure storage container>
 export AZURE_CONTAINER_NAME=<your azure container name>
+export API_TOKEN_SECRET=<your api secret key>
+```
+
+2. Start the docker containers.
+
+```
 docker-compose.yml up -d
 ```
 
-Then you can check out an example use of the package in [create_a_operator.ipynb](./examples/creating_a_operator.ipynb)
-
-or
-
-start a simple rest api [server](./examples/server.py)
+3. View the api docs at: http://localhost:8080/docs
 
 ## Useful Resources
 
 1. [What is COBie?](https://www.thenbs.com/knowledge/what-is-cobie)
 2. [Brick Schema](https://brickschema.org/)
 3. [Data-Driven Smart Buildings: State-of-the-Art Review](https://github.com/syyclops/open-operator/files/14202864/Annex.81.State-of-the-Art.Report.final.pdf)
-
-## License
-
-This project is licensed under the MIT License - see the [License](./LICENSE) file for details.

@@ -10,4 +10,4 @@ RUN pip install python-dotenv
 EXPOSE 8080
 
 # Run server.py when the container launches
-CMD ["python", "./examples/server.py"]
+CMD ["python", "./server.py"]
