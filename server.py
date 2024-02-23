@@ -42,9 +42,10 @@ app.add_middleware(
   allow_methods=["*"],
   allow_headers=["*"],
 )
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
+  # If its local development, return a dummy user
   if os.environ.get("ENV") == "dev":
     return User(operator, email="example@example.com", password="", full_name="Example User")
   token = credentials.credentials
