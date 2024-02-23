@@ -1,1 +1,0 @@
-CREATE (u:User {email: "example@example.com"});

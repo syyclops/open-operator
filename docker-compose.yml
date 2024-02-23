@@ -1,46 +1,46 @@
 version: "3.0"
 services:
-  # open-operator-server:
-  #   build:
-  #     context: .
-  #     dockerfile: ./Dockerfile.server
-  #   volumes:
-  #     - .:/usr/src/app
-  #   command: ["sh", "-c", "sleep 15; python ./server.py"] # wait for neo4j to start
-  #   ports:
-  #     - 8080:8080
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     - NEO4J_URI=bolt://neo4j:7687
-  #     - POSTGRES_CONNECTION_STRING=postgresql://postgres:postgres@postgres:5432/postgres
-  #   networks:
-  #     - local
-  #   depends_on:
-  #     - neo4j
-  #     - postgres
+  open-operator-server:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.server
+    volumes:
+      - .:/usr/src/app
+    command: ["sh", "-c", "sleep 15; python ./server.py"] # wait for neo4j to start
+    ports:
+      - 8080:8080
+    env_file:
+      - .env
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - POSTGRES_CONNECTION_STRING=postgresql://postgres:postgres@postgres:5432/postgres
+    networks:
+      - local
+    depends_on:
+      - neo4j
+      - postgres
 
-  # unstructured:
-  #   image: quay.io/unstructured-io/unstructured-api:latest
-  #   ports:
-  #     - 8000:8000
-  #   networks:
-  #     - local
+  unstructured:
+    image: quay.io/unstructured-io/unstructured-api:latest
+    ports:
+      - 8000:8000
+    networks:
+      - local
 
-  # postgres:
-  #   build:
-  #     context: .
-  #     dockerfile: ./Dockerfile.pg
-  #   environment:
-  #     - POSTGRES_PASSWORD=postgres
-  #     - POSTGRES_USER=postgres
-  #     - POSTGRES_DB=postgres
-  #   volumes:
-  #     - ./.postgresql/data:/var/lib/postgresql/data
-  #   ports:
-  #     - 5432:5432
-  #   networks:
-  #     - local
+  postgres:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.pg
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - ./.postgresql/data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    networks:
+      - local
 
   neo4j:
     build:
