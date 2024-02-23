@@ -38,6 +38,7 @@ cp .env.example .env
 export OPENAI_API_KEY=<your secret key>
 export AZURE_STORAGE_CONNECTION_STRING=<your azure storage container>
 export AZURE_CONTAINER_NAME=<your azure container name>
+export API_TOKEN_SECRET=<your api secret key>
 ```
 
 2. Start the docker containers.
