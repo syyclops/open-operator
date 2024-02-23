@@ -5,6 +5,8 @@ from fastapi.responses import StreamingResponse, Response, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from io import BytesIO
+import uvicorn
+import os
 from openoperator.types import DocumentQuery, Message, TimeseriesReading
 from openoperator.core import User, OpenOperator
 from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, Openai, Postgres, Timescale
@@ -40,9 +42,12 @@ app.add_middleware(
   allow_methods=["*"],
   allow_headers=["*"],
 )
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
+  # If its local development, return a dummy user
+  if os.environ.get("ENV") == "dev":
+    return User(operator, email="example@example.com", password="", full_name="Example User")
   token = credentials.credentials
   try:
     user = operator.get_user_from_access_token(token)
@@ -453,7 +458,5 @@ async def get_timeseries_data(
     )
   
 if __name__ == "__main__":
-  import uvicorn
-  import os
   reload = True if os.environ.get("ENV") == "dev" else False
   uvicorn.run("server:app", host="0.0.0.0", port=8080, reload=reload)

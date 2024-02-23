@@ -43,7 +43,9 @@ services:
       - local
 
   neo4j:
-    image: neo4j:5.15
+    build:
+      context: .
+      dockerfile: ./Dockerfile.neo4j
     volumes:
       - $HOME/neo4j/data:/data
       - $HOME/neo4j/logs:/logs
@@ -56,6 +58,7 @@ services:
       NEO4J_apoc_import_file_use__neo4j__config: true
       NEO4J_dbms_security_procedures_unrestricted: apoc.*,semantics.*
       NEO4J_PLUGINS: '["apoc", "n10s"]'
+      dbms.directories.import: "/"
     ports:
       - 7474:7474
       - 7687:7687
