@@ -4,10 +4,10 @@ from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, Backg
 from fastapi.responses import StreamingResponse, Response, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
-from io import BytesIO
 import uvicorn
+from io import BytesIO
 import os
-from openoperator.types import DocumentQuery, Message, TimeseriesReading
+from openoperator.types import DocumentQuery, Message, TimeseriesReading, PortfolioModel, AiChatResponse, Transcription
 from openoperator.core import User, OpenOperator
 from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, Openai, Postgres, Timescale
 from dotenv import load_dotenv
@@ -69,15 +69,7 @@ async def login(email: str, password: str) -> JSONResponse:
   except HTTPException as e:
     return JSONResponse(content={"message": f"Unable to login: {e}"}, status_code=500)
 
-@app.post("/chat", tags=["AI"], responses={
-  200: {
-    "content": {
-      "plain/text": {
-        "example": "{content: None}"
-      }
-    }
-  }
-})
+@app.post("/chat", tags=["AI"], response_model=Generator[AiChatResponse, None, None])
 async def chat(
   messages: list[Message],
   portfolio_uri: str,
@@ -101,7 +93,7 @@ async def chat(
 
   return StreamingResponse(event_stream(), media_type="text/event-stream")
   
-@app.post("/transcribe", tags=["AI"])
+@app.post("/transcribe", tags=["AI"], response_model=Transcription)
 async def transcribe_audio(
   file: UploadFile,
   current_user: User = Security(get_current_user)
@@ -132,30 +124,27 @@ async def transcribe_audio(
 #         print(e)
 #         return Response(content=f"Unable to validate spreadsheet: {e}", status_code=500)
 
-@app.get("/portfolio/list", tags=['Portfolio'])
+@app.get("/portfolio/list", tags=['Portfolio'], response_model=List[PortfolioModel])
 async def list_portfolios(current_user: User = Security(get_current_user)) -> JSONResponse:
-  return JSONResponse(operator.portfolios(current_user))
+  return JSONResponse([portfolio.model_dump() for portfolio in operator.portfolios(current_user)])
 
-@app.post("/portfolio/create", tags=['Portfolio'])
+@app.post("/portfolio/create", tags=['Portfolio'], response_model=PortfolioModel)
 async def create_portfolio(
   portfolio_name: str,
   current_user: User = Security(get_current_user)
 ) -> JSONResponse:
-  portfolio = operator.create_portfolio(current_user, portfolio_name)
-  return JSONResponse(portfolio.details())
+  try:
+    portfolio = operator.create_portfolio(current_user, portfolio_name)
+    return JSONResponse(portfolio.details())
+  except HTTPException as e:
+    return JSONResponse(content={"message": f"Unable to create portfolio: {e}"}, status_code=500)
 
 @app.get("/facilities", tags=['Portfolio'])
 async def list_facilities(
   portfolio_uri: str,
   current_user: User = Security(get_current_user)
 ) -> JSONResponse:
-  try:
-    return JSONResponse(operator.portfolio(current_user, portfolio_uri).list_facilities())
-  except HTTPException as e:
-    return JSONResponse(
-                content={"message": f"Unable to list facilities: {e}"},
-                status_code=500
-            )
+  return JSONResponse(operator.portfolio(current_user, portfolio_uri).list_facilities())
 
 @app.post("/facility/create", tags=['Facility'])
 async def create_facility(

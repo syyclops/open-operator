@@ -1,11 +1,11 @@
 from neo4j.exceptions import Neo4jError
 import os
 import jwt
-from typing import Generator
+from typing import Generator, List
 from openoperator.services import BlobStore, Embeddings, DocumentLoader, VectorStore, KnowledgeGraph, AI, Timescale
 from openoperator.core import Portfolio, Facility, User
 from openoperator.utils import create_uri
-from openoperator.types import AiChatResponse
+from openoperator.types import AiChatResponse, PortfolioModel
 
 class OpenOperator: 
   """
@@ -71,17 +71,14 @@ class OpenOperator:
   def portfolio(self, user: User, portfolio_uri: str) -> Portfolio:
     return Portfolio(self, knowledge_graph=self.knowledge_graph, uri=portfolio_uri, user=user)
 
-  def portfolios(self, user: User) -> list:
+  def portfolios(self, user: User) -> list[Portfolio]:
     try:
       with self.knowledge_graph.create_session() as session:
         result = session.run("MATCH (u:User {email: $email})-[:HAS_ACCESS_TO]->(c:Customer) return c as Customer", email=user.email)
-        data = []
+        data: List[PortfolioModel] = []
         for record in result.data():
           customer = record['Customer']
-          data.append({
-              "name": customer['name'],
-              "uri": customer['uri'],
-          })
+          data.append(PortfolioModel(name=customer['name'], uri=customer['uri']))
         return data
     except Neo4jError as e:
       raise e

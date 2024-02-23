@@ -30,7 +30,7 @@
       "group": "Getting Started",
       "pages": [
         "getting-started/introduction",
-        "getting-started/setup"
+        "getting-started/quickstart"
       ]
     },
     {
@@ -39,8 +39,8 @@
         {
           "group": "Portfolio",
           "pages": [
-            "api/portfolio/list-facilities",
-            "api/portfolio/list-portfolios"
+            "api/portfolio/list-portfolios",
+            "api/portfolio/list-facilities"
           ]
         },
         {

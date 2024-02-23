@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import Mock 
 from openoperator.core import OpenOperator, User
+from openoperator.types import PortfolioModel 
 from neo4j.exceptions import Neo4jError
 
 class TestOpenOperator(unittest.TestCase):
@@ -92,8 +93,8 @@ class TestOpenOperator(unittest.TestCase):
 
     # Verify the returned data
     assert portfolios == [
-        {"name": "Customer 1", "uri": "https://openoperator.com/customer1"},
-        {"name": "Customer 2", "uri": "https://openoperator.com/customer2"},
+        PortfolioModel(name="Customer 1", uri="https://openoperator.com/customer1"),
+        PortfolioModel(name="Customer 2", uri="https://openoperator.com/customer2"),
     ]
 
     # Assert that create_session was called once
