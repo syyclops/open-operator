@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from io import BytesIO
 import os
-from openoperator.types import DocumentQuery, Message, TimeseriesReading, PortfolioModel, AiChatResponse, Transcription
+from openoperator.types import DocumentQuery, Message, TimeseriesReading, PortfolioModel, AiChatResponse, Transcription, DocumentModel, DocumentMetadataChunk
 from openoperator.core import User, OpenOperator
 from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, Openai, Postgres, Timescale
 from dotenv import load_dotenv
@@ -174,7 +174,7 @@ async def import_cobie_spreadsheet(
     return Response(content=str(e), status_code=500)
   
 ## DOCUMENTS ROUTES
-@app.get("/documents", tags=['Documents'])
+@app.get("/documents", tags=['Documents'], response_model=List[DocumentModel])
 async def list_documents(
   portfolio_uri: str,
   facility_uri: str,
@@ -184,7 +184,7 @@ async def list_documents(
     operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents.list()
   )
   
-@app.post("/documents/search", tags=['Documents'])
+@app.post("/documents/search", tags=['Documents'], response_model=List[DocumentMetadataChunk])
 async def search_documents(
   portfolio_uri: str,
   facility_uri: str,
