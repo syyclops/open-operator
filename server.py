@@ -448,4 +448,4 @@ async def get_timeseries_data(
   
 if __name__ == "__main__":
   reload = True if os.environ.get("ENV") == "dev" else False
-  uvicorn.run("server:app", host="0.0.0.0", port=8080, reload=reload, lifespan="on")
+  uvicorn.run("server:app", host="0.0.0.0", port=8080, reload=reload)
