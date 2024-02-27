@@ -115,12 +115,13 @@ class TestDocuments(unittest.TestCase):
 
   def test_update_extraction_status(self):
     url = "http://example.com/file.docx"
+    uri = f"{self.facility.uri}/document/120930128301-232132213"
     status = "success"
 
     session_mock = self.setup_session_mock()
     # Mock the session.run method to simulate a successful query execution for updating a document
     mock_query_result = Mock()
-    document_node = {"name": "test_name", "url": url, "extractionStatus": status}
+    document_node = {"name": "test_name", "url": url, "extractionStatus": status, "uri": uri}
     mock_query_result.data.return_value = [ {"d": document_node} ]
     session_mock.run.return_value = mock_query_result
 
@@ -130,7 +131,7 @@ class TestDocuments(unittest.TestCase):
     # Verify the result
     self.assertEqual(result_document, document_node)
     session_mock.run.assert_called_once()
-    assert "MATCH (d:Document {url: $url})" in session_mock.run.call_args[0][0]
+    assert "MATCH (d:Document {uri: $uri})" in session_mock.run.call_args[0][0]
     assert "SET d.extractionStatus = $status" in session_mock.run.call_args[0][0]
     assert "RETURN d" in session_mock.run.call_args[0][0]
 
@@ -138,6 +139,7 @@ class TestDocuments(unittest.TestCase):
     file_content = b'file_content'
     file_name = 'file_name.pdf'
     file_url = 'http://example.com/file.pdf'
+    file_uri = f"{self.facility.uri}/document/120930128301-232132213"
 
     # Mock the document_loader.load method
     mock_document = MagicMock()
@@ -150,7 +152,7 @@ class TestDocuments(unittest.TestCase):
     session_mock = self.setup_session_mock()
     # Mock the session.run method to simulate a successful query execution for updating a document
     mock_query_result = Mock()
-    document_node = {"name": file_name, "url": file_url, "extractionStatus": "success"}
+    document_node = {"name": file_name, "url": file_url, "extractionStatus": "success", "uri": file_uri}
     mock_query_result.data.return_value = [ {"d": document_node} ]
     session_mock.run.return_value = mock_query_result
 
@@ -162,28 +164,28 @@ class TestDocuments(unittest.TestCase):
     self.document_loader.load.assert_called_once_with(file_content=file_content, file_path=file_name)
     self.vector_store.add_documents.assert_called_once_with([mock_document])
     session_mock.run.assert_called_once()
-    assert "MATCH (d:Document {url: $url})" in session_mock.run.call_args[0][0]
+    assert "MATCH (d:Document {uri: $uri})" in session_mock.run.call_args[0][0]
     assert "SET d.extractionStatus = $status" in session_mock.run.call_args[0][0]
     assert "RETURN d" in session_mock.run.call_args[0][0]
 
   def test_delete(self):
+    uri = "http://example.com/document/file.docx"
     url = "http://example.com/file.docx"
 
     session_mock = self.setup_session_mock()
     # Mock the session.run method to simulate a successful query execution for deleting a document
     mock_query_result = Mock()
-    document_node = {"name": "test_name", "url": url, "extractionStatus": "success"}
-    mock_query_result.data.return_value = [ {"d": document_node} ]
+    mock_query_result.data.return_value = [ {"url": url} ]
     session_mock.run.return_value = mock_query_result
 
     # Execute the delete method
-    self.documents.delete(url)
+    self.documents.delete(uri)
 
     # Verify the result
     session_mock.run.assert_called_once()
     self.blob_store.delete_file.assert_called_once_with(url)
-    self.vector_store.delete_documents.assert_called_once_with(filter={"file_url": url})
-    assert "MATCH (d:Document {url: $url})" in session_mock.run.call_args[0][0]
+    self.vector_store.delete_documents.assert_called_once_with(filter={"document_uri": uri})
+    assert "MATCH (d:Document {uri: $uri})" in session_mock.run.call_args[0][0]
     assert "DETACH DELETE d" in session_mock.run.call_args[0][0]
 
   def test_search(self):

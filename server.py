@@ -199,30 +199,30 @@ async def search_documents(
 async def delete_document(
   portfolio_uri: str,
   facility_uri: str,
-  document_url: str,
+  document_uri: str,
   current_user: User = Security(get_current_user)
 ) -> Response:
   try:
     operator.portfolio(
       current_user,
       portfolio_uri
-    ).facility(facility_uri).documents.delete(document_url)
+    ).facility(facility_uri).documents.delete(document_uri)
     return JSONResponse(content={
       "message": "Document deleted successfully",
     })
   except HTTPException as e:
     return JSONResponse(
       content={"message": f"Unable to delete document: {e}"},
-      status_code=500
+      status_code=400
     )
 
 @app.post("/documents/upload", tags=['Documents'])
 async def upload_files(
-  background_tasks: BackgroundTasks,
   files: List[UploadFile],
   portfolio_uri: str,
   facility_uri: str,
-  current_user: User = Security(get_current_user)
+  background_tasks: BackgroundTasks,
+  current_user: User = Security(get_current_user),
 ):
   uploaded_files_info = []  # To store info about uploaded files
 
@@ -239,13 +239,13 @@ async def upload_files(
         file_type=file_type
       )
 
-      file_url = document['url']
+      doc_uri = document['uri']
       background_tasks.add_task(operator.portfolio(
         current_user,
         portfolio_uri
-      ).facility(facility_uri).documents.run_extraction_process, file_content, file.filename, file_url)
+      ).facility(facility_uri).documents.run_extraction_process, file_content, file.filename, doc_uri)
 
-      uploaded_files_info.append({"filename": file.filename, "url": file_url})
+      uploaded_files_info.append({"filename": file.filename, "uri": doc_uri})
     except Exception as e:  # Catching a more general exception; you might want to log this or handle it differently
       return JSONResponse(
           content={"message": f"Unable to upload file {file.filename}: {e}"},
@@ -448,4 +448,4 @@ async def get_timeseries_data(
   
 if __name__ == "__main__":
   reload = True if os.environ.get("ENV") == "dev" else False
-  uvicorn.run("server:app", host="0.0.0.0", port=8080, reload=reload)
+  uvicorn.run("server:app", host="0.0.0.0", port=8080, reload=reload, lifespan="on")
