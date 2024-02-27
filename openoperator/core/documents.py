@@ -2,6 +2,7 @@ import fitz
 import io
 from neo4j.exceptions import Neo4jError
 from openoperator.services import BlobStore, DocumentLoader, VectorStore, KnowledgeGraph
+from openoperator.utils import create_uri
 
 class Documents:
   """
@@ -48,10 +49,11 @@ class Documents:
 
     try:
       with self.knowledge_graph.create_session() as session:
-        query = """CREATE (d:Document {name: $name, url: $url, extractionStatus: 'pending', thumbnailUrl: $thumbnail_url})
+        doc_uri = f"{self.facility.uri}/{create_uri(file_name)}"
+        query = """CREATE (d:Document {name: $name, url: $url, extractionStatus: 'pending', thumbnailUrl: $thumbnail_url, uri: $doc_uri})
                     CREATE (d)-[:documentTo]->(:Facility {uri: $facility_uri})
                     RETURN d"""
-        result = session.run(query, name=file_name, url=file_url, facility_uri=self.facility.uri, thumbnail_url=thumbnail_url)
+        result = session.run(query, name=file_name, url=file_url, facility_uri=self.facility.uri, thumbnail_url=thumbnail_url, doc_uri=doc_uri)
 
         return result.data()[0]['d']
     except Neo4jError as e:
