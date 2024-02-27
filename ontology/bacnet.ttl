@@ -1,0 +1,38 @@
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<http://data.ashrae.org/bacnet> a owl:Ontology .
+
+<http://data.ashrae.org/bacnet#device_address> a owl:DatatypeProperty .
+
+<http://data.ashrae.org/bacnet#device_description> a owl:DatatypeProperty .
+
+<http://data.ashrae.org/bacnet#device_id> a owl:DatatypeProperty .
+
+<http://data.ashrae.org/bacnet#device_name> a owl:DatatypeProperty .
+
+<http://data.ashrae.org/bacnet#objectOf> a owl:ObjectProperty ;
+    rdfs:domain <http://data.ashrae.org/bacnet#Point> ;
+    rdfs:range <http://data.ashrae.org/bacnet#Device> .
+
+<http://data.ashrae.org/bacnet#object_description> a owl:DatatypeProperty .
+
+<http://data.ashrae.org/bacnet#object_index> a owl:DatatypeProperty .
+
+<http://data.ashrae.org/bacnet#object_name> a owl:DatatypeProperty .
+
+<http://data.ashrae.org/bacnet#object_units> a owl:DatatypeProperty .
+
+<http://data.ashrae.org/bacnet#present_value> a owl:DatatypeProperty .
+
+<http://data.ashrae.org/bacnet#raw_description> a owl:DatatypeProperty .
+
+<http://data.ashrae.org/bacnet#Device> a owl:Class ;
+    rdfs:subClassOf <http://data.ashrae.org/bacnet#BACNET> .
+
+<http://data.ashrae.org/bacnet#Point> a owl:Class ;
+    rdfs:subClassOf <http://data.ashrae.org/bacnet#BACNET> .
+
+<http://data.ashrae.org/bacnet#BACNET> a owl:Class ;
+    rdfs:subClassOf owl:Thing .
+
