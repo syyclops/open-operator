@@ -4,7 +4,7 @@ from typing import Literal, Optional, Any
 class DocumentQuery(BaseModel):
   query: str
   limit: int = 15
-  file_url: str = None
+  doc_uri: str = None
 
 class Document:
   def __init__(self, text: str, metadata):
