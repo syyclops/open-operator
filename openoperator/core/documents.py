@@ -2,6 +2,7 @@ import fitz
 import io
 from neo4j.exceptions import Neo4jError
 from openoperator.services import BlobStore, DocumentLoader, VectorStore, KnowledgeGraph
+from openoperator.types import DocumentModel
 from uuid import uuid4
 
 class Documents:
@@ -27,7 +28,7 @@ class Documents:
       result = session.run("MATCH (d:Document)-[:documentTo]-(f:Facility {uri: $facility_uri}) RETURN d", facility_uri=self.facility.uri)
       return [record['d'] for record in result.data()]
         
-  def upload(self, file_content: bytes, file_name: str, file_type: str) -> None:
+  def upload(self, file_content: bytes, file_name: str, file_type: str) -> DocumentModel:
     """
     Upload a file for a facility.
 
@@ -54,8 +55,9 @@ class Documents:
                     CREATE (d)-[:documentTo]->(:Facility {uri: $facility_uri})
                     RETURN d"""
         result = session.run(query, name=file_name, url=file_url, facility_uri=self.facility.uri, thumbnail_url=thumbnail_url, doc_uri=doc_uri)
-
-        return result.data()[0]['d']
+        data = result.data()
+        if len(data) == 0: raise ValueError("Document not created")
+        return DocumentModel(extractionStatus="pending", name=file_name, uri=doc_uri, url=file_url, thumbnailUrl=thumbnail_url)
     except Neo4jError as e:
       raise e
         
@@ -75,7 +77,6 @@ class Documents:
       raise e
         
   def run_extraction_process(self, file_content: bytes, file_name: str, doc_uri: str):
-    print("running extraction")
     try:
       docs = self.document_loader.load(file_content=file_content, file_path=file_name)
     except Exception as e:

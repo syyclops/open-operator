@@ -1,6 +1,8 @@
 from openoperator.core import Documents
+from openoperator.types import DocumentModel
 import unittest
 from unittest.mock import Mock, patch, MagicMock
+from uuid import uuid4
 
 class TestDocuments(unittest.TestCase):
   def setUp(self) -> None:
@@ -9,6 +11,7 @@ class TestDocuments(unittest.TestCase):
     self.vector_store = Mock()
     self.knowledge_graph = Mock()
     self.facility = Mock()
+    self.facility.uri = "http://example.com/facility"
     self.documents = Documents(self.facility, self.knowledge_graph, self.blob_store, self.document_loader, self.vector_store)
 
   def setup_session_mock(self):
@@ -72,10 +75,13 @@ class TestDocuments(unittest.TestCase):
     session_mock.run.return_value = mock_query_result
 
     # Execute the upload method
-    result_document = self.documents.upload(file_content, file_name, file_type)
-
+    mock_uuid = uuid4()
+    with patch('openoperator.core.documents.uuid4', return_value=mock_uuid):
+      result_document = self.documents.upload(file_content, file_name, file_type)
+    expected_document = DocumentModel(extractionStatus="pending", name=file_name, uri=f"{self.facility.uri}/document/{str(mock_uuid)}", url=file_url, thumbnailUrl=None)
+  
     # Verify the result
-    self.assertEqual(result_document, document_node)
+    self.assertEqual(result_document, expected_document)
     self.assertEqual(self.blob_store.upload_file.call_count, 1)
     self.blob_store.upload_file.assert_called_with(file_content=file_content, file_name=file_name, file_type=file_type)
     session_mock.run.assert_called_once()
@@ -104,11 +110,13 @@ class TestDocuments(unittest.TestCase):
     session_mock.run.return_value = mock_query_result
 
     # Mock fitz.open and execute the upload method
-    with patch('openoperator.core.documents.fitz.open', return_value=fitz_mock):
+    mock_uuid = uuid4()
+    with patch('openoperator.core.documents.fitz.open', return_value=fitz_mock), patch('openoperator.core.documents.uuid4', return_value=mock_uuid):
       result_document = self.documents.upload(file_content, file_name, file_type)
+    expected_result = DocumentModel(extractionStatus="pending", name=file_name, uri=f"{self.facility.uri}/document/{str(mock_uuid)}", url=file_url, thumbnailUrl=thumbnail_url)
 
     # Verify the result
-    self.assertEqual(result_document, document_node)
+    self.assertEqual(result_document, expected_result)
     self.assertEqual(self.blob_store.upload_file.call_count, 2)
     self.blob_store.upload_file.assert_any_call(file_content=b'thumbnail_content', file_name=f"{file_name}_thumbnail.png", file_type='image/png')
     self.blob_store.upload_file.assert_any_call(file_content=file_content, file_name=file_name, file_type=file_type)

@@ -6,7 +6,7 @@ from typing import List
 from ..postgres import Postgres
 from .vector_store import VectorStore
 from ..embeddings.embeddings import Embeddings
-from openoperator.types import Document
+from openoperator.types import DocumentMetadataChunk
 
 class PGVectorStore(VectorStore):
   """
@@ -42,7 +42,7 @@ class PGVectorStore(VectorStore):
     except Exception as e:
       raise e
 
-  def add_documents(self, documents: List[Document]) -> None:
+  def add_documents(self, documents: List[DocumentMetadataChunk]) -> None:
     """
     Creates text embeddings for a list of documents and uploads them to the vector store.
     """

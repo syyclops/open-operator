@@ -1,17 +1,26 @@
 from pydantic import BaseModel
 from typing import Literal, Optional, Any
 
+## Document Loader
 class DocumentQuery(BaseModel):
   query: str
   limit: int = 15
   doc_uri: str = None
 
-class Document:
-  def __init__(self, text: str, metadata):
-    self.text = text
-    self.metadata = metadata
+class DocumentMetadataChunk(BaseModel):
+  text: str
+  metadata: dict
 
-class Message(BaseModel):
+# Documents
+class DocumentModel(BaseModel):
+  extractionStatus: Literal['pending', 'success', 'failed']
+  name: str
+  uri: str
+  url: str
+  thumbnailUrl: str | None
+
+## AI Chat
+class Message(BaseModel): 
   content: str
   role: Literal['user', 'assistant']
 
@@ -31,11 +40,13 @@ class AiChatResponse(BaseModel):
 class Transcription(BaseModel):
   text: str
 
+# Timeseries
 class TimeseriesReading(BaseModel):
   ts: str
   value: float
   timeseriesid: str
 
+# Portfolio
 class PortfolioModel(BaseModel):
   name: str
   uri: str
