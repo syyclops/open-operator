@@ -76,7 +76,7 @@ class Documents:
     except Neo4jError as e:
       raise e
         
-  def run_extraction_process(self, file_content: bytes, file_name: str, doc_uri: str):
+  def run_extraction_process(self, file_content: bytes, file_name: str, doc_uri: str, doc_url: str):
     try:
       docs = self.document_loader.load(file_content=file_content, file_path=file_name)
     except Exception as e:
@@ -89,6 +89,7 @@ class Documents:
         doc.metadata['portfolio_uri'] = self.facility.portfolio.uri
         doc.metadata['facility_uri'] = self.facility.uri
         doc.metadata['document_uri'] = doc_uri
+        doc.metadata['document_url'] = doc_url
     
       self.vector_store.add_documents(docs)
     except Exception as e:
@@ -108,7 +109,6 @@ class Documents:
         data = result.data()
         if len(data) == 0:
           raise ValueError(f"Document with uri {uri} not found")
-      print(data)
       url = data[0]['url']
       self.blob_store.delete_file(url)
       self.vector_store.delete_documents(filter={"document_uri": uri})

@@ -1,13 +1,15 @@
 from unittest.mock import Mock, patch, MagicMock
-from openoperator.services import Openai 
+from openoperator.services import OpenaiLLM 
+from openoperator.core.tool import Tool, ToolParametersSchema
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta, ChoiceDeltaToolCall, ChoiceDeltaToolCallFunction
-from openoperator.types import AiChatResponse, ToolCall, ToolResponse
+from openoperator.types import LLMChatResponse
 
 # Test initialization with default parameters
 def test_openai_init_defaults():
-  with patch('openoperator.services.ai.openai.os') as mock_os:
+  with patch('openoperator.services.llm.openai_llm.os') as mock_os:
     mock_os.environ = {'OPENAI_API_KEY': 'test_key'}
-    openai_instance = Openai()
+    system_prompt = "You are an an AI Assistant"
+    openai_instance = OpenaiLLM(system_prompt=system_prompt)
     assert openai_instance.model_name == "gpt-4"
     assert openai_instance.temperature == 0
     assert 'You are an an AI Assistant' in openai_instance.system_prompt
@@ -15,7 +17,7 @@ def test_openai_init_defaults():
 # Test initialization with custom parameters
 def test_openai_init_custom():
   custom_prompt = "Custom system prompt."
-  openai_instance = Openai(
+  openai_instance = OpenaiLLM(
     openai_api_key="custom_key",
     system_prompt=custom_prompt,
     model_name="custom-model",
@@ -29,7 +31,7 @@ def test_openai_init_custom():
   assert openai_instance.openai.base_url == "https://custom.api"
 
 # Test the chat method with mocked OpenAI response
-@patch('openoperator.services.ai.openai.OpenAI')  # Mock the OpenAI client
+@patch('openoperator.services.llm.openai_llm.OpenAI')  # Mock the OpenAI client
 def test_openai_chat(mock_openai):
   # Setup the mock response to simulate an iterable of response objects
   delta = ChoiceDelta(content="Test response", role="assistant")
@@ -43,15 +45,16 @@ def test_openai_chat(mock_openai):
   mock_openai_instance.chat.completions.create.return_value = mock_stream
   mock_openai.return_value = mock_openai_instance
 
-  ai = Openai(openai_api_key="dummy_key")
+  system_prompt = "You are an an AI Assistant"
+  ai = OpenaiLLM(openai_api_key="dummy_key", system_prompt=system_prompt)
   messages = [{"role": "user", "content": "Hello, AI"}]
 
   for response in ai.chat(messages):
-    assert response == AiChatResponse(content="Test response", tool_finished=None, tool_selected=None)
+    assert response == LLMChatResponse(type="content", content="Test response")
 
   mock_openai_instance.chat.completions.create.assert_called_once()
 
-@patch('openoperator.services.ai.openai.OpenAI')
+@patch('openoperator.services.llm.openai_llm.OpenAI')
 def test_openai_chat_multiple_chunks(mock_openai):
   # Setup mock response to simulate multiple chunks
   delta_chunk1 = ChoiceDelta(content="Part 1 ", role="assistant")
@@ -67,7 +70,8 @@ def test_openai_chat_multiple_chunks(mock_openai):
   mock_openai_instance.chat.completions.create.return_value = mock_stream
   mock_openai.return_value = mock_openai_instance
 
-  ai = Openai(openai_api_key="dummy_key")
+  system_prompt = "You are an an AI Assistant"
+  ai = OpenaiLLM(openai_api_key="dummy_key", system_prompt=system_prompt)
   messages = [{"role": "user", "content": "Need a longer response"}]
 
   full_response = ""
@@ -78,11 +82,11 @@ def test_openai_chat_multiple_chunks(mock_openai):
 
   assert mock_openai_instance.chat.completions.create.call_count == 1
 
-@patch('openoperator.services.ai.openai.OpenAI')
+@patch('openoperator.services.llm.openai_llm.OpenAI')
 def test_openai_chat_with_tools(mock_openai):
   # Mock Openai response with tool calls 
   function = ChoiceDeltaToolCallFunction(name="test_function", arguments="{\"query\": \"test\"}")
-  tool_call = ChoiceDeltaToolCall(index=0, type="function", function=function)
+  tool_call = ChoiceDeltaToolCall(index=0, type="function", function=function, id="test")
   delta = ChoiceDelta(role="assistant", tool_calls=[tool_call], content="")
   choice = Choice(delta=delta, index=0)
   chunk1 = ChatCompletionChunk(choices=[choice], created=0, model='gpt-4', system_fingerprint='test', object='chat.completion.chunk', id='test')
@@ -102,40 +106,32 @@ def test_openai_chat_with_tools(mock_openai):
   mock_openai_instance.chat.completions.create.side_effect = [mock_stream, iter([chunk3])]
   mock_openai.return_value = mock_openai_instance
 
-  ai = Openai(openai_api_key="dummy_key")
+  system_prompt = "You are an an AI Assistant"
+  ai = OpenaiLLM(openai_api_key="dummy_key", system_prompt=system_prompt)
   messages = [{"role": "user", "content": "Hello, AI"}]   
 
-  tools = [
-    {
-      "type": "function",
-      "function": {
-        "name": "test_function",
-        "description": "Test function",
-        "parameters": {
-            "type": "object",
-            "properties": {
-              "query": {
-                  "type": "string",
-                  "description": "The search query to use.",
-              },
-            },
-            "required": ["query"],
+  document_search_parameters: ToolParametersSchema = {
+    "type": "object",
+    "properties": {
+        "query": {
+            "type": "string",
+            "description": "The search query to use.",
         },
-      },
-    }
-  ]
-
-  available_functions = {
-    "test_function": Mock(return_value=[{"content": "Test function"}])
+    },
+    "required": ["query"],
   }
+  document_search_tool = Tool(name="test_function", description="Search documents for metadata. These documents are drawings/plans, O&M manuals, etc.", function=Mock(return_value=[{"content": "Test function"}]), parameters_schema=document_search_parameters)
+  tools = [document_search_tool]
 
   responses = []
 
-  for response in ai.chat(messages, tools, available_functions):
+  for response in ai.chat(messages, tools):
     responses.append(response)
 
-  assert responses[0] == AiChatResponse(content=None, tool_selected=ToolCall(function_name="test_function", arguments={"query": "test"}), tool_finished=None)
-  assert responses[1] == AiChatResponse(content=None, tool_selected=None, tool_finished=ToolResponse(name="test_function", content=[{"content": "Test function"}]))
-  assert responses[2] == AiChatResponse(content="Test function", tool_selected=None, tool_finished=None)
+  print(responses[0])
+
+  assert responses[0] == LLMChatResponse(type="tool_selected", tool_name="test_function", tool_id="test", content=None)
+  assert responses[1] == LLMChatResponse(type="tool_finished", tool_name="test_function", tool_response=[{"content": "Test function"}], tool_id="test")
+  assert responses[2] == LLMChatResponse(type="content", content="Test function")
   assert len(responses) == 3
   assert mock_openai_instance.chat.completions.create.call_count == 2

@@ -11,10 +11,11 @@ class TestOpenOperator(unittest.TestCase):
     self.document_loader = Mock()
     self.vector_store = Mock()
     self.knowledge_graph = Mock()
-    self.ai = Mock()
+    self.llm = Mock()
     self.base_uri = "https://openoperator.com/"
     self.api_token_secret = "secret"
     self.timescale = Mock()
+    self.audio = Mock()
     self.operator = OpenOperator(
         self.blob_store,
         self.embeddings,
@@ -22,7 +23,8 @@ class TestOpenOperator(unittest.TestCase):
         self.vector_store,
         self.timescale,
         self.knowledge_graph,
-        self.ai,
+        self.llm,
+        self.audio,
         self.base_uri,
         self.api_token_secret
     )
@@ -137,7 +139,7 @@ class TestOpenOperator(unittest.TestCase):
     portfolio = self.operator.portfolio(self.user, "https://openoperator.com/portfolio")
     portfolio.search_documents = Mock(return_value="Search result")
 
-    self.ai.chat.return_value = iter(["AI response to search for documents"])
+    self.llm.chat.return_value = iter(["AI response to search for documents"])
 
     # Define the messages to simulate user interaction
     messages = [
@@ -148,7 +150,7 @@ class TestOpenOperator(unittest.TestCase):
     responses = list(self.operator.chat(messages, portfolio))
 
     # Verify
-    self.ai.chat.assert_called_once()  # Ensure the AI chat was called
+    self.llm.chat.assert_called_once()  # Ensure the AI chat was called
     self.assertEqual(len(responses), 1)  # Check if there is one response
     self.assertEqual(responses[0], "AI response to search for documents")  # Validate the response content
 
@@ -158,7 +160,7 @@ class TestOpenOperator(unittest.TestCase):
     portfolio = self.operator.portfolio(self.user, "https://openoperator.com/portfolio")
     portfolio.search_documents = Mock(return_value="Search result")
 
-    self.ai.chat.side_effect = Exception("AI error")
+    self.llm.chat.side_effect = Exception("AI error")
 
     # Define the messages to simulate user interaction
     messages = [

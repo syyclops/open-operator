@@ -1,5 +1,6 @@
 from .embeddings import OpenAIEmbeddings, Embeddings
-from .ai import Openai, AI
+from .llm import OpenaiLLM, LLM
+from .audio import Audio, OpenaiAudio
 from .vector_store import PGVectorStore, VectorStore
 from .document_loader import UnstructuredDocumentLoader, DocumentLoader
 from .blob_store import AzureBlobStore, BlobStore

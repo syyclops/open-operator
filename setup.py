@@ -13,7 +13,7 @@ setup(name='openoperator',
       author='Anthony DeMattos',
       license='GPL-3.0',
       long_description_content_type='text/markdown',
-      packages = ['openoperator', 'openoperator.services.ai', 'openoperator.services.blob_store', 'openoperator.services.vector_store', 'openoperator.services.document_loader', 
+      packages = ['openoperator', 'openoperator.services.llm', 'openoperator.services.blob_store', 'openoperator.services.vector_store', 'openoperator.services.document_loader', 
                   'openoperator.services.embeddings'],
       classifiers=[
         "Programming Language :: Python :: 3",

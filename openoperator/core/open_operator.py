@@ -2,10 +2,11 @@ from neo4j.exceptions import Neo4jError
 import os
 import jwt
 from typing import Generator, List
-from openoperator.services import BlobStore, Embeddings, DocumentLoader, VectorStore, KnowledgeGraph, AI, Timescale
+from openoperator.services import BlobStore, Embeddings, DocumentLoader, VectorStore, KnowledgeGraph, LLM, Timescale, Audio
 from openoperator.core import Portfolio, Facility, User
 from openoperator.utils import create_uri
-from openoperator.types import AiChatResponse, PortfolioModel
+from openoperator.types import LLMChatResponse, PortfolioModel
+from .tool import Tool, ToolParametersSchema
 
 class OpenOperator: 
   """
@@ -16,7 +17,6 @@ class OpenOperator:
   - Define the tools that the assistant can use
   - Create and manage portfolios
   - Chat with the assistant
-  - Start the server
   """
   def __init__(
     self, 
@@ -26,7 +26,8 @@ class OpenOperator:
     vector_store: VectorStore,
     timescale: Timescale,
     knowledge_graph: KnowledgeGraph,
-    ai: AI,
+    llm: LLM,
+    audio: Audio,
     base_uri: str = "https://openoperator.com/",
     api_token_secret: str | None = None # Used for JWT on the server
   ) -> None:
@@ -36,32 +37,11 @@ class OpenOperator:
     self.vector_store = vector_store
     self.timescale = timescale
     self.knowledge_graph = knowledge_graph  
-    self.ai = ai
+    self.llm = llm
+    self.audio = audio
 
-    if api_token_secret is None:
-      api_token_secret = os.getenv("API_TOKEN_SECRET")
+    if api_token_secret is None: api_token_secret = os.getenv("API_TOKEN_SECRET")
     self.secret_key = api_token_secret
-
-    # Define the tools that the assistant can use
-    self.tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "search_building_documents",
-                "description": "Search building documents for metadata. These documents are drawings/plans, O&M manuals, etc.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "The search query to use.",
-                        },
-                    },
-                    "required": ["query"],
-                },
-            },
-        }
-    ]
 
     self.base_uri = base_uri        
 
@@ -100,22 +80,31 @@ class OpenOperator:
           
     return Portfolio(self, knowledge_graph=self.knowledge_graph, uri=portfolio_uri, user=user)
 
-  def chat(self, messages, portfolio: Portfolio, facility: Facility | None = None, verbose: bool = False) -> Generator[AiChatResponse, None, None]:
+  def chat(self, messages, portfolio: Portfolio, facility: Facility | None = None, verbose: bool = False) -> Generator[LLMChatResponse, None, None]:
     """
     Interact with the assistant.
     """
-    available_functions = {
-        "search_building_documents": facility.documents.search if facility else portfolio.search_documents,
+    document_search_parameters: ToolParametersSchema = {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "The search query to use.",
+        },
+      },
+      "required": ["query"],
     }
+    document_search_tool = Tool(name="search_documents", description="Search documents for metadata. These documents are drawings/plans, O&M manuals, etc.", function=facility.documents.search if facility else portfolio.search_documents, parameters_schema=document_search_parameters)
+    tools = [document_search_tool]
     
-    for response in self.ai.chat(messages, self.tools, available_functions, verbose):
+    for response in self.llm.chat(messages, tools, verbose):
       yield response
 
   def transcribe(self, audio) -> str:
     """
     Transcribe audio to text.
     """
-    return self.ai.transcribe(audio)
+    return self.audio.transcribe(audio)
 
   def get_user_from_access_token(self, token):
     """
