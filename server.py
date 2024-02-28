@@ -19,7 +19,7 @@ Your goal is to help facility owners, managers, and operators manage their facil
 Make sure to always follow ASHRAE guildelines.
 Don't be too wordy. Don't be too short. Be just right.
 Don't make up information. If you don't know, say you don't know.
-Always respond with markdown formatted text."""
+Always respond with markdown formatted text and provide sources for your information."""
 
 # Create the different modules that are needed for the operator
 blob_store = AzureBlobStore()
@@ -99,7 +99,7 @@ async def chat(
         portfolio=portfolio,
         facility=facility
     ):
-      yield json.dumps(response.model_dump())
+      yield json.dumps(response.model_dump()) + "\n"
 
   return StreamingResponse(event_stream(), media_type="text/event-stream")
   
