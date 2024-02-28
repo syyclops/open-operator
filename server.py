@@ -9,9 +9,16 @@ from io import BytesIO
 import os
 from openoperator.types import DocumentQuery, Message, TimeseriesReading, PortfolioModel, AiChatResponse, Transcription, DocumentModel, DocumentMetadataChunk
 from openoperator.core import User, OpenOperator
-from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, Openai, Postgres, Timescale
+from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, OpenaiLLM, Postgres, Timescale, OpenaiAudio
 from dotenv import load_dotenv
 load_dotenv()
+
+llm_system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
+Your goal is to help facility owners, managers, and operators manage their facilities and buildings more efficiently.
+Make sure to always follow ASHRAE guildelines.
+Don't be too wordy. Don't be too short. Be just right.
+Don't make up information. If you don't know, say you don't know.
+Always respond with markdown formatted text."""
 
 # Create the different modules that are needed for the operator
 blob_store = AzureBlobStore()
@@ -21,7 +28,8 @@ postgres = Postgres()
 vector_store = PGVectorStore(postgres=postgres, embeddings=embeddings)
 timescale = Timescale(postgres=postgres)
 knowledge_graph = KnowledgeGraph()
-ai = Openai(model_name="gpt-4-0125-preview")
+llm = OpenaiLLM(model_name="gpt-4-0125-preview", system_prompt=llm_system_prompt)
+audio = OpenaiAudio()
 
 operator = OpenOperator(
   blob_store=blob_store,
@@ -30,7 +38,8 @@ operator = OpenOperator(
   timescale=timescale,
   embeddings=embeddings,
   knowledge_graph=knowledge_graph,
-  ai=ai,
+  llm=llm,
+  audio=audio,
   base_uri="https://syyclops.com/"
 )
 
@@ -239,7 +248,7 @@ async def upload_files(
         file_type=file_type
       )
 
-      doc_uri = document['uri']
+      doc_uri = document.uri
       background_tasks.add_task(operator.portfolio(
         current_user,
         portfolio_uri
