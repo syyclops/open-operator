@@ -63,8 +63,9 @@ def main():
 
     content = ""
     for response in operator.chat(messages, portfolio=portfolio, verbose=verbose):
-      content = response.content
-      print(content, flush=True, end="")
+      if response.type == "content":
+        content = response.content
+        print(content, flush=True, end="")
 
     messages.append({
         "role": "assistant",

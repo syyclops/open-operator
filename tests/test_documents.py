@@ -165,7 +165,7 @@ class TestDocuments(unittest.TestCase):
     session_mock.run.return_value = mock_query_result
 
     # Execute the run_extraction_process method
-    result_document = self.documents.run_extraction_process(file_content, file_name, file_url)
+    result_document = self.documents.run_extraction_process(file_content, file_name, file_uri, file_url)
 
     # Verify the result
     self.assertEqual(result_document, document_node)

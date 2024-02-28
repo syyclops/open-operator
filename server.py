@@ -248,13 +248,12 @@ async def upload_files(
         file_type=file_type
       )
 
-      doc_uri = document.uri
       background_tasks.add_task(operator.portfolio(
         current_user,
         portfolio_uri
-      ).facility(facility_uri).documents.run_extraction_process, file_content, file.filename, doc_uri)
+      ).facility(facility_uri).documents.run_extraction_process, file_content, file.filename, document.uri, document.url)
 
-      uploaded_files_info.append({"filename": file.filename, "uri": doc_uri})
+      uploaded_files_info.append({"filename": file.filename, "uri": document.uri})
     except Exception as e:  # Catching a more general exception; you might want to log this or handle it differently
       return JSONResponse(
           content={"message": f"Unable to upload file {file.filename}: {e}"},
