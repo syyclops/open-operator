@@ -45,7 +45,8 @@ def test_openai_chat(mock_openai):
   mock_openai_instance.chat.completions.create.return_value = mock_stream
   mock_openai.return_value = mock_openai_instance
 
-  ai = OpenaiLLM(openai_api_key="dummy_key")
+  system_prompt = "You are an an AI Assistant"
+  ai = OpenaiLLM(openai_api_key="dummy_key", system_prompt=system_prompt)
   messages = [{"role": "user", "content": "Hello, AI"}]
 
   for response in ai.chat(messages):
@@ -69,7 +70,8 @@ def test_openai_chat_multiple_chunks(mock_openai):
   mock_openai_instance.chat.completions.create.return_value = mock_stream
   mock_openai.return_value = mock_openai_instance
 
-  ai = OpenaiLLM(openai_api_key="dummy_key")
+  system_prompt = "You are an an AI Assistant"
+  ai = OpenaiLLM(openai_api_key="dummy_key", system_prompt=system_prompt)
   messages = [{"role": "user", "content": "Need a longer response"}]
 
   full_response = ""
@@ -104,7 +106,8 @@ def test_openai_chat_with_tools(mock_openai):
   mock_openai_instance.chat.completions.create.side_effect = [mock_stream, iter([chunk3])]
   mock_openai.return_value = mock_openai_instance
 
-  ai = OpenaiLLM(openai_api_key="dummy_key")
+  system_prompt = "You are an an AI Assistant"
+  ai = OpenaiLLM(openai_api_key="dummy_key", system_prompt=system_prompt)
   messages = [{"role": "user", "content": "Hello, AI"}]   
 
   document_search_parameters: ToolParametersSchema = {
