@@ -11,3 +11,7 @@ docs/
 scripts/
 tests/
 .egg-info/
+ontology/
+examples/
+docs/
+data/
