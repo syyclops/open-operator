@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from io import BytesIO
 import os
+import json
 from openoperator.types import DocumentQuery, Message, TimeseriesReading, PortfolioModel, LLMChatResponse, Transcription, DocumentModel, DocumentMetadataChunk
 from openoperator.core import User, OpenOperator
 from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, OpenaiLLM, Postgres, Timescale, OpenaiAudio
@@ -98,7 +99,7 @@ async def chat(
         portfolio=portfolio,
         facility=facility
     ):
-      yield str(response.model_dump())
+      yield json.dumps(response.model_dump())
 
   return StreamingResponse(event_stream(), media_type="text/event-stream")
   
