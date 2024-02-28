@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from io import BytesIO
 import os
-from openoperator.types import DocumentQuery, Message, TimeseriesReading, PortfolioModel, AiChatResponse, Transcription, DocumentModel, DocumentMetadataChunk
+from openoperator.types import DocumentQuery, Message, TimeseriesReading, PortfolioModel, LLMChatResponse, Transcription, DocumentModel, DocumentMetadataChunk
 from openoperator.core import User, OpenOperator
 from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, OpenaiLLM, Postgres, Timescale, OpenaiAudio
 from dotenv import load_dotenv
@@ -78,7 +78,7 @@ async def login(email: str, password: str) -> JSONResponse:
   except HTTPException as e:
     return JSONResponse(content={"message": f"Unable to login: {e}"}, status_code=500)
 
-@app.post("/chat", tags=["AI"], response_model=Generator[AiChatResponse, None, None])
+@app.post("/chat", tags=["AI"], response_model=Generator[LLMChatResponse, None, None])
 async def chat(
   messages: list[Message],
   portfolio_uri: str,

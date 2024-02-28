@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Literal, Optional, Any
+from typing import Literal, Optional, List
 
 ## Document Loader
 class DocumentQuery(BaseModel):
@@ -24,17 +24,11 @@ class Message(BaseModel):
   content: str
   role: Literal['user', 'assistant']
 
-class ToolCall(BaseModel):
-  function_name: str
-  arguments: dict
-
-class ToolResponse(BaseModel):
-  name: str
-  content: Any
-
-class AiChatResponse(BaseModel):
-  tool_selected: Optional[ToolCall] = None
-  tool_finished: Optional[ToolResponse] = None
+class LLMChatResponse(BaseModel):
+  type: Literal['tool_selected', 'tool_finished', 'content']
+  tool_id: Optional[str] = None
+  tool_name: Optional[str] = None
+  tool_response: Optional[List] = None
   content: Optional[str] = None
 
 class Transcription(BaseModel):

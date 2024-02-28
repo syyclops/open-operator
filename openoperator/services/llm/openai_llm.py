@@ -4,7 +4,7 @@ import tiktoken
 import json
 from typing import Generator, List
 from openoperator.utils import split_string_with_limit
-from openoperator.types import AiChatResponse, ToolCall, ToolResponse
+from openoperator.types import LLMChatResponse
 from openoperator.core.tool import Tool
 from .llm import LLM
 
@@ -25,7 +25,7 @@ class OpenaiLLM(LLM):
     self.temperature = temperature
     self.system_prompt = system_prompt
 
-  def chat(self, messages, tools: List[Tool] | None = None, verbose: bool = False) -> Generator[AiChatResponse, None, None]:
+  def chat(self, messages, tools: List[Tool] | None = None, verbose: bool = False) -> Generator[LLMChatResponse, None, None]:
     # Add the system message to be the first message
     messages.insert(0, {
       "role": "system",
@@ -80,9 +80,9 @@ class OpenaiLLM(LLM):
         if finish_reason == "tool_calls":
           # Extend the conversation with the assistant's reply
           messages.append({
-              "role": "assistant",
-              "content": content,
-              "tool_calls": tool_calls
+            "role": "assistant",
+            "content": content,
+            "tool_calls": tool_calls
           })
 
           for tool_call in tool_calls:
@@ -93,11 +93,9 @@ class OpenaiLLM(LLM):
             function_args = json.loads(tool_call['function']['arguments'])
             if verbose: print("Tool args: " + str(function_args))
 
-            yield AiChatResponse(tool_selected=ToolCall(function_name=function_name, arguments=function_args))
-            function_response = function_to_call(
-                function_args
-            )
-            yield AiChatResponse(tool_finished=ToolResponse(name=function_name, content=function_response))
+            yield LLMChatResponse(type="tool_selected", tool_id=tool_call['id'], tool_name=function_name)
+            function_response = function_to_call(function_args)
+            yield LLMChatResponse(type="tool_finished", tool_id=tool_call['id'], tool_name=function_name, tool_response=function_response)
 
             # Convert function response to string and limit to 7000 tokens
             encoding = tiktoken.get_encoding("cl100k_base")
@@ -109,17 +107,17 @@ class OpenaiLLM(LLM):
 
             # Extend conversation with function response
             messages.append(
-                {
-                    "tool_call_id": tool_call['id'],
-                    "role": "tool",
-                    "name": function_name,
-                    "content": texts[0]
-                }
+              {
+                "tool_call_id": tool_call['id'],
+                "role": "tool",
+                "name": function_name,
+                "content": texts[0]
+              }
             )
 
         # If the stream is done because its the end of the conversation then return
         if finish_reason == "stop":
-          yield AiChatResponse(content=delta.content or "")
+          yield LLMChatResponse(content=delta.content or "", type="content")
           return
 
         # Update the content with the delta content
@@ -128,4 +126,4 @@ class OpenaiLLM(LLM):
 
         # If there are no tool calls and just streaming a normal response then print the chunks
         if not tool_calls:
-          yield AiChatResponse(content=delta.content or "")
+          yield LLMChatResponse(content=delta.content or "", type="content")
