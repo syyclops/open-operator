@@ -9,7 +9,7 @@ import uvicorn
 from io import BytesIO
 import os
 import json
-from openoperator.types import DocumentQuery, Message, PortfolioModel, LLMChatResponse, Transcription, DocumentModel, DocumentMetadataChunk
+from openoperator.types import DocumentQuery, Message, PortfolioModel, LLMChatResponse, Transcription, DocumentModel, DocumentMetadataChunk, PointModel
 from openoperator.core import User, OpenOperator
 from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, OpenaiLLM, Postgres, Timescale, OpenaiAudio
 from dotenv import load_dotenv
@@ -385,7 +385,7 @@ async def update_device(
     )
   
 ### POINTS ROUTES
-@app.get("/points", tags=['Points'])
+@app.get("/points", tags=['Points'], response_model=List[PointModel])
 async def list_points(
   portfolio_uri: str,
   facility_uri: str,
@@ -395,6 +395,7 @@ async def list_points(
   current_user: User = Security(get_current_user)
 ) -> JSONResponse:
   points = operator.portfolio(current_user, portfolio_uri).facility(facility_uri).point_manager.points(device_uri, collect_enabled, component_uri)
+  points = [point.model_dump() for point in points]
   for point in points: # Remove the embedding from the response
     point.pop('embedding', None)
   return JSONResponse(points)

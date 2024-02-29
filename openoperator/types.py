@@ -54,3 +54,17 @@ class TimeseriesReading(BaseModel):
 class PortfolioModel(BaseModel):
   name: str
   uri: str
+
+# Point
+class PointModel(BaseModel):
+  uri: str
+  object_type: str
+  object_index: str
+  object_units: str
+  timeseriesId: str
+  collect_enabled: bool
+  object_name: str
+  object_description: Optional[str] = None
+  value: Optional[float] = None
+  ts: Optional[str] = None
+  embedding: Optional[List[float]] = None

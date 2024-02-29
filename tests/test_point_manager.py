@@ -31,16 +31,24 @@ class TestPointManager(unittest.TestCase):
     mock_query_result.data.return_value = [
       {
         "p": {
-          "point_name": "test_point",
+          "object_name": "test_point",
           "uri": "https://openoperator.com/facility/point",
-          "timeseriesId": "example/example/301:14-3014/analogInput/1"
+          "timeseriesId": "example/example/301:14-3014/analogInput/1",
+          "collect_enabled": True,
+          "object_units": "noUnits",
+          "object_type": "analogInput",
+          "object_index": "1"
         }
       },
       {
         "p": {
-          "point_name": "test_point2",
+          "object_name": "test_point2",
           "uri": "https://openoperator.com/facility/point2",
-          "timeseriesId": "example/example/301:14-3014/analogInput/2"
+          "timeseriesId": "example/example/301:14-3014/analogInput/2",
+          "collect_enabled": True,
+          "object_units": "noUnits",
+          "object_type": "analogInput",
+          "object_index": "2"
         }
       }
     ]
@@ -54,6 +62,6 @@ class TestPointManager(unittest.TestCase):
     points = self.point_manager.points(device_uri="https://openoperator.com/facility/device")
 
     assert len(points) == 2
-    assert points[0]['point_name'] == "test_point"
-    assert points[0]['uri'] == "https://openoperator.com/facility/point"
-    assert points[1]['point_name'] == "test_point2"
+    assert points[0].object_name == "test_point"
+    assert points[0].uri == "https://openoperator.com/facility/point"
+    assert points[1].object_name == "test_point2"

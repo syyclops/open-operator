@@ -3,6 +3,8 @@ import numpy as np
 from openoperator.utils import dbscan_cluster
 from neo4j.exceptions import Neo4jError
 from collections import OrderedDict
+from openoperator.types import PointModel
+from typing import List
 
 class PointManager:
   def __init__(self, facility, embeddings: Embeddings, timescale: Timescale) -> None:
@@ -12,7 +14,7 @@ class PointManager:
     self.embeddings = embeddings
     self.timescale = timescale
 
-  def points(self, device_uri: str | None = None, collect_enabled: bool = True, component_uri: str | None = None):
+  def points(self, device_uri: str | None = None, collect_enabled: bool = True, component_uri: str | None = None) -> List[PointModel]:
     """
     Get the points in the facility or a specific device. Then fetch their latest values. 
     """
@@ -26,16 +28,19 @@ class PointManager:
     query += " WHERE p.uri STARTS WITH $uri RETURN p"
     with self.knowledge_graph.create_session() as session:
       result = session.run(query, uri=self.uri, device_uri=device_uri, component_uri=component_uri)
-      points = [record['p'] for record in result.data()]
+      points: List[PointModel] = []
+      for record in result.data():
+        points.append(PointModel(**record['p']))
     
-    ids = [point['timeseriesId'] for point in points]
-    readings = self.timescale.get_latest_values(ids)
-    readings_dict = OrderedDict((reading.timeseriesid, {"value": reading.value, "ts": reading.ts}) for reading in readings)
+    ids = [point.timeseriesId for point in points]
+    if len(ids) > 0:
+      readings = self.timescale.get_latest_values(ids)
+      readings_dict = OrderedDict((reading.timeseriesid, {"value": reading.value, "ts": reading.ts}) for reading in readings)
 
-    for point in points:
-      if point['timeseriesId'] in readings_dict:
-        point['value'] = readings_dict[point['timeseriesId']]['value']
-        point['ts'] = readings_dict[point['timeseriesId']]['ts']
+      for point in points:
+        if point.timeseriesId in readings_dict:
+          point.value = readings_dict[point.timeseriesId]['value']
+          point.ts = readings_dict[point.timeseriesId]['ts']
     return points
   
   def points_history(self, start_time: str, end_time: str, device_uri: str | None = None, component_uri: str | None = None):
