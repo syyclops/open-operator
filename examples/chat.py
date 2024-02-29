@@ -1,5 +1,5 @@
 from openoperator import OpenOperator
-from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, OpenaiLLM, Postgres, Timescale, OpenaiAudio
+from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, OpenaiLLM, Postgres, Timescale 
 import argparse
 from dotenv import load_dotenv
 load_dotenv()
@@ -29,7 +29,6 @@ def main():
   timescale = Timescale(postgres=postgres)
   knowledge_graph = KnowledgeGraph()
   llm = OpenaiLLM(model_name="gpt-4-0125-preview", system_prompt=llm_system_prompt)
-  audio = OpenaiAudio()
 
   operator = OpenOperator(
     blob_store=blob_store,
@@ -39,7 +38,6 @@ def main():
     embeddings=embeddings,
     knowledge_graph=knowledge_graph,
     llm=llm,
-    audio=audio,
     base_uri="https://syyclops.com/"
   )
 

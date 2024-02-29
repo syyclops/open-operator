@@ -15,7 +15,6 @@ class TestOpenOperator(unittest.TestCase):
     self.base_uri = "https://openoperator.com/"
     self.api_token_secret = "secret"
     self.timescale = Mock()
-    self.audio = Mock()
     self.operator = OpenOperator(
         self.blob_store,
         self.embeddings,
@@ -24,7 +23,6 @@ class TestOpenOperator(unittest.TestCase):
         self.timescale,
         self.knowledge_graph,
         self.llm,
-        self.audio,
         self.base_uri,
         self.api_token_secret
     )
