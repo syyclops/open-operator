@@ -40,7 +40,6 @@ operator = OpenOperator(
   embeddings=embeddings,
   knowledge_graph=knowledge_graph,
   llm=llm,
-  audio=audio,
   base_uri="https://syyclops.com/"
 )
 
@@ -84,8 +83,12 @@ async def chat(
   messages: list[Message],
   portfolio_uri: str,
   facility_uri: str | None = None,
+  document_uri: str | None = None,
   current_user: User = Security(get_current_user)
 ) -> StreamingResponse:
+  if document_uri and not facility_uri:
+    raise HTTPException(status_code=400, detail="If a document_uri is provided, a facility_uri must also be provided.")
+  
   messages_dict_list = [message.model_dump() for message in  messages]
 
   portfolio = operator.portfolio(current_user, portfolio_uri)
@@ -97,7 +100,8 @@ async def chat(
     for response in operator.chat(
         messages=messages_dict_list,
         portfolio=portfolio,
-        facility=facility
+        facility=facility,
+        document_uri=document_uri
     ):
       yield json.dumps(response.model_dump()) + "\n"
 
@@ -112,7 +116,7 @@ async def transcribe_audio(
     file_content = await file.read()
     buffer = BytesIO(file_content)
     buffer.name = file.filename
-    return JSONResponse(content={"text": operator.transcribe(buffer)})
+    return JSONResponse(content={"text": audio.transcribe(buffer)})
   except HTTPException as e:
     return JSONResponse(content={"message": f"Unable to transcribe audio: {e}"}, status_code=500)
 
