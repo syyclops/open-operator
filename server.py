@@ -139,6 +139,7 @@ async def transcribe_audio(
 #         print(e)
 #         return Response(content=f"Unable to validate spreadsheet: {e}", status_code=500)
 
+## PORTFOLIO ROUTES
 @app.get("/portfolio/list", tags=['Portfolio'], response_model=List[PortfolioModel])
 async def list_portfolios(current_user: User = Security(get_current_user)) -> JSONResponse:
   return JSONResponse([portfolio.model_dump() for portfolio in operator.portfolios(current_user)])
@@ -154,7 +155,8 @@ async def create_portfolio(
   except HTTPException as e:
     return JSONResponse(content={"message": f"Unable to create portfolio: {e}"}, status_code=500)
 
-@app.get("/facilities", tags=['Portfolio'])
+## FACILITY ROUTES
+@app.get("/facilities", tags=['Facility'])
 async def list_facilities(
   portfolio_uri: str,
   current_user: User = Security(get_current_user)
@@ -210,27 +212,6 @@ async def search_documents(
     operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents.search(query.model_dump())
   )
 
-@app.delete("/document/delete", tags=['Documents'])
-async def delete_document(
-  portfolio_uri: str,
-  facility_uri: str,
-  document_uri: str,
-  current_user: User = Security(get_current_user)
-) -> Response:
-  try:
-    operator.portfolio(
-      current_user,
-      portfolio_uri
-    ).facility(facility_uri).documents.delete(document_uri)
-    return JSONResponse(content={
-      "message": "Document deleted successfully",
-    })
-  except HTTPException as e:
-    return JSONResponse(
-      content={"message": f"Unable to delete document: {e}"},
-      status_code=400
-    )
-
 @app.post("/documents/upload", tags=['Documents'])
 async def upload_files(
   files: List[UploadFile],
@@ -268,6 +249,27 @@ async def upload_files(
 
   return {"message": "Files uploaded successfully", "uploaded_files": uploaded_files_info}
 
+@app.delete("/document/delete", tags=['Documents'])
+async def delete_document(
+  portfolio_uri: str,
+  facility_uri: str,
+  document_uri: str,
+  current_user: User = Security(get_current_user)
+) -> Response:
+  try:
+    operator.portfolio(
+      current_user,
+      portfolio_uri
+    ).facility(facility_uri).documents.delete(document_uri)
+    return JSONResponse(content={
+      "message": "Document deleted successfully",
+    })
+  except HTTPException as e:
+    return JSONResponse(
+      content={"message": f"Unable to delete document: {e}"},
+      status_code=400
+    )
+
 ### DEVICES ROUTES
 @app.get("/devices", tags=['Devices'])
 async def list_devices(
@@ -287,6 +289,26 @@ async def list_devices(
   except HTTPException as e:
     return JSONResponse(
         content={"message": f"Unable to list devices: {e}"},
+        status_code=500
+    )
+  
+@app.get("/device/graphic", tags=['Devices'])
+async def get_device_graphic(
+  portfolio_uri: str,
+  facility_uri: str,
+  device_uri: str,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    return Response(
+      operator.portfolio(
+          current_user, portfolio_uri
+      ).facility(facility_uri).device(device_uri).graphic(), 
+      media_type="image/svg+xml"
+    )
+  except HTTPException as e:
+    return JSONResponse(
+        content={"message": f"Unable to get device graphic: {e}"},
         status_code=500
     )
 
@@ -322,27 +344,7 @@ async def assign_brick_class(
         status_code=500
     )
   
-@app.put("/device/update", tags=['Devices'])
-async def update_device(
-  portfolio_uri: str,
-  facility_uri: str,
-  device_uri: str,
-  new_details: dict,
-  current_user: User = Security(get_current_user)
-) -> JSONResponse:
-  try:
-    operator.portfolio(
-      current_user,
-      portfolio_uri
-    ).facility(facility_uri).device(device_uri).update(new_details)
-    return JSONResponse(content={"message": "Device updated successfully"})
-  except HTTPException as e:
-    return JSONResponse(
-        content={"message": f"Unable to update device: {e}"},
-        status_code=500
-    )
-  
-@app.get("/device/link", tags=['Devices'])
+@app.post("/device/link", tags=['Devices'])
 async def link_to_component(
   portfolio_uri: str,
   facility_uri: str,
@@ -361,24 +363,24 @@ async def link_to_component(
         content={"message": f"Unable to link device to component: {e}"},
         status_code=500
     )
-
-@app.get("/device/graphic", tags=['Devices'])
-async def get_device_graphic(
+  
+@app.put("/device/update", tags=['Devices'])
+async def update_device(
   portfolio_uri: str,
   facility_uri: str,
   device_uri: str,
+  new_details: dict,
   current_user: User = Security(get_current_user)
 ) -> JSONResponse:
   try:
-    return Response(
-      operator.portfolio(
-          current_user, portfolio_uri
-      ).facility(facility_uri).device(device_uri).graphic(), 
-      media_type="image/svg+xml"
-    )
+    operator.portfolio(
+      current_user,
+      portfolio_uri
+    ).facility(facility_uri).device(device_uri).update(new_details)
+    return JSONResponse(content={"message": "Device updated successfully"})
   except HTTPException as e:
     return JSONResponse(
-        content={"message": f"Unable to get device graphic: {e}"},
+        content={"message": f"Unable to update device: {e}"},
         status_code=500
     )
   
