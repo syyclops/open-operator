@@ -1,7 +1,7 @@
 from typing import List
 from abc import ABC, abstractmethod
 from ..embeddings.embeddings import Embeddings
-from openoperator.types import Document
+from openoperator.types import DocumentMetadataChunk 
 
 class VectorStore(ABC):
   """
@@ -15,7 +15,7 @@ class VectorStore(ABC):
   def __init__(self, embeddings: Embeddings) -> None:
     pass
       
-  def add_documents(self, documents: List[Document]) -> None:
+  def add_documents(self, documents: List[DocumentMetadataChunk]) -> None:
     """
     Creates text embeddings for a list of documents and uploads them to the vector store.
     """

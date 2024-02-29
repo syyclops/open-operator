@@ -5,7 +5,7 @@ from unstructured_client.models.errors import SDKError
 import os
 from typing import List
 from .document_loader import DocumentLoader
-from openoperator.types import Document
+from openoperator.types import DocumentMetadataChunk 
 
 class UnstructuredDocumentLoader(DocumentLoader):
   """
@@ -23,7 +23,7 @@ class UnstructuredDocumentLoader(DocumentLoader):
     s = UnstructuredClient(api_key_auth=unstructured_api_key, server_url=unstructured_api_url)
     self.unstructured_client = s
   
-  def load(self, file_content: bytes, file_path: str) -> List[Document]:
+  def load(self, file_content: bytes, file_path: str) -> List[DocumentMetadataChunk]:
     """
     Use unstructured client to extract metadata from a file and upload to vector store.
     """
@@ -47,7 +47,7 @@ class UnstructuredDocumentLoader(DocumentLoader):
       )
 
       res = self.unstructured_client.general.partition(req)
-      docs = [Document(text=element['text'], metadata=element['metadata']) for element in res.elements]
+      docs = [DocumentMetadataChunk(text=element['text'], metadata=element['metadata']) for element in res.elements]
       docs = [doc for doc in docs if doc.text] # Remove any where text is empty
       return docs
     except SDKError as e:

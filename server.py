@@ -1,17 +1,25 @@
 import mimetypes
 from typing import Generator, List
-from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks, Query
+from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse, Response, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from io import BytesIO
 import os
-from openoperator.types import DocumentQuery, Message, TimeseriesReading, PortfolioModel, AiChatResponse, Transcription
+import json
+from openoperator.types import DocumentQuery, Message, PortfolioModel, LLMChatResponse, Transcription, DocumentModel, DocumentMetadataChunk
 from openoperator.core import User, OpenOperator
-from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, Openai, Postgres, Timescale
+from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, OpenaiLLM, Postgres, Timescale, OpenaiAudio
 from dotenv import load_dotenv
 load_dotenv()
+
+llm_system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
+Your goal is to help facility owners, managers, and operators manage their facilities and buildings more efficiently.
+Make sure to always follow ASHRAE guildelines.
+Don't be too wordy. Don't be too short. Be just right.
+Don't make up information. If you don't know, say you don't know.
+Always respond with markdown formatted text and provide sources for your information."""
 
 # Create the different modules that are needed for the operator
 blob_store = AzureBlobStore()
@@ -21,7 +29,8 @@ postgres = Postgres()
 vector_store = PGVectorStore(postgres=postgres, embeddings=embeddings)
 timescale = Timescale(postgres=postgres)
 knowledge_graph = KnowledgeGraph()
-ai = Openai(model_name="gpt-4-0125-preview")
+llm = OpenaiLLM(model_name="gpt-4-0125-preview", system_prompt=llm_system_prompt)
+audio = OpenaiAudio()
 
 operator = OpenOperator(
   blob_store=blob_store,
@@ -30,7 +39,7 @@ operator = OpenOperator(
   timescale=timescale,
   embeddings=embeddings,
   knowledge_graph=knowledge_graph,
-  ai=ai,
+  llm=llm,
   base_uri="https://syyclops.com/"
 )
 
@@ -54,7 +63,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     return user
   except HTTPException as e:
     raise e
-
+  
 @app.post("/signup", tags=["Auth"])
 async def signup(email: str, password: str, full_name: str) -> JSONResponse:
   try:
@@ -69,13 +78,17 @@ async def login(email: str, password: str) -> JSONResponse:
   except HTTPException as e:
     return JSONResponse(content={"message": f"Unable to login: {e}"}, status_code=500)
 
-@app.post("/chat", tags=["AI"], response_model=Generator[AiChatResponse, None, None])
+@app.post("/chat", tags=["AI"], response_model=Generator[LLMChatResponse, None, None])
 async def chat(
   messages: list[Message],
   portfolio_uri: str,
   facility_uri: str | None = None,
+  document_uri: str | None = None,
   current_user: User = Security(get_current_user)
 ) -> StreamingResponse:
+  if document_uri and not facility_uri:
+    raise HTTPException(status_code=400, detail="If a document_uri is provided, a facility_uri must also be provided.")
+  
   messages_dict_list = [message.model_dump() for message in  messages]
 
   portfolio = operator.portfolio(current_user, portfolio_uri)
@@ -87,9 +100,10 @@ async def chat(
     for response in operator.chat(
         messages=messages_dict_list,
         portfolio=portfolio,
-        facility=facility
+        facility=facility,
+        document_uri=document_uri
     ):
-      yield str(response.model_dump())
+      yield json.dumps(response.model_dump()) + "\n"
 
   return StreamingResponse(event_stream(), media_type="text/event-stream")
   
@@ -102,7 +116,7 @@ async def transcribe_audio(
     file_content = await file.read()
     buffer = BytesIO(file_content)
     buffer.name = file.filename
-    return JSONResponse(content={"text": operator.transcribe(buffer)})
+    return JSONResponse(content={"text": audio.transcribe(buffer)})
   except HTTPException as e:
     return JSONResponse(content={"message": f"Unable to transcribe audio: {e}"}, status_code=500)
 
@@ -174,7 +188,7 @@ async def import_cobie_spreadsheet(
     return Response(content=str(e), status_code=500)
   
 ## DOCUMENTS ROUTES
-@app.get("/documents", tags=['Documents'])
+@app.get("/documents", tags=['Documents'], response_model=List[DocumentModel])
 async def list_documents(
   portfolio_uri: str,
   facility_uri: str,
@@ -184,7 +198,7 @@ async def list_documents(
     operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents.list()
   )
   
-@app.post("/documents/search", tags=['Documents'])
+@app.post("/documents/search", tags=['Documents'], response_model=List[DocumentMetadataChunk])
 async def search_documents(
   portfolio_uri: str,
   facility_uri: str,
@@ -199,30 +213,30 @@ async def search_documents(
 async def delete_document(
   portfolio_uri: str,
   facility_uri: str,
-  document_url: str,
+  document_uri: str,
   current_user: User = Security(get_current_user)
 ) -> Response:
   try:
     operator.portfolio(
       current_user,
       portfolio_uri
-    ).facility(facility_uri).documents.delete(document_url)
+    ).facility(facility_uri).documents.delete(document_uri)
     return JSONResponse(content={
       "message": "Document deleted successfully",
     })
   except HTTPException as e:
     return JSONResponse(
       content={"message": f"Unable to delete document: {e}"},
-      status_code=500
+      status_code=400
     )
 
 @app.post("/documents/upload", tags=['Documents'])
 async def upload_files(
-  background_tasks: BackgroundTasks,
   files: List[UploadFile],
   portfolio_uri: str,
   facility_uri: str,
-  current_user: User = Security(get_current_user)
+  background_tasks: BackgroundTasks,
+  current_user: User = Security(get_current_user),
 ):
   uploaded_files_info = []  # To store info about uploaded files
 
@@ -239,13 +253,12 @@ async def upload_files(
         file_type=file_type
       )
 
-      file_url = document['url']
       background_tasks.add_task(operator.portfolio(
         current_user,
         portfolio_uri
-      ).facility(facility_uri).documents.run_extraction_process, file_content, file.filename, file_url)
+      ).facility(facility_uri).documents.run_extraction_process, file_content, file.filename, document.uri, document.url)
 
-      uploaded_files_info.append({"filename": file.filename, "url": file_url})
+      uploaded_files_info.append({"filename": file.filename, "uri": document.uri})
     except Exception as e:  # Catching a more general exception; you might want to log this or handle it differently
       return JSONResponse(
           content={"message": f"Unable to upload file {file.filename}: {e}"},
@@ -427,24 +440,6 @@ async def upload_bacnet_data(
     return "BACnet data uploaded successfully"
   except HTTPException as e:
     return Response(content=str(e), status_code=500)
-
-## TIMESERIES
-@app.get("/timeseries", tags=['Timeseries'], response_model=List[TimeseriesReading])
-async def get_timeseries_data(
-  timeseriesIds: List[str] = Query(...),
-  start_time: str = Query(...),
-  end_time: str = Query(...),
-  current_user: User = Security(get_current_user)
-) -> JSONResponse:
-  try:
-    data = operator.timescale.get_timeseries(timeseriesIds, start_time, end_time)
-    # data = [reading.model_dump() for reading in data]
-    return JSONResponse(data)
-  except HTTPException as e:
-    return JSONResponse(
-        content={"message": f"Unable to get timeseries: {e}"},
-        status_code=500
-    )
   
 if __name__ == "__main__":
   reload = True if os.environ.get("ENV") == "dev" else False

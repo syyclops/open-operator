@@ -2,16 +2,16 @@ from openai import OpenAI
 import os
 import tiktoken
 import json
-from io import BytesIO
-from typing import Generator
+from typing import Generator, List
 from openoperator.utils import split_string_with_limit
-from openoperator.types import AiChatResponse, ToolCall, ToolResponse
-from .ai import AI
+from openoperator.types import LLMChatResponse
+from openoperator.core.tool import Tool
+from .llm import LLM
 
-class Openai(AI):
+class OpenaiLLM(LLM):
   def __init__(self, 
+    system_prompt: str,
     openai_api_key: str | None = None,
-    system_prompt: str | None = None,
     model_name: str = "gpt-4",
     temperature: float = 0,
     base_url: str | None = None
@@ -23,29 +23,24 @@ class Openai(AI):
 
     self.model_name = model_name
     self.temperature = temperature
-
-    if system_prompt is None:
-      system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
-Your goal is to help facility owners, managers, and operators manage their facilities and buildings more efficiently.
-Make sure to always follow ASHRAE guildelines.
-Don't be too wordy. Don't be too short. Be just right.
-Don't make up information. If you don't know, say you don't know.
-Always respond with markdown formatted text."""
     self.system_prompt = system_prompt
 
-  def chat(self, messages, tools = [], available_functions = {}, verbose: bool = False) -> Generator[AiChatResponse, None, None]:
+  def chat(self, messages, tools: List[Tool] | None = None, verbose: bool = False) -> Generator[LLMChatResponse, None, None]:
     # Add the system message to be the first message
     messages.insert(0, {
       "role": "system",
       "content": self.system_prompt
     })
 
+    available_functions = {tool.name: tool.function for tool in tools} if tools else {}
+    formatted_tools = [tool.get_json_schema() for tool in tools] if tools else None
+
     while True:
       # Send the conversation and available functions to the model
       stream = self.openai.chat.completions.create(
         model=self.model_name,
         messages=messages,
-        tools=tools,
+        tools=formatted_tools,
         tool_choice="auto",
         stream=True,
         temperature=self.temperature
@@ -85,24 +80,22 @@ Always respond with markdown formatted text."""
         if finish_reason == "tool_calls":
           # Extend the conversation with the assistant's reply
           messages.append({
-              "role": "assistant",
-              "content": content,
-              "tool_calls": tool_calls
+            "role": "assistant",
+            "content": content,
+            "tool_calls": tool_calls
           })
 
           for tool_call in tool_calls:
             function_name = tool_call['function']['name']
             if verbose: print("Tool Selected: " + function_name)
-            function_to_call = available_functions[function_name]
+            function_to_call = available_functions.get(function_name)
             print(tool_call['function']['arguments'])
             function_args = json.loads(tool_call['function']['arguments'])
             if verbose: print("Tool args: " + str(function_args))
 
-            yield AiChatResponse(tool_selected=ToolCall(function_name=function_name, arguments=function_args))
-            function_response = function_to_call(
-                function_args
-            )
-            yield AiChatResponse(tool_finished=ToolResponse(name=function_name, content=function_response))
+            yield LLMChatResponse(type="tool_selected", tool_id=tool_call['id'], tool_name=function_name)
+            function_response = function_to_call(function_args)
+            yield LLMChatResponse(type="tool_finished", tool_id=tool_call['id'], tool_name=function_name, tool_response=function_response)
 
             # Convert function response to string and limit to 7000 tokens
             encoding = tiktoken.get_encoding("cl100k_base")
@@ -114,17 +107,17 @@ Always respond with markdown formatted text."""
 
             # Extend conversation with function response
             messages.append(
-                {
-                    "tool_call_id": tool_call['id'],
-                    "role": "tool",
-                    "name": function_name,
-                    "content": texts[0]
-                }
+              {
+                "tool_call_id": tool_call['id'],
+                "role": "tool",
+                "name": function_name,
+                "content": texts[0]
+              }
             )
 
         # If the stream is done because its the end of the conversation then return
         if finish_reason == "stop":
-          yield AiChatResponse(content=delta.content or "")
+          yield LLMChatResponse(content=delta.content or "", type="content")
           return
 
         # Update the content with the delta content
@@ -133,15 +126,4 @@ Always respond with markdown formatted text."""
 
         # If there are no tool calls and just streaming a normal response then print the chunks
         if not tool_calls:
-          yield AiChatResponse(content=delta.content or "")
-
-  def transcribe(self, audio: BytesIO) -> str:
-    try:
-      transcript = self.openai.audio.transcriptions.create(
-        model="whisper-1",
-        file=audio,
-      )
-
-      return transcript.text
-    except Exception as e:
-      raise e
+          yield LLMChatResponse(content=delta.content or "", type="content")
