@@ -30,7 +30,7 @@ postgres = Postgres()
 vector_store = PGVectorStore(postgres=postgres, embeddings=embeddings)
 timescale = Timescale(postgres=postgres)
 knowledge_graph = KnowledgeGraph()
-llm = OpenaiLLM(model_name="gpt-4-0125-preview", system_prompt=llm_system_prompt)
+llm = OpenaiLLM(model_name="gpt-4", system_prompt=llm_system_prompt)
 audio = OpenaiAudio()
 
 operator = OpenOperator(

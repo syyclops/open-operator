@@ -91,7 +91,7 @@ class OpenOperator:
       "properties": {
         "query": {
           "type": "string",
-          "description": "The search query to use.",
+          "description": "The search query to use. Craft your query concisely, focusing on the essence of what you need to find."
         },
       },
       "required": ["query"],
