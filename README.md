@@ -44,7 +44,7 @@ export API_TOKEN_SECRET=<your api secret key>
 2. Start the docker containers.
 
 ```
-docker-compose.yml up -d
+docker compose up -d
 ```
 
 3. View the api docs at: http://localhost:8080/docs
