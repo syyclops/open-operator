@@ -48,12 +48,12 @@ class PGVectorStore(VectorStore):
     """
     with self.postgres.cursor() as cur:
       # Create the embeddings
-      docs = [doc.text for doc in documents]
+      docs = [doc.content for doc in documents]
       embeddings = self.embeddings.create_embeddings(docs)
       
       # Insert into postgrs
       for i, doc in enumerate(documents):
-        text = doc.text
+        text = doc.content
         metadata = json.dumps(doc.metadata)
         embedding = np.array(embeddings[i].embedding)
 

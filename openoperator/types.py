@@ -1,15 +1,25 @@
 from pydantic import BaseModel
 from typing import Literal, Optional, List
+from typing_extensions import TypedDict
 
 ## Document Loader
 class DocumentQuery(BaseModel):
   query: str
   limit: int = 15
-  doc_uri: str = None
+  document_uri: str = None
+
+class DocumentMetadata(TypedDict, total=False):
+  portfolio_uri: str
+  facility_uri: str
+  document_uri: str
+  document_url: str
+  filename: str
+  filetype: str
+  page_number: int
 
 class DocumentMetadataChunk(BaseModel):
-  text: str
-  metadata: dict
+  content: str
+  metadata: DocumentMetadata
 
 # Documents
 class DocumentModel(BaseModel):

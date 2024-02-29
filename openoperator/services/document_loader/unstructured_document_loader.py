@@ -47,8 +47,8 @@ class UnstructuredDocumentLoader(DocumentLoader):
       )
 
       res = self.unstructured_client.general.partition(req)
-      docs = [DocumentMetadataChunk(text=element['text'], metadata=element['metadata']) for element in res.elements]
-      docs = [doc for doc in docs if doc.text] # Remove any where text is empty
+      docs = [DocumentMetadataChunk(content=element['text'], metadata=element['metadata']) for element in res.elements]
+      docs = [doc for doc in docs if doc.content] # Remove any where text is empty
       return docs
     except SDKError as e:
       raise e

@@ -1,5 +1,6 @@
 from unittest.mock import Mock, patch
 from openoperator.services.document_loader import UnstructuredDocumentLoader
+from openoperator.types import DocumentMetadata
 import os
 import unittest
 
@@ -15,8 +16,8 @@ class TestUnstructuredDocumentLoader(unittest.TestCase):
     mock_UnstructuredClient.return_value = mock_client
     mock_client.general.partition.return_value = Mock(
       elements=[
-        {"text": "This is a test", "metadata": {"title": "Test Document"}},
-        {"text": "Another test", "metadata": {"title": "Another Test Document"}},
+        {"text": "This is a test", "metadata": {"filename": "Test Document", "portfolio_uri": "test_portfolio_uri", "facility_uri": "test_facility_uri", "document_uri": "test_document_uri", "document_url": "test_document_url", "filetype": "test_filetype", "page_number": 1}},
+        {"text": "Another test", "metadata": {"filename": "Another Test Document", "portfolio_uri": "test_portfolio_uri", "facility_uri": "test_facility_uri", "document_uri": "test_document_uri", "document_url": "test_document_url", "filetype": "test_filetype", "page_number": 2}}
       ]
     )
 
@@ -30,8 +31,8 @@ class TestUnstructuredDocumentLoader(unittest.TestCase):
 
     # Assertions to verify behavior
     assert len(documents) == 2
-    assert documents[0].text == "This is a test"
-    assert documents[0].metadata == {"title": "Test Document"}
+    assert documents[0].content == "This is a test"
+    assert documents[0].metadata == DocumentMetadata(filename="Test Document", portfolio_uri="test_portfolio_uri", facility_uri="test_facility_uri", document_uri="test_document_uri", document_url="test_document_url", filetype="test_filetype", page_number=1)
 
   @patch('openoperator.services.document_loader.unstructured_document_loader.UnstructuredClient')
   def test_invalid_credentials(self, mock_UnstructuredClient):

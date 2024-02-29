@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 from openoperator.services.vector_store.pg_vector_store import PGVectorStore
 from openoperator.services.postgres import Postgres
 import os
-from openoperator.types import DocumentMetadataChunk 
+from openoperator.types import DocumentMetadataChunk, DocumentMetadata
 from openoperator.services.embeddings import Embeddings
 from openai.types import Embedding
 
@@ -34,8 +34,8 @@ def test_add_documents(mock_postgres, mock_register_vector):
 
   # Perform the add_documents
   documents = [
-    DocumentMetadataChunk(text='doc1', metadata={'key': 'value'}),
-    DocumentMetadataChunk(text='doc2', metadata={'key': 'value'})
+    DocumentMetadataChunk(content='doc1', metadata=DocumentMetadata(filename='test', portfolio_uri='test', facility_uri='test', document_uri='test', document_url='test', filetype='test', page_number=1)),
+    DocumentMetadataChunk(content='doc2', metadata=DocumentMetadata(filename='test', portfolio_uri='test', facility_uri='test', document_uri='test', document_url='test', filetype='test', page_number=2))
   ]
   mock_embeddings.create_embeddings.return_value = [
     Embedding(embedding=[1, 2, 3], index=0, object='embedding'),
