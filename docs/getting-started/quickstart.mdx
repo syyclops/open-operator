@@ -2,7 +2,12 @@
 title: Quickstart
 ---
 
-1. Set the required environment variables:
+1. Prerequisites
+
+- [Docker](https://www.docker.com/get-started/)
+- [Python](https://www.python.org/downloads/)
+
+2. Set the required environment variables. Use .env.example as reference:
 
 ```
 cp .env.example .env
@@ -12,10 +17,10 @@ export AZURE_CONTAINER_NAME=<your azure container name>
 export API_TOKEN_SECRET=<your api secret key>
 ```
 
-2. Start the docker containers.
+3. Start the docker containers.
 
 ```
 docker-compose.yml up -d
 ```
 
-3. View the api docs at: http://localhost:8080/docs
+4. View the api docs at: http://localhost:8080/docs
