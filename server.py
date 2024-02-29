@@ -2,6 +2,7 @@ import mimetypes
 from typing import Generator, List
 from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse, Response, JSONResponse
+from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -43,7 +44,7 @@ operator = OpenOperator(
   base_uri="https://syyclops.com/"
 )
 
-app = FastAPI(title="Open Operator API")
+app = FastAPI(title="Open Operator API", docs_url=None)
 app.add_middleware(
   CORSMiddleware,
   allow_origins=["*"],
@@ -440,6 +441,10 @@ async def upload_bacnet_data(
     return "BACnet data uploaded successfully"
   except HTTPException as e:
     return Response(content=str(e), status_code=500)
+
+@app.get("/docs", include_in_schema=False)
+async def swagger_ui_html():
+  return get_swagger_ui_html(swagger_favicon_url="https://app.syyclops.com/favicon.ico", openapi_url="/openapi.json", title="Open Operator API")
   
 if __name__ == "__main__":
   reload = True if os.environ.get("ENV") == "dev" else False
