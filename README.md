@@ -3,7 +3,7 @@
 
   <h3>
 
-[Documentation](/docs) | [Examples](/examples) | [Community](https://github.com/syyclops/open-operator/discussions)
+[Documentation](https://syyclops.mintlify.app/getting-started/introduction) | [Examples](/examples) | [Community](https://github.com/syyclops/open-operator/discussions)
 
   </h3>
 

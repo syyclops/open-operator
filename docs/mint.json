@@ -30,38 +30,12 @@
       "group": "Getting Started",
       "pages": [
         "getting-started/introduction",
-        "getting-started/quickstart"
-      ]
-    },
-    {
-      "group": "Endpoints",
-      "pages": [
-        {
-          "group": "Portfolio",
-          "pages": [
-            "api/portfolio/list-portfolios",
-            "api/portfolio/list-facilities"
-          ]
-        },
-        {
-          "group": "Facility",
-          "pages": [
-            "api/facility/create-facility"
-          ]
-        }
+        "getting-started/quickstart",
+        "getting-started/api-guide"
       ]
     }
   ],
-  "tabs": [
-    {
-      "name": "API Reference",
-      "url": "api"
-    }
-  ],
-  "primaryTab": {
-    "name": "Documentation"
-  },
   "openapi": [
-    "https://open-operator-server.azurewebsites.net/openapi.json"
+    "https://open-operator-server-beta.azurewebsites.net/openapi.json"
   ]
 }

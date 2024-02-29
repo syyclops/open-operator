@@ -1,6 +1,6 @@
 import mimetypes
 from typing import Generator, List
-from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks, Query
+from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse, Response, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,7 +8,7 @@ import uvicorn
 from io import BytesIO
 import os
 import json
-from openoperator.types import DocumentQuery, Message, TimeseriesReading, PortfolioModel, LLMChatResponse, Transcription, DocumentModel, DocumentMetadataChunk
+from openoperator.types import DocumentQuery, Message, PortfolioModel, LLMChatResponse, Transcription, DocumentModel, DocumentMetadataChunk
 from openoperator.core import User, OpenOperator
 from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, OpenaiLLM, Postgres, Timescale, OpenaiAudio
 from dotenv import load_dotenv
@@ -63,7 +63,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     return user
   except HTTPException as e:
     raise e
-
+  
 @app.post("/signup", tags=["Auth"])
 async def signup(email: str, password: str, full_name: str) -> JSONResponse:
   try:
@@ -440,24 +440,6 @@ async def upload_bacnet_data(
     return "BACnet data uploaded successfully"
   except HTTPException as e:
     return Response(content=str(e), status_code=500)
-
-## TIMESERIES
-@app.get("/timeseries", tags=['Timeseries'], response_model=List[TimeseriesReading])
-async def get_timeseries_data(
-  timeseriesIds: List[str] = Query(...),
-  start_time: str = Query(...),
-  end_time: str = Query(...),
-  current_user: User = Security(get_current_user)
-) -> JSONResponse:
-  try:
-    data = operator.timescale.get_timeseries(timeseriesIds, start_time, end_time)
-    # data = [reading.model_dump() for reading in data]
-    return JSONResponse(data)
-  except HTTPException as e:
-    return JSONResponse(
-        content={"message": f"Unable to get timeseries: {e}"},
-        status_code=500
-    )
   
 if __name__ == "__main__":
   reload = True if os.environ.get("ENV") == "dev" else False
