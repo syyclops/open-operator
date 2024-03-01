@@ -34,7 +34,8 @@ class TestDocuments(unittest.TestCase):
         "d": {
           "url": "test_url",
           "name": "test_name",
-          "extractionStatus": "success"
+          "extractionStatus": "success",
+          "uri": "http://example.com/document/file.docx"
         }
       }
     ]
@@ -43,9 +44,9 @@ class TestDocuments(unittest.TestCase):
     documents = self.documents.list()
 
     assert len(documents) == 1
-    assert documents[0]['url'] == "test_url"
-    assert documents[0]['name'] == "test_name"
-    assert documents[0]['extractionStatus'] == "success"
+    assert documents[0].url == "test_url"
+    assert documents[0].name == "test_name"
+    assert documents[0].extractionStatus == "success"
     
   def test_list_no_results(self):
     session_mock = self.setup_session_mock()

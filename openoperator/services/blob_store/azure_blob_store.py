@@ -20,6 +20,12 @@ class AzureBlobStore(BlobStore):
     content_settings = ContentSettings(content_type=file_type)
     blob_client = self.container_client.upload_blob(name=file_name, data=file_content, overwrite=True, content_settings=content_settings)
     return blob_client.url
+
+  def download_file(self, url: str) -> bytes:
+    clean_url = urllib.parse.unquote(url)
+    name = clean_url.split('/')[-1]
+    blob = self.container_client.get_blob_client(name)
+    return blob.download_blob().readall()
     
   def list_files(self, path: str) -> list:
     blobs = self.container_client.list_blob_names(name_starts_with=path)

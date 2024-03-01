@@ -4,6 +4,7 @@ from neo4j.exceptions import Neo4jError
 from openoperator.services import BlobStore, DocumentLoader, VectorStore, KnowledgeGraph
 from openoperator.types import DocumentModel
 from uuid import uuid4
+from typing import List
 
 class Documents:
   """
@@ -20,13 +21,14 @@ class Documents:
     self.facility = facility
     self.knowledge_graph = knowledge_graph
 
-  def list(self):
+  def list(self) -> List[DocumentModel]:
     """
     List all the documents in the facility.
     """
     with self.knowledge_graph.create_session() as session:
       result = session.run("MATCH (d:Document)-[:documentTo]-(f:Facility {uri: $facility_uri}) RETURN d", facility_uri=self.facility.uri)
-      return [record['d'] for record in result.data()]
+      data = result.data()
+      return [DocumentModel(**record['d']) for record in data]
         
   def upload(self, file_content: bytes, file_name: str, file_type: str) -> DocumentModel:
     """
