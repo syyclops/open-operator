@@ -7,6 +7,12 @@ class BlobStore(ABC):
     Upload a file to the blob storage.
     """
 
+  @abstractmethod
+  def download_file(self, url: str) -> bytes:
+    """
+    Download a file from the blob storage.
+    """
+
   def delete_file(self, url: str) -> None:
     """
     Delete a file from the blob storage.

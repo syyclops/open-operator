@@ -197,9 +197,8 @@ async def list_documents(
   facility_uri: str,
   current_user: User = Security(get_current_user)
 ) -> JSONResponse:
-  return JSONResponse(
-    operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents.list()
-  )
+  docs = [doc.model_dump() for doc in operator.portfolio(current_user, portfolio_uri).facility(facility_uri).documents.list()]
+  return JSONResponse(docs)
   
 @app.post("/documents/search", tags=['Documents'], response_model=List[DocumentMetadataChunk])
 async def search_documents(
@@ -248,6 +247,33 @@ async def upload_files(
       )
 
   return {"message": "Files uploaded successfully", "uploaded_files": uploaded_files_info}
+
+@app.post("/documents/run_extraction", tags=['Documents'])
+async def run_extraction_process(
+  portfolio_uri: str,
+  facility_uri: str,
+  background_tasks: BackgroundTasks,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    docments = operator.portfolio(
+      current_user,
+      portfolio_uri
+    ).facility(facility_uri).documents.list()
+
+    unextracted_documents = [doc for doc in docments if doc.extractionStatus != "success"]
+    for document in unextracted_documents:
+      document_content = operator.blob_store.download_file(document.url)
+      background_tasks.add_task(operator.portfolio(
+        current_user,
+        portfolio_uri
+      ).facility(facility_uri).documents.run_extraction_process, document_content, document.name, document.uri, document.url)
+    return "Extraction process started successfully"
+  except HTTPException as e:
+    return JSONResponse(
+        content={"message": f"Unable to run extraction process: {e}"},
+        status_code=500
+    )
 
 @app.delete("/document/delete", tags=['Documents'])
 async def delete_document(

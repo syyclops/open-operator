@@ -27,7 +27,7 @@ class DocumentModel(BaseModel):
   name: str
   uri: str
   url: str
-  thumbnailUrl: str | None
+  thumbnailUrl: Optional[str] = None
 
 ## AI Chat
 class Message(BaseModel): 
