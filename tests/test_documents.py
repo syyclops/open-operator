@@ -207,7 +207,7 @@ class TestDocuments(unittest.TestCase):
     documents = self.documents.search(params)
 
     # Verify the result
-    self.vector_store.similarity_search.assert_called_once_with(query=params["query"], limit=15, filter={"facility_uri": self.facility.uri})
+    self.vector_store.similarity_search.assert_called_once_with(query=params["query"], limit=25, filter={"facility_uri": self.facility.uri})
     assert documents == []
         
 
