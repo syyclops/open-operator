@@ -122,7 +122,7 @@ class Documents:
     Search vector store for documents in the facility
     """
     query = params.get('query')
-    limit = params.get('limit') or 15
+    limit = params.get('limit') or 25
     doc_uri = params.get('document_uri')
     query_filter = {"facility_uri": self.facility.uri}
     if doc_uri:

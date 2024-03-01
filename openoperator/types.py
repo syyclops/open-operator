@@ -23,10 +23,10 @@ class DocumentMetadataChunk(BaseModel):
 
 # Documents
 class DocumentModel(BaseModel):
-  extractionStatus: Literal['pending', 'success', 'failed']
   name: str
   uri: str
   url: str
+  extractionStatus: Optional[Literal['pending', 'success', 'failed']] = None
   thumbnailUrl: Optional[str] = None
 
 ## AI Chat

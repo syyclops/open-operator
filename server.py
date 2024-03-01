@@ -9,6 +9,7 @@ import uvicorn
 from io import BytesIO
 import os
 import json
+import requests
 from openoperator.types import DocumentQuery, Message, PortfolioModel, LLMChatResponse, Transcription, DocumentModel, DocumentMetadataChunk, PointModel
 from openoperator.core import User, OpenOperator
 from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, OpenaiLLM, Postgres, Timescale, OpenaiAudio
@@ -30,7 +31,7 @@ postgres = Postgres()
 vector_store = PGVectorStore(postgres=postgres, embeddings=embeddings)
 timescale = Timescale(postgres=postgres)
 knowledge_graph = KnowledgeGraph()
-llm = OpenaiLLM(model_name="gpt-4", system_prompt=llm_system_prompt)
+llm = OpenaiLLM(model_name="gpt-4-0125-preview", system_prompt=llm_system_prompt)
 audio = OpenaiAudio()
 
 operator = OpenOperator(
@@ -261,9 +262,10 @@ async def run_extraction_process(
       portfolio_uri
     ).facility(facility_uri).documents.list()
 
-    unextracted_documents = [doc for doc in docments if doc.extractionStatus != "success"]
+    unextracted_documents = [doc for doc in docments if getattr(doc, 'extractionStatus', None) != "success"]
     for document in unextracted_documents:
-      document_content = operator.blob_store.download_file(document.url)
+      r = requests.get(document.url, allow_redirects=True, timeout=30)
+      document_content = r.content
       background_tasks.add_task(operator.portfolio(
         current_user,
         portfolio_uri
@@ -476,5 +478,5 @@ async def swagger_ui_html():
   return get_swagger_ui_html(swagger_favicon_url="https://app.syyclops.com/favicon.ico", openapi_url="/openapi.json", title="Open Operator API")
   
 if __name__ == "__main__":
-  reload = True if os.environ.get("ENV") == "dev" else False
+  reload = True if os.environ.get("ENV") == "dev" or os.environ.get("ENV") == "beta" else False
   uvicorn.run("server:app", host="0.0.0.0", port=8080, reload=reload)
