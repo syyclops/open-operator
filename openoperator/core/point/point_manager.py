@@ -45,6 +45,7 @@ class PointManager:
   
   def points_history(self, start_time: str, end_time: str, device_uri: str | None = None, component_uri: str | None = None):
     points = self.points(device_uri=device_uri, collect_enabled=True, component_uri=component_uri)
+    points = [point.model_dump() for point in points]
     ids = []
     for point in points: 
       point.pop('embedding', None)

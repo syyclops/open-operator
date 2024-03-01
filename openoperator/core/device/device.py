@@ -42,9 +42,9 @@ class Device:
       tree = ET.parse(svg_graphic)
       root = tree.getroot()
       for point in points:
-        name = point['object_name']
+        name = point.object_name
         element = root.find(f".//*[@id='{name}']")
-        if element is not None and "value" in point:
-          element.text = format(point['value'], '.2f') + " " + point['object_units']
+        if element is not None and point.value is not None:
+          element.text = format(point.value, '.2f') + " " + point.object_units
       updated_svg = ET.tostring(root, encoding='unicode')
       return updated_svg
