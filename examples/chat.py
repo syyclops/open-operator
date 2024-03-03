@@ -61,6 +61,8 @@ def main():
 
     content = ""
     for response in operator.chat(messages, portfolio=portfolio, verbose=verbose):
+      if response.type == "tool_selected":
+        print(f"Tool selected: {response.tool_name}")
       if response.type == "content":
         content = response.content
         print(content, flush=True, end="")
