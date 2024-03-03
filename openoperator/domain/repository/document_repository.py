@@ -1,36 +1,27 @@
+from openoperator.domain.model.document import Document, DocumentQuery, DocumentMetadataChunk
+from openoperator.infastructure.knowledge_graph import KnowledgeGraph
+from openoperator.infastructure.blob_store import BlobStore
+from openoperator.infastructure.document_loader import DocumentLoader
+from openoperator.infastructure.vector_store import VectorStore
 import fitz
 import io
-from neo4j.exceptions import Neo4jError
-from openoperator.services import BlobStore, DocumentLoader, VectorStore, KnowledgeGraph
-from openoperator.types import DocumentModel
 from uuid import uuid4
 from typing import List
 
-class Documents:
-  """
-  This class handles everything related to documents in a facilty
-
-  Its responsibilities are:
-  - Fetch, upload, and delete, search documents
-  - Run the extraction process
-  """
-  def __init__(self, facility, knowledge_graph: KnowledgeGraph, blob_store: BlobStore, document_loader: DocumentLoader, vector_store: VectorStore) -> None:
-    self.vector_store = vector_store   
+class DocumentRepository:
+  def __init__(self, kg: KnowledgeGraph, blob_store: BlobStore, document_loader: DocumentLoader, vector_store: VectorStore):
+    self.kg = kg
     self.blob_store = blob_store
     self.document_loader = document_loader
-    self.facility = facility
-    self.knowledge_graph = knowledge_graph
+    self.vector_store = vector_store
 
-  def list(self) -> List[DocumentModel]:
-    """
-    List all the documents in the facility.
-    """
-    with self.knowledge_graph.create_session() as session:
-      result = session.run("MATCH (d:Document)-[:documentTo]-(f:Facility {uri: $facility_uri}) RETURN d", facility_uri=self.facility.uri)
+  def list(self, facility_uri: str) -> List[Document]:
+    with self.kg.create_session() as session:
+      result = session.run("MATCH (d:Document)-[:documentTo]-(f:Facility {uri: $facility_uri}) RETURN d", facility_uri=facility_uri)
       data = result.data()
-      return [DocumentModel(**record['d']) for record in data]
-        
-  def upload(self, file_content: bytes, file_name: str, file_type: str) -> DocumentModel:
+      return [Document(**record['d']) for record in data]
+  
+  def upload(self, facility_uri: str, file_content: bytes, file_name: str, file_type: str) -> Document:
     """
     Upload a file for a facility.
 
@@ -46,39 +37,36 @@ class Documents:
         thumbnail_url = self.blob_store.upload_file(file_content=pix.tobytes(), file_name=f"{file_name}_thumbnail.png", file_type="image/png")
       
       file_url = self.blob_store.upload_file(file_content=file_content, file_name=file_name, file_type=file_type)
-        
     except Exception as e:
       raise e
 
     try:
-      with self.knowledge_graph.create_session() as session:
-        doc_uri = f"{self.facility.uri}/document/{str(uuid4())}"
+      with self.kg.create_session() as session:
+        doc_uri = f"{facility_uri}/document/{str(uuid4())}"
         query = """CREATE (d:Document:Resource {name: $name, url: $url, extractionStatus: 'pending', thumbnailUrl: $thumbnail_url, uri: $doc_uri})
                     CREATE (d)-[:documentTo]->(:Facility {uri: $facility_uri})
                     RETURN d"""
-        result = session.run(query, name=file_name, url=file_url, facility_uri=self.facility.uri, thumbnail_url=thumbnail_url, doc_uri=doc_uri)
+        result = session.run(query, name=file_name, url=file_url, facility_uri=facility_uri, thumbnail_url=thumbnail_url, doc_uri=doc_uri)
         data = result.data()
         if len(data) == 0: raise ValueError("Document not created")
-        return DocumentModel(extractionStatus="pending", name=file_name, uri=doc_uri, url=file_url, thumbnailUrl=thumbnail_url)
-    except Neo4jError as e:
+        return Document(extractionStatus="pending", name=file_name, uri=doc_uri, url=file_url, thumbnailUrl=thumbnail_url)
+    except Exception as e:
       raise e
-        
+    
   def update_extraction_status(self, uri, status):
     """
     Update the extraction status of a document in the knowledge graph.
     pending, failed, or success
     """
     try:
-      with self.knowledge_graph.create_session() as session:
-        query = """MATCH (d:Document {uri: $uri})
-                    SET d.extractionStatus = $status
-                    RETURN d"""
+      with self.kg.create_session() as session:
+        query = "MATCH (d:Document {uri: $uri}) SET d.extractionStatus = $status RETURN d"
         result = session.run(query, uri=uri, status=status)
         return result.data()[0]['d']
-    except Neo4jError as e:
+    except Exception as e:
       raise e
         
-  def run_extraction_process(self, file_content: bytes, file_name: str, doc_uri: str, doc_url: str):
+  def run_extraction_process(self, portfolio_uri: str, facility_uri, file_content: bytes, file_name: str, doc_uri: str, doc_url: str):
     try:
       docs = self.document_loader.load(file_content=file_content, file_path=file_name)
     except Exception as e:
@@ -88,8 +76,8 @@ class Documents:
     try:
       # Add metadata to vector store
       for doc in docs:
-        doc.metadata['portfolio_uri'] = self.facility.portfolio.uri
-        doc.metadata['facility_uri'] = self.facility.uri
+        doc.metadata['portfolio_uri'] = portfolio_uri
+        doc.metadata['facility_uri'] = facility_uri
         doc.metadata['document_uri'] = doc_uri
         doc.metadata['document_url'] = doc_url
     
@@ -99,14 +87,14 @@ class Documents:
       raise e
     
     return self.update_extraction_status(doc_uri, "success")
-      
+  
   def delete(self, uri):
     """
     Delete a document from the facility. This will remove the document from the blob store, the vector store, and the knowledge graph.
     """
     try:
-      with self.knowledge_graph.create_session() as session:
-        query = """MATCH (d:Document {uri: $uri}) WITH d, d.url as url DETACH DELETE d RETURN url"""
+      with self.kg.create_session() as session:
+        query = "MATCH (d:Document {uri: $uri}) WITH d, d.url as url DETACH DELETE d RETURN url"
         result = session.run(query, uri=uri)
         data = result.data()
         if len(data) == 0:
@@ -116,15 +104,16 @@ class Documents:
       self.vector_store.delete_documents(filter={"document_uri": uri})
     except Exception as e:
       raise e
-
-  def search(self, params: dict) -> list:
+    
+  def search(self, params: DocumentQuery) -> List[DocumentMetadataChunk]:
     """
     Search vector store for documents in the facility
     """
-    query = params.get('query')
-    limit = params.get('limit') or 25
-    doc_uri = params.get('document_uri')
-    query_filter = {"facility_uri": self.facility.uri}
-    if doc_uri:
-      query_filter['document_uri'] = doc_uri
+    query = params.query
+    limit = params.limit
+    query_filter = {"portfolio_uri": params.portfolio_uri}
+    if params.facility_uri:
+      query_filter = {"facility_uri": params.facility_uri}
+    if params.document_uri:
+      query_filter['document_uri'] = params.document_uri
     return self.vector_store.similarity_search(query=query, limit=limit, filter=query_filter)

@@ -6,7 +6,7 @@ from typing import List
 from ..postgres import Postgres
 from .vector_store import VectorStore
 from ..embeddings.embeddings import Embeddings
-from openoperator.types import DocumentMetadataChunk
+from openoperator.domain.model.document import DocumentMetadataChunk, DocumentMetadata
 
 class PGVectorStore(VectorStore):
   """
@@ -59,7 +59,7 @@ class PGVectorStore(VectorStore):
 
         cur.execute(f'INSERT INTO {self.collection_name} (content, metadata, embedding) VALUES (%s, %s, %s)', (text, metadata, embedding))
     
-  def similarity_search(self, query: str, limit: int, filter: dict | None = None) -> list:
+  def similarity_search(self, query: str, limit: int, filter: dict | None = None) -> list[DocumentMetadataChunk]:
     """
     Search for similar documents in the vector store.
     """
@@ -92,7 +92,15 @@ class PGVectorStore(VectorStore):
       records = cur.execute(query, params).fetchall()
       
       # Convert the list of tuples to a list of dicts
-      data = [{"content": record[0], "metadata": record[1]} for record in records]
+      data = [DocumentMetadataChunk(content=record[0], metadata=DocumentMetadata(
+        filename=record[1]['filename'],
+        portfolio_uri=record[1]['portfolio_uri'],
+        facility_uri=record[1]['facility_uri'],
+        document_uri=record[1]['document_uri'],
+        document_url=record[1]['document_url'],
+        filetype=record[1]['filetype'],
+        page_number=record[1]['page_number']  
+      )) for record in records]
 
       return data
 
