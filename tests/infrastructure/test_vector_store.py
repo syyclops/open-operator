@@ -1,13 +1,11 @@
 from unittest.mock import MagicMock, patch
-from openoperator.infrastructure.vector_store.pg_vector_store import PGVectorStore
-from openoperator.infrastructure.postgres import Postgres
+from openoperator.infrastructure import PGVectorStore, Postgres, Embeddings
 import os
-from openoperator.types import DocumentMetadataChunk, DocumentMetadata
-from openoperator.infrastructure.embeddings import Embeddings
+from openoperator.domain.model import DocumentMetadataChunk, DocumentMetadata
 from openai.types import Embedding
 
-@patch('openoperator.services.vector_store.pg_vector_store.register_vector')
-@patch('openoperator.services.postgres.Postgres')
+@patch('openoperator.infrastructure.vector_store.pg_vector_store.register_vector')
+@patch('openoperator.infrastructure.postgres.Postgres')
 def test_add_documents(mock_postgres, mock_register_vector):
   # Setup environment variables
   os.environ['POSTGRES_EMBEDDINGS_TABLE'] = 'table_name'

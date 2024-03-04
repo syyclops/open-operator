@@ -166,7 +166,6 @@ async def create_facility(
 ## DOCUMENTS ROUTES
 @app.get("/documents", tags=['Document'], response_model=List[Document])
 async def list_documents(
-  portfolio_uri: str,
   facility_uri: str,
   current_user: User = Security(get_current_user)
 ) -> JSONResponse:
@@ -207,8 +206,6 @@ async def upload_files(
 
 @app.delete("/document/delete", tags=['Document'])
 async def delete_document(
-  portfolio_uri: str,
-  facility_uri: str,
   document_uri: str,
   current_user: User = Security(get_current_user)
 ) -> Response:

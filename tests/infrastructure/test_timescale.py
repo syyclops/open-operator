@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock, patch 
-from openoperator.services.timescale import Timescale
+from openoperator.infrastructure.timescale import Timescale
 import datetime
 
 class TestTimescale(unittest.TestCase):

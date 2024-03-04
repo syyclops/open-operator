@@ -1,12 +1,11 @@
 from unittest.mock import Mock, patch, MagicMock
-from openoperator.services import OpenaiLLM 
-from openoperator.core.tool import Tool, ToolParametersSchema
+from openoperator.infrastructure import OpenaiLLM 
+from openoperator.domain.model import Tool, ToolParametersSchema, LLMChatResponse
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta, ChoiceDeltaToolCall, ChoiceDeltaToolCallFunction
-from openoperator.types import LLMChatResponse
 
 # Test initialization with default parameters
 def test_openai_init_defaults():
-  with patch('openoperator.services.llm.openai_llm.os') as mock_os:
+  with patch('openoperator.infrastructure.llm.openai_llm.os') as mock_os:
     mock_os.environ = {'OPENAI_API_KEY': 'test_key'}
     system_prompt = "You are an an AI Assistant"
     openai_instance = OpenaiLLM(system_prompt=system_prompt)
@@ -31,7 +30,7 @@ def test_openai_init_custom():
   assert openai_instance.openai.base_url == "https://custom.api"
 
 # Test the chat method with mocked OpenAI response
-@patch('openoperator.services.llm.openai_llm.OpenAI')  # Mock the OpenAI client
+@patch('openoperator.infrastructure.llm.openai_llm.OpenAI')  # Mock the OpenAI client
 def test_openai_chat(mock_openai):
   # Setup the mock response to simulate an iterable of response objects
   delta = ChoiceDelta(content="Test response", role="assistant")
@@ -54,7 +53,7 @@ def test_openai_chat(mock_openai):
 
   mock_openai_instance.chat.completions.create.assert_called_once()
 
-@patch('openoperator.services.llm.openai_llm.OpenAI')
+@patch('openoperator.infrastructure.llm.openai_llm.OpenAI')
 def test_openai_chat_multiple_chunks(mock_openai):
   # Setup mock response to simulate multiple chunks
   delta_chunk1 = ChoiceDelta(content="Part 1 ", role="assistant")
@@ -82,7 +81,7 @@ def test_openai_chat_multiple_chunks(mock_openai):
 
   assert mock_openai_instance.chat.completions.create.call_count == 1
 
-@patch('openoperator.services.llm.openai_llm.OpenAI')
+@patch('openoperator.infrastructure.llm.openai_llm.OpenAI')
 def test_openai_chat_with_tools(mock_openai):
   # Mock Openai response with tool calls 
   function = ChoiceDeltaToolCallFunction(name="test_function", arguments="{\"query\": \"test\"}")

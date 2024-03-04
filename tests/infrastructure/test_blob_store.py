@@ -1,9 +1,9 @@
 from unittest.mock import patch, MagicMock
-from openoperator.services.blob_store import AzureBlobStore
+from openoperator.infrastructure.blob_store import AzureBlobStore
 import os
 from azure.storage.blob import ContentSettings
 
-@patch('openoperator.services.blob_store.azure_blob_store.ContainerClient')
+@patch('openoperator.infrastructure.blob_store.azure_blob_store.ContainerClient')
 def test_upload_file(mock_container_client_class):
   # Setup environment variables
   os.environ['AZURE_STORAGE_CONNECTION_STRING'] = 'connection_string'
@@ -30,7 +30,7 @@ def test_upload_file(mock_container_client_class):
   # Check if upload_blob was called with the correct arguments
   mock_container_client.upload_blob.assert_called_once_with(name=file_name, data=file_content, overwrite=True, content_settings=content_settings)
 
-@patch('openoperator.services.blob_store.azure_blob_store.ContainerClient')
+@patch('openoperator.infrastructure.blob_store.azure_blob_store.ContainerClient')
 def test_delete_file(mock_container_client_class):
   # Setup environment variables
   os.environ['AZURE_STORAGE_CONNECTION_STRING'] = 'connection_string'
@@ -56,7 +56,7 @@ def test_delete_file(mock_container_client_class):
   # Check if delete_blob was called
   mock_container_client.get_blob_client.return_value.delete_blob.assert_called_once()
 
-@patch('openoperator.services.blob_store.azure_blob_store.ContainerClient')
+@patch('openoperator.infrastructure.blob_store.azure_blob_store.ContainerClient')
 def test_list_files(mock_container_client_class):
   # Setup environment variables
   os.environ['AZURE_STORAGE_CONNECTION_STRING'] = 'connection_string'
