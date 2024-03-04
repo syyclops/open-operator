@@ -1,5 +1,6 @@
 from openoperator.infrastructure import KnowledgeGraph
-from openoperator.domain import Portfolio
+from openoperator.domain.model import Portfolio, Facility
+from typing import List
 
 class PortfolioRepository:
   def __init__(self, kg: KnowledgeGraph):
@@ -21,8 +22,17 @@ class PortfolioRepository:
         raise ValueError(f"Error creating portfolio {portfolio.uri}")
       return Portfolio(uri=record['p']['uri'], name=record['p']['name'])
     
-  def list_portfolios_for_user(self, email: str) -> list[Portfolio]:
+  def list_portfolios_for_user(self, email: str) -> List[Portfolio]:
     with self.kg.create_session() as session:
-      result = session.run("MATCH (u:User {email: $email})-[:HAS_ACCESS_TO]->(p:Customer) RETURN p", email=email)
+      result = session.run("""MATCH (u:User {email: $email})-[:HAS_ACCESS_TO]->(p:Customer) 
+                              MATCH (p)-[:HAS_FACILITY]->(f:Facility)
+                              with p, collect(f) as facilities
+                              RETURN p as portfolio, facilities""", email=email)
       data = result.data()
-      return [Portfolio(uri=p['p']['uri'], name=p['p']['name']) for p in data]
+      portfolios: List[Portfolio] = []
+      for record in data:
+        portfolio = Portfolio(uri=record['portfolio']['uri'], name=record['portfolio']['name'])
+        facilities = [Facility(uri=f['uri'], name=f['name']) for f in record['facilities']]
+        portfolio.facilities = facilities
+        portfolios.append(portfolio)
+      return portfolios

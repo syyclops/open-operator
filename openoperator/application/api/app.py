@@ -84,7 +84,8 @@ async def login(email: str, password: str) -> JSONResponse:
 ## PORTFOLIO ROUTES
 @app.get("/portfolio/list", tags=['Portfolio'], response_model=List[Portfolio])
 async def list_portfolios(current_user: User = Security(get_current_user)) -> JSONResponse:
-  return JSONResponse([portfolio.model_dump() for portfolio in portfolio_service.list_portfolios_for_user(current_user.email)])
+  portfolios = portfolio_service.list_portfolios_for_user(current_user.email)
+  return JSONResponse([portfolio.model_dump() for portfolio in portfolios])
 
 @app.post("/portfolio/create", tags=['Portfolio'], response_model=Portfolio)
 async def create_portfolio(

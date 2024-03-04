@@ -1,5 +1,5 @@
 from openoperator.domain.repository import PortfolioRepository
-from openoperator.domain import Portfolio
+from openoperator.domain.model import Portfolio
 from openoperator.utils import create_uri
 
 class PortfolioService:
