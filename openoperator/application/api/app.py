@@ -196,7 +196,7 @@ async def upload_files(
       document = document_service.upload_document(facility_uri=facility_uri, file_content=file_content, file_name=file.filename, file_type=file_type)
       background_tasks.add_task(document_service.run_extraction_process, portfolio_uri, facility_uri, file_content, file.filename, document.uri, document.url)
       uploaded_files_info.append({"filename": file.filename, "uri": document.uri})
-    except Exception as e:  # Catching a more general exception; you might want to log this or handle it differently
+    except Exception as e:  
       return JSONResponse(
           content={"message": f"Unable to upload file {file.filename}: {e}"},
           status_code=500

@@ -10,6 +10,7 @@ class LLMChatResponse(BaseModel):
   tool_id: Optional[str] = None
   tool_name: Optional[str] = None
   tool_response: Optional[List] = None
+  tool_args: Optional[dict] = None
   content: Optional[str] = None
 
 # New Domain Entity

@@ -34,6 +34,4 @@ class AIAssistantService:
     )
 
     tools = [document_search_tool]
-
-    messages = [message.model_dump() for message in messages]
     return self.llm.chat(messages, tools, verbose)

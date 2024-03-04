@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from openoperator.domain.model import Tool, LLMChatResponse
+from openoperator.domain.model import Tool, LLMChatResponse, Message
 from typing import List, Generator
 
 class LLM(ABC):
@@ -14,5 +14,5 @@ class LLM(ABC):
     pass
 
   @abstractmethod
-  def chat(self, messages, tools: List[Tool] | None = None, verbose: bool = False) -> Generator[LLMChatResponse, None, None]:
+  def chat(self, messages: List[Message], tools: List[Tool] | None = None, verbose: bool = False) -> Generator[LLMChatResponse, None, None]:
     """Interact with the llm."""

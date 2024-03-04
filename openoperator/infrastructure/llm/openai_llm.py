@@ -4,7 +4,7 @@ import tiktoken
 import json
 from typing import Generator, List
 from openoperator.utils import split_string_with_limit
-from openoperator.domain.model import LLMChatResponse, Tool
+from openoperator.domain.model import LLMChatResponse, Tool, Message
 from .llm import LLM
 
 class OpenaiLLM(LLM):
@@ -24,7 +24,7 @@ class OpenaiLLM(LLM):
     self.temperature = temperature
     self.system_prompt = system_prompt
 
-  def chat(self, messages, tools: List[Tool] | None = None, verbose: bool = False) -> Generator[LLMChatResponse, None, None]:
+  def chat(self, messages: List[Message], tools: List[Tool] | None = None, verbose: bool = False) -> Generator[LLMChatResponse, None, None]:
     # Add the system message to be the first message
     messages.insert(0, {
       "role": "system",
@@ -33,7 +33,7 @@ class OpenaiLLM(LLM):
 
     available_functions = {tool.name: tool.function for tool in tools} if tools else {}
     formatted_tools = [tool.get_json_schema() for tool in tools] if tools else None
-
+    
     while True:
       # Send the conversation and available functions to the model
       stream = self.openai.chat.completions.create(
@@ -88,21 +88,25 @@ class OpenaiLLM(LLM):
             function_name = tool_call['function']['name']
             if verbose: print("Tool Selected: " + function_name)
             function_to_call = available_functions.get(function_name)
-            print(tool_call['function']['arguments'])
+            if verbose: print(tool_call['function']['arguments'])
             function_args = json.loads(tool_call['function']['arguments'])
             if verbose: print("Tool args: " + str(function_args))
 
-            yield LLMChatResponse(type="tool_selected", tool_id=tool_call['id'], tool_name=function_name)
+            yield LLMChatResponse(type="tool_selected", tool_id=tool_call['id'], tool_name=function_name, tool_args=function_args)
             function_response = function_to_call(function_args)
             yield LLMChatResponse(type="tool_finished", tool_id=tool_call['id'], tool_name=function_name, tool_response=function_response)
 
             encoding = tiktoken.get_encoding("cl100k_base")
-            limit = 40000 if self.model_name == "gpt-4-0125-preview" else 7000
-            texts = split_string_with_limit(str(function_response), limit, encoding)
+            limit = {
+              "gpt-4-0125-preview": 40000,
+              "gpt-4": 7000,
+              "gpt-3.5-turbo": 1200
+            }
+            texts = split_string_with_limit(str(function_response), limit[self.model_name] or 7000, encoding)
 
             if verbose:
               print("Tool response:")
-              print(json.dumps(function_response, indent=2))
+              print(function_response)
 
             # Extend conversation with function response
             messages.append(
