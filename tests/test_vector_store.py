@@ -1,9 +1,9 @@
 from unittest.mock import MagicMock, patch
-from openoperator.services.vector_store.pg_vector_store import PGVectorStore
-from openoperator.services.postgres import Postgres
+from openoperator.infrastructure.vector_store.pg_vector_store import PGVectorStore
+from openoperator.infrastructure.postgres import Postgres
 import os
 from openoperator.types import DocumentMetadataChunk, DocumentMetadata
-from openoperator.services.embeddings import Embeddings
+from openoperator.infrastructure.embeddings import Embeddings
 from openai.types import Embedding
 
 @patch('openoperator.services.vector_store.pg_vector_store.register_vector')

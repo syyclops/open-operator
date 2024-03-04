@@ -1,4 +1,4 @@
-from openoperator.infastructure.knowledge_graph import KnowledgeGraph
+from openoperator.infrastructure import KnowledgeGraph
 from openoperator.domain import Portfolio
 
 class PortfolioRepository:

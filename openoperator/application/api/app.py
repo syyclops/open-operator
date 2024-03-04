@@ -1,18 +1,16 @@
 from typing import List
 import mimetypes
-from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks
+import os
+import jwt
+from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks, Query
 from fastapi.responses import Response, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-import os
-import jwt
-from openoperator.infastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres
-from openoperator.domain.repository import PortfolioRepository, UserRepository, FacilityRepository, DocumentRepository
-from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService
-from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk
-from dotenv import load_dotenv
-load_dotenv()
+from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale
+from openoperator.domain.repository import PortfolioRepository, UserRepository, FacilityRepository, DocumentRepository, COBieRepository, DeviceRepository, PointRepository
+from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService
+from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point
 
 # Infrastructure
 knowledge_graph = KnowledgeGraph()
@@ -21,12 +19,16 @@ document_loader = UnstructuredDocumentLoader()
 embeddings = OpenAIEmbeddings()
 postgres = Postgres()
 vector_store = PGVectorStore(postgres=postgres, embeddings=embeddings)
+timescale = Timescale(postgres=postgres)
 
 # Repositories
 portfolio_repository = PortfolioRepository(kg=knowledge_graph)
 user_repository = UserRepository(kg=knowledge_graph)
 facility_repository = FacilityRepository(kg=knowledge_graph)
 document_repository = DocumentRepository(kg=knowledge_graph, blob_store=blob_store, document_loader=document_loader, vector_store=vector_store)
+cobie_repository = COBieRepository(kg=knowledge_graph, blob_store=blob_store)
+device_repository = DeviceRepository(kg=knowledge_graph, embeddings=embeddings)
+point_repository = PointRepository(kg=knowledge_graph, ts=timescale)
 
 # Services
 base_uri = "https://syyclops.com/"
@@ -34,17 +36,14 @@ portfolio_service = PortfolioService(portfolio_repository=portfolio_repository, 
 user_service = UserService(user_repository=user_repository)
 facility_service = FacilityService(facility_repository=facility_repository)
 document_service = DocumentService(document_repository=document_repository)
+cobie_service = COBieService(cobie_repository=cobie_repository)
+device_service = DeviceService(device_repository=device_repository)
+point_service = PointService(point_repository=point_repository)
 
 api_secret = os.getenv("API_SECRET")
 
 app = FastAPI(title="Open Operator API")
-app.add_middleware(
-  CORSMiddleware,
-  allow_origins=["*"],
-  allow_credentials=True,
-  allow_methods=["*"],
-  allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 security = HTTPBearer(auto_error=False)
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
@@ -174,6 +173,78 @@ async def delete_document(
       content={"message": f"Unable to delete document: {e}"},
       status_code=400
     )
+  
+### DEVICES ROUTES
+@app.get("/devices", tags=['Devices'], response_model=List[Device])
+async def list_devices(
+  facility_uri: str,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    devices = device_service.get_devices(facility_uri=facility_uri)
+    # for device in devices: # Remove the embedding from the response
+    #   device.pop('embedding', None)
+    devices = [device.model_dump() for device in devices]
+    return JSONResponse(devices)
+  except HTTPException as e:
+    return JSONResponse(
+        content={"message": f"Unable to list devices: {e}"},
+        status_code=500
+    )
+  
+@app.post("/device/link", tags=['Devices'])
+async def link_to_component(
+  device_uri: str,
+  component_uri: str,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    return JSONResponse(device_service.link_device_to_component(device_uri=device_uri, component_uri=component_uri))
+  except HTTPException as e:
+    return JSONResponse(
+        content={"message": f"Unable to link device to component: {e}"},
+        status_code=500
+    )
+  
+### POINTS ROUTES
+@app.get("/points", tags=['Points'], response_model=List[Point])
+async def list_points(
+  facility_uri: str,
+  component_uri: str | None = None,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  points = point_service.get_points(facility_uri=facility_uri, component_uri=component_uri)
+  points = [point.model_dump() for point in points]
+  for point in points: # Remove the embedding from the response
+    point.pop('embedding', None)
+  return JSONResponse(points)
+
+@app.get("/points/history", tags=['Points'])
+async def get_points_history(
+  start_time: str,
+  end_time: str,
+  point_uris: List[str] = Query(...),
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  return JSONResponse(point_service.get_points_history(start_time=start_time, end_time=end_time, point_uris=point_uris))
+  
+## COBie ROUTES
+@app.post("/cobie/import", tags=['COBie'])
+async def import_cobie_spreadsheet(
+  portfolio_uri: str, 
+  facility_uri: str, 
+  file: UploadFile, 
+  validate: bool = True,
+  current_user: User = Security(get_current_user)
+):
+  try:
+    file_content = await file.read()
+    errors_found, errors = cobie_service.process_cobie_spreadsheet(facility_uri=facility_uri, file=file_content, validate=validate)
+    if errors_found:
+      return JSONResponse(content={"errors": errors}, status_code=400)
+    return "COBie spreadsheet imported successfully"
+  except HTTPException as e:
+    return Response(content=str(e), status_code=500)
   
 if __name__ == "__main__":
   reload = True if os.environ.get("ENV") == "dev" or os.environ.get("ENV") == "beta" else False

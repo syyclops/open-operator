@@ -2,3 +2,6 @@ from .portfolio_repository import PortfolioRepository
 from .user_repository import UserRepository
 from .facility_repository import FacilityRepository
 from .document_repository import DocumentRepository
+from .cobie_repository import COBieRepository
+from .device_repository import DeviceRepository
+from .point_repository import PointRepository

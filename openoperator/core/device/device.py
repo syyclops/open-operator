@@ -1,4 +1,4 @@
-from openoperator.services import KnowledgeGraph
+from openoperator.infrastructure import KnowledgeGraph
 from ..point import PointManager
 import os
 import xml.etree.ElementTree as ET

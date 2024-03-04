@@ -1,8 +1,5 @@
 from openoperator.domain.model.document import Document, DocumentQuery, DocumentMetadataChunk
-from openoperator.infastructure.knowledge_graph import KnowledgeGraph
-from openoperator.infastructure.blob_store import BlobStore
-from openoperator.infastructure.document_loader import DocumentLoader
-from openoperator.infastructure.vector_store import VectorStore
+from openoperator.infrastructure import KnowledgeGraph, BlobStore, DocumentLoader, VectorStore
 import fitz
 import io
 from uuid import uuid4

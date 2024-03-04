@@ -1,4 +1,4 @@
-from openoperator.services import Embeddings, Timescale
+from openoperator.infrastructure import Embeddings, Timescale
 import numpy as np
 from openoperator.utils import dbscan_cluster
 from neo4j.exceptions import Neo4jError

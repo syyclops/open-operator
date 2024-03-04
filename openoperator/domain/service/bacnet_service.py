@@ -1,9 +1,10 @@
 import json
 from rdflib import Graph, Namespace, Literal, URIRef, RDF
 from rdflib.namespace import XSD
-from openoperator.services import Embeddings, Timescale
+from openoperator.infrastructure import KnowledgeGraph, BlobStore
 from uuid import uuid4
-class BACnet:
+
+class BACnetService:
   """
   This class handles the BACnet integration with the knowledge graph.
 
@@ -12,14 +13,11 @@ class BACnet:
   - Aligning devices with components from the cobie schema
   - Aligning points with components from the brick schema
   """
-  def __init__(self, facility, embeddings: Embeddings, timescale: Timescale) -> None:
-    self.knowledge_graph = facility.knowledge_graph 
-    self.blob_store = facility.blob_store
-    self.uri = facility.uri
-    self.embeddings = embeddings
-    self.timescale = timescale
+  def __init__(self, kg: KnowledgeGraph, blob_store: BlobStore) -> None:
+    self.kg = kg
+    self.blob_store = blob_store
 
-  def convert_bacnet_data_to_rdf(self, file: bytes) -> Graph:
+  def convert_bacnet_data_to_rdf(self, facility_uri: str, file: bytes) -> Graph:
     try:
       # Load the file
       data = json.loads(file)
@@ -44,7 +42,7 @@ class BACnet:
         if bacnet_data['device_name'] == None or bacnet_data['device_name'] == "":
           continue
 
-        device_uri = URIRef(self.uri + "/" + bacnet_data['device_address'] + "-" + bacnet_data['device_id'] + "/device/" + bacnet_data['device_id'])
+        device_uri = URIRef(facility_uri + "/" + bacnet_data['device_address'] + "-" + bacnet_data['device_id'] + "/device/" + bacnet_data['device_id'])
         # Check if its a bacnet device or a bacnet object
         if bacnet_data['object_type'] == "device":
           # Create the bacnet device and add it to the graph
@@ -56,7 +54,7 @@ class BACnet:
             g.add((device_uri, BACNET[key], Literal(str(value))))
         else:
           # Create the bacnet point and add it to the graph
-          point_uri = URIRef(self.uri + '/' + bacnet_data['device_address'] + '-' + bacnet_data['device_id'] + '/' + bacnet_data['object_type'] + '/' + bacnet_data['object_index'])
+          point_uri = URIRef(facility_uri + '/' + bacnet_data['device_address'] + '-' + bacnet_data['device_id'] + '/' + bacnet_data['object_type'] + '/' + bacnet_data['object_index'])
           g.add((point_uri, A, BACNET.Point))
           g.add((point_uri, BACNET.timeseriesId, Literal(name)))
           g.add((point_uri, BACNET.objectOf, device_uri)) # Create relationship between the device and the point
@@ -71,16 +69,16 @@ class BACnet:
     except Exception as e:
       raise e
 
-  def upload_bacnet_data(self, file: bytes):
+  def upload_bacnet_data(self, facility_uri: str, file: bytes):
     """
     This function takes a json file of bacnet data, converts it to rdf and uploads it to the knowledge graph.
     """
     try:
-      g = self.convert_bacnet_data_to_rdf(file)
+      g = self.convert_bacnet_data_to_rdf(facility_uri, file)
       graph_string = g.serialize(format='turtle', encoding='utf-8').decode()
       unique_id = str(uuid4())
       url = self.blob_store.upload_file(file_content=graph_string.encode(), file_name=f"{unique_id}_bacnet.ttl", file_type="text/turtle")
-      self.knowledge_graph.import_rdf_data(url)
+      self.kg.import_rdf_data(url)
       return g
     except Exception as e:
       raise e
