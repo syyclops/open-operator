@@ -1,8 +1,7 @@
 import json
 from rdflib import Graph, Namespace, Literal, URIRef, RDF
 from rdflib.namespace import XSD
-from openoperator.infrastructure import KnowledgeGraph, BlobStore
-from uuid import uuid4
+from openoperator.domain.repository import DeviceRepository
 
 class BACnetService:
   """
@@ -13,9 +12,8 @@ class BACnetService:
   - Aligning devices with components from the cobie schema
   - Aligning points with components from the brick schema
   """
-  def __init__(self, kg: KnowledgeGraph, blob_store: BlobStore) -> None:
-    self.kg = kg
-    self.blob_store = blob_store
+  def __init__(self, device_repository: DeviceRepository) -> None:
+    self.device_repository = device_repository
 
   def convert_bacnet_data_to_rdf(self, facility_uri: str, file: bytes) -> Graph:
     try:
@@ -76,9 +74,6 @@ class BACnetService:
     try:
       g = self.convert_bacnet_data_to_rdf(facility_uri, file)
       graph_string = g.serialize(format='turtle', encoding='utf-8').decode()
-      unique_id = str(uuid4())
-      url = self.blob_store.upload_file(file_content=graph_string.encode(), file_name=f"{unique_id}_bacnet.ttl", file_type="text/turtle")
-      self.kg.import_rdf_data(url)
-      return g
+      self.device_repository.import_to_graph(graph_string)
     except Exception as e:
       raise e

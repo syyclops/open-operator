@@ -7,14 +7,16 @@ class PointRepository:
     self.kg = kg
     self.ts = ts
 
-  def get_points(self, facility_uri: str, component_uri: str | None = None, collect_enabled: bool = True) -> list[Point]:
+  def get_points(self, facility_uri: str, component_uri: str | None = None, device_uri: str | None = None, collect_enabled: bool = True) -> list[Point]:
     query = "MATCH (p:Point {collect_enabled: $collect_enabled})"
-    if component_uri: 
+    if device_uri: 
+      query += "-[:objectOf]->(d:Device {uri: $device_uri})"
+    elif component_uri: 
       query += "-[:objectOf]-(d:Device)-[:isDeviceOf]-(c:Component {uri: $component_uri})"
     query += " WHERE p.uri STARTS WITH $uri RETURN p"
     try:
       with self.kg.create_session() as session:
-        result = session.run(query, component_uri=component_uri, uri=facility_uri, collect_enabled=collect_enabled)
+        result = session.run(query, component_uri=component_uri, uri=facility_uri, collect_enabled=collect_enabled, device_uri=device_uri)
         points = [Point(**record['p']) for record in result.data()]
 
       ids = [point.timeseriesId for point in points]

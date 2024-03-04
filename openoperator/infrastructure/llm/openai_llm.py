@@ -4,8 +4,7 @@ import tiktoken
 import json
 from typing import Generator, List
 from openoperator.utils import split_string_with_limit
-from openoperator.types import LLMChatResponse
-from openoperator.domain.model import Tool
+from openoperator.domain.model import LLMChatResponse, Tool
 from .llm import LLM
 
 class OpenaiLLM(LLM):

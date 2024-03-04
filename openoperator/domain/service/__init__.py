@@ -5,3 +5,5 @@ from .document_service import DocumentService
 from .cobie_service import COBieService
 from .device_service import DeviceService
 from .point_service import PointService
+from .bacnet_service import BACnetService
+from .ai_assistant_service import AIAssistantService

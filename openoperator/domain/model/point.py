@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 from typing import Optional, List
 
+class PointReading(BaseModel):
+  ts: str
+  value: float
+  timeseriesid: str
+
 class Point(BaseModel):
   uri: str
   object_type: str

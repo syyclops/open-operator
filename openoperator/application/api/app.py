@@ -1,16 +1,26 @@
-from typing import List
+from typing import List, Generator
 import mimetypes
 import os
 import jwt
+import json
+from io import BytesIO
 from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks, Query
-from fastapi.responses import Response, JSONResponse
+from fastapi.responses import Response, JSONResponse, StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale
+from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale, OpenaiLLM, OpenaiAudio
 from openoperator.domain.repository import PortfolioRepository, UserRepository, FacilityRepository, DocumentRepository, COBieRepository, DeviceRepository, PointRepository
-from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService
-from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point
+from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService
+from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, Message, LLMChatResponse
+
+
+llm_system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
+Your goal is to help facility owners, managers, and operators manage their facilities and buildings more efficiently.
+Make sure to always follow ASHRAE guildelines.
+Don't be too wordy. Don't be too short. Be just right.
+Don't make up information. If you don't know, say you don't know.
+Always respond with markdown formatted text and provide sources for your information."""
 
 # Infrastructure
 knowledge_graph = KnowledgeGraph()
@@ -20,6 +30,8 @@ embeddings = OpenAIEmbeddings()
 postgres = Postgres()
 vector_store = PGVectorStore(postgres=postgres, embeddings=embeddings)
 timescale = Timescale(postgres=postgres)
+llm = OpenaiLLM(model_name="gpt-4-0125-preview", system_prompt=llm_system_prompt)
+audio = OpenaiAudio()
 
 # Repositories
 portfolio_repository = PortfolioRepository(kg=knowledge_graph)
@@ -27,8 +39,8 @@ user_repository = UserRepository(kg=knowledge_graph)
 facility_repository = FacilityRepository(kg=knowledge_graph)
 document_repository = DocumentRepository(kg=knowledge_graph, blob_store=blob_store, document_loader=document_loader, vector_store=vector_store)
 cobie_repository = COBieRepository(kg=knowledge_graph, blob_store=blob_store)
-device_repository = DeviceRepository(kg=knowledge_graph, embeddings=embeddings)
 point_repository = PointRepository(kg=knowledge_graph, ts=timescale)
+device_repository = DeviceRepository(kg=knowledge_graph, embeddings=embeddings, blob_store=blob_store)
 
 # Services
 base_uri = "https://syyclops.com/"
@@ -37,8 +49,10 @@ user_service = UserService(user_repository=user_repository)
 facility_service = FacilityService(facility_repository=facility_repository)
 document_service = DocumentService(document_repository=document_repository)
 cobie_service = COBieService(cobie_repository=cobie_repository)
-device_service = DeviceService(device_repository=device_repository)
+device_service = DeviceService(device_repository=device_repository, point_repository=point_repository)
 point_service = PointService(point_repository=point_repository)
+bacnet_service = BACnetService(device_repository=device_repository)
+ai_assistant_service = AIAssistantService(llm=llm, document_repository=document_repository)
 
 api_secret = os.getenv("API_SECRET")
 
@@ -58,7 +72,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     return user
   except HTTPException as e:
     raise e
-  
+
+## AUTH ROUTES 
 @app.post("/signup", tags=["Auth"])
 async def signup(email: str, password: str, full_name: str) -> JSONResponse:
   try:
@@ -80,6 +95,37 @@ async def login(email: str, password: str) -> JSONResponse:
     return JSONResponse({"token": token})
   except HTTPException as e:
     return JSONResponse(content={"message": f"Unable to login: {e}"}, status_code=500)
+
+## AI ROUTES
+@app.post("/chat", tags=["AI"], response_model=Generator[LLMChatResponse, None, None])
+async def chat(
+  messages: list[Message],
+  portfolio_uri: str,
+  facility_uri: str | None = None,
+  document_uri: str | None = None,
+  current_user: User = Security(get_current_user)
+) -> StreamingResponse:
+  if document_uri and not facility_uri:
+    raise HTTPException(status_code=400, detail="If a document_uri is provided, a facility_uri must also be provided.")
+
+  async def event_stream() -> Generator[str, None, None]:
+    for response in ai_assistant_service.chat(portfolio_uri=portfolio_uri, messages=messages, facility_uri=facility_uri, document_uri=document_uri, verbose=False):
+      yield json.dumps(response.model_dump()) + "\n"
+
+  return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+@app.post("/transcribe", tags=["AI"], response_model=str)
+async def transcribe_audio(
+  file: UploadFile,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    file_content = await file.read()
+    buffer = BytesIO(file_content)
+    buffer.name = file.filename
+    return Response(content=audio.transcribe(buffer))
+  except HTTPException as e:
+    return JSONResponse(content={"message": f"Unable to transcribe audio: {e}"}, status_code=500)
 
 ## PORTFOLIO ROUTES
 @app.get("/portfolio/list", tags=['Portfolio'], response_model=List[Portfolio])
@@ -175,7 +221,7 @@ async def delete_document(
       status_code=400
     )
   
-### DEVICES ROUTES
+## DEVICES ROUTES
 @app.get("/devices", tags=['Devices'], response_model=List[Device])
 async def list_devices(
   facility_uri: str,
@@ -193,6 +239,23 @@ async def list_devices(
         status_code=500
     )
   
+@app.get("/device/graphic", tags=['Devices'])
+async def get_device_graphic(
+  facility_uri: str,
+  device_uri: str,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    return Response(
+      device_service.get_device_graphic(facility_uri=facility_uri, device_uri=device_uri), 
+      media_type="image/svg+xml"
+    )
+  except HTTPException as e:
+    return JSONResponse(
+        content={"message": f"Unable to get device graphic: {e}"},
+        status_code=500
+    )
+  
 @app.post("/device/link", tags=['Devices'])
 async def link_to_component(
   device_uri: str,
@@ -207,7 +270,22 @@ async def link_to_component(
         status_code=500
     )
   
-### POINTS ROUTES
+@app.put("/device/update", tags=['Devices'])
+async def update_device(
+  device_uri: str,
+  new_details: dict,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    device_service.update(device_uri=device_uri, new_details=new_details)
+    return JSONResponse(content={"message": "Device updated successfully"})
+  except HTTPException as e:
+    return JSONResponse(
+        content={"message": f"Unable to update device: {e}"},
+        status_code=500
+    )
+  
+## POINTS ROUTES
 @app.get("/points", tags=['Points'], response_model=List[Point])
 async def list_points(
   facility_uri: str,
@@ -232,7 +310,6 @@ async def get_points_history(
 ## COBie ROUTES
 @app.post("/cobie/import", tags=['COBie'])
 async def import_cobie_spreadsheet(
-  portfolio_uri: str, 
   facility_uri: str, 
   file: UploadFile, 
   validate: bool = True,
@@ -244,6 +321,22 @@ async def import_cobie_spreadsheet(
     if errors_found:
       return JSONResponse(content={"errors": errors}, status_code=400)
     return "COBie spreadsheet imported successfully"
+  except HTTPException as e:
+    return Response(content=str(e), status_code=500)
+  
+## BACNET INTEGRATION ROUTES
+@app.post("/bacnet/import", tags=['BACnet'])
+async def upload_bacnet_data(
+  facility_uri: str,
+  file: UploadFile,
+  vectorize: bool = False,
+  current_user: User = Security(get_current_user)
+):
+  try:
+    file_content = await file.read()
+    bacnet_service.upload_bacnet_data(facility_uri=facility_uri, file=file_content)
+
+    return "BACnet data uploaded successfully"
   except HTTPException as e:
     return Response(content=str(e), status_code=500)
   

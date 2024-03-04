@@ -1,7 +1,7 @@
 from typing import List
 from abc import ABC, abstractmethod
 from ..embeddings.embeddings import Embeddings
-from openoperator.types import DocumentMetadataChunk 
+from openoperator.domain.model.document import DocumentMetadataChunk 
 
 class VectorStore(ABC):
   """

@@ -5,7 +5,7 @@ from unstructured_client.models.errors import SDKError
 import os
 from typing import List
 from .document_loader import DocumentLoader
-from openoperator.types import DocumentMetadataChunk 
+from openoperator.domain.model.document import DocumentMetadataChunk 
 
 class UnstructuredDocumentLoader(DocumentLoader):
   """

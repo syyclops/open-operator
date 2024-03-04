@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from openoperator.domain.model import Tool
-from openoperator.types import LLMChatResponse
+from openoperator.domain.model import Tool, LLMChatResponse
 from typing import List, Generator
 
 class LLM(ABC):

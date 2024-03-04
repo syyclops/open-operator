@@ -1,6 +1,6 @@
 from .postgres import Postgres
 from typing import List
-from openoperator.types import TimeseriesReading
+from openoperator.domain.model import PointReading
 
 class Timescale:
   def __init__(self, postgres: Postgres) -> None:
@@ -27,13 +27,13 @@ class Timescale:
         rows = cur.fetchall()
         result = []
         for id in timeseriesIds:
-          data = [TimeseriesReading(ts=row[0].isoformat(), value=row[1], timeseriesid=row[2]).model_dump() for row in rows if row[2] == id]
+          data = [PointReading(ts=row[0].isoformat(), value=row[1], timeseriesid=row[2]).model_dump() for row in rows if row[2] == id]
           result.append({'data': data, 'timeseriesid': id})
         return result
     except Exception as e:
       raise e
     
-  def get_latest_values(self, timeseriesIds: List[str]) -> List[TimeseriesReading]:
+  def get_latest_values(self, timeseriesIds: List[str]) -> List[PointReading]:
     """
     Get the most recent reading for a list of timeseriesIds. Limit to the last 30 minutes.
     """
@@ -42,6 +42,6 @@ class Timescale:
     try:
       with self.postgres.cursor() as cur:
         cur.execute(query)
-        return [TimeseriesReading(ts=row[0].isoformat(), value=row[1], timeseriesid=row[2]) for row in cur.fetchall()]
+        return [PointReading(ts=row[0].isoformat(), value=row[1], timeseriesid=row[2]) for row in cur.fetchall()]
     except Exception as e:
       raise e

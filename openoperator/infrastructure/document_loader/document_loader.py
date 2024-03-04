@@ -1,5 +1,5 @@
 from typing import List
-from openoperator.types import DocumentMetadataChunk
+from openoperator.domain.model.document import DocumentMetadataChunk
 from abc import ABC, abstractmethod
 
 class DocumentLoader(ABC):
