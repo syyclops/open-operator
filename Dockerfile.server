@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y libpq-dev
 WORKDIR /usr/src/app
 
 COPY openoperator/ openoperator/
-COPY server.py server.py
 COPY setup.py setup.py
 COPY README.md README.md
 
@@ -16,4 +15,4 @@ RUN python3 -m pip install -e . && \
 
 EXPOSE 8080
 
-CMD ["python", "./server.py"]
+CMD ["python", "openoperator/application/api/app.py"]

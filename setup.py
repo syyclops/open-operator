@@ -8,13 +8,12 @@ with open(directory / 'README.md', encoding='utf-8') as f:
   long_description = f.read()
 
 setup(name='openoperator',
-      version='0.0.1',
+      version='0.0.2',
       description='AI Assistant for building operations and maintenance.',
       author='Anthony DeMattos',
       license='GPL-3.0',
       long_description_content_type='text/markdown',
-      packages = ['openoperator', 'openoperator.services.llm', 'openoperator.services.blob_store', 'openoperator.services.vector_store', 'openoperator.services.document_loader', 
-                  'openoperator.services.embeddings'],
+      packages = ['openoperator'],
       classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",

@@ -14,7 +14,7 @@ from openoperator.domain.repository import PortfolioRepository, UserRepository, 
 from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService
 from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, Message, LLMChatResponse
 
-
+# System prompt for the AI Assistant
 llm_system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
 Your goal is to help facility owners, managers, and operators manage their facilities and buildings more efficiently.
 Make sure to always follow ASHRAE guildelines.
@@ -54,7 +54,7 @@ point_service = PointService(point_repository=point_repository)
 bacnet_service = BACnetService(device_repository=device_repository)
 ai_assistant_service = AIAssistantService(llm=llm, document_repository=document_repository)
 
-api_secret = os.getenv("API_SECRET")
+api_secret = os.getenv("API_TOKEN_SECRET")
 
 app = FastAPI(title="Open Operator API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -64,6 +64,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
   # If its local development, return a dummy user
   if os.environ.get("ENV") == "dev":
     return User(email="example@example.com", hashed_password="", full_name="Example User")
+  if credentials is None or credentials.credentials is None:
+    raise HTTPException(status_code=401, detail="Invalid token")
   token = credentials.credentials
   try:
     decoded = jwt.decode(token, api_secret, algorithms=["HS256"])
