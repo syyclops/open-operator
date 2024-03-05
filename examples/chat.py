@@ -1,5 +1,6 @@
-from openoperator import OpenOperator
-from openoperator.services import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, OpenaiLLM, Postgres, Timescale 
+from openoperator.infrastructure import AzureBlobStore, UnstructuredDocumentLoader, PGVectorStore, KnowledgeGraph, OpenAIEmbeddings, OpenaiLLM, Postgres 
+from openoperator.domain.repository import DocumentRepository
+from openoperator.domain.service import AIAssistantService
 import argparse
 from dotenv import load_dotenv
 load_dotenv()
@@ -20,29 +21,20 @@ def main():
   Don't make up information. If you don't know, say you don't know.
   Always respond with markdown formatted text."""
 
-  # Create the different modules that are needed for the operator
+  # Infrastructure
+  knowledge_graph = KnowledgeGraph()
   blob_store = AzureBlobStore()
   document_loader = UnstructuredDocumentLoader()
   embeddings = OpenAIEmbeddings()
   postgres = Postgres()
   vector_store = PGVectorStore(postgres=postgres, embeddings=embeddings)
-  timescale = Timescale(postgres=postgres)
-  knowledge_graph = KnowledgeGraph()
   llm = OpenaiLLM(model_name="gpt-4-0125-preview", system_prompt=llm_system_prompt)
 
-  operator = OpenOperator(
-    blob_store=blob_store,
-    document_loader=document_loader,
-    vector_store=vector_store,
-    timescale=timescale,
-    embeddings=embeddings,
-    knowledge_graph=knowledge_graph,
-    llm=llm,
-    base_uri="https://syyclops.com/"
-  )
+  # Repositories
+  document_repository = DocumentRepository(kg=knowledge_graph, blob_store=blob_store, document_loader=document_loader, vector_store=vector_store)
 
-  user = operator.user(email="example@example.com", password="test_password", full_name="Example Full Name")
-  portfolio = operator.portfolio(user, portfolio_uri)
+  # Services
+  ai_assistant_service = AIAssistantService(llm=llm, document_repository=document_repository)
 
   messages = []
 
@@ -60,7 +52,7 @@ def main():
     })
 
     content = ""
-    for response in operator.chat(messages, portfolio=portfolio, verbose=verbose):
+    for response in ai_assistant_service.chat(portfolio_uri=portfolio_uri, messages=messages, verbose=verbose):
       if response.type == "tool_selected":
         print(f"Tool selected: {response.tool_name}")
       if response.type == "content":

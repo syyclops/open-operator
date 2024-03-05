@@ -4,7 +4,7 @@ import os
 import jwt
 import json
 from io import BytesIO
-from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks, Query
+from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks
 from fastapi.responses import Response, JSONResponse, StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
