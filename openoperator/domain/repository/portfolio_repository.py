@@ -32,7 +32,7 @@ class PortfolioRepository:
       portfolios: List[Portfolio] = []
       for record in data:
         portfolio = Portfolio(uri=record['portfolio']['uri'], name=record['portfolio']['name'])
-        facilities = [Facility(uri=f['uri'], name=f['name']) for f in record['facilities']]
+        facilities = [Facility(**facility) for facility in record['facilities']]
         portfolio.facilities = facilities
         portfolios.append(portfolio)
       return portfolios
