@@ -10,15 +10,15 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale, OpenaiLLM, OpenaiAudio
-from openoperator.domain.repository import PortfolioRepository, UserRepository, FacilityRepository, DocumentRepository, COBieRepository, DeviceRepository, PointRepository
-from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService
-from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, Message, LLMChatResponse
+from openoperator.domain.repository import PortfolioRepository, UserRepository, FacilityRepository, DocumentRepository, COBieRepository, DeviceRepository, PointRepository, ComponentRepository
+from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService, ComponentService
+from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, Message, LLMChatResponse, Component
 
 # System prompt for the AI Assistant
 llm_system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
 Your goal is to help facility owners, managers, and operators manage their facilities and buildings more efficiently.
 Make sure to always follow ASHRAE guildelines.
-Don't be too wordy. Don't be too short. Be just right.
+Don't be too wordy. Don't be too short. Be just right. 
 Don't make up information. If you don't know, say you don't know.
 Always respond with markdown formatted text and provide sources for your information."""
 
@@ -41,6 +41,7 @@ document_repository = DocumentRepository(kg=knowledge_graph, blob_store=blob_sto
 cobie_repository = COBieRepository(kg=knowledge_graph, blob_store=blob_store)
 point_repository = PointRepository(kg=knowledge_graph, ts=timescale)
 device_repository = DeviceRepository(kg=knowledge_graph, embeddings=embeddings, blob_store=blob_store)
+component_repository = ComponentRepository(kg-knowledge_graph, embeddings=embeddings)
 
 # Services
 base_uri = "https://syyclops.com/"
@@ -53,6 +54,7 @@ device_service = DeviceService(device_repository=device_repository, point_reposi
 point_service = PointService(point_repository=point_repository)
 bacnet_service = BACnetService(device_repository=device_repository)
 ai_assistant_service = AIAssistantService(llm=llm, document_repository=document_repository)
+component_service = ComponentService(component_repository=component_repository)
 
 api_secret = os.getenv("API_TOKEN_SECRET")
 
@@ -162,6 +164,11 @@ async def create_facility(
     return JSONResponse(facility.model_dump())
   except HTTPException as e:
     return JSONResponse(content={"message": f"Unable to create facility: {e}"}, status_code=500)
+
+## COMPONENT ROUTES
+@app.get("/component", tags=['Component'], response_model=List[Component])
+async def list_(portfolio_uri: str, current_user: User = Security(get_current_user)) -> JSONResponse:
+  return JSONResponse([component.model_dump() for component in component_service.get_component(component_uri)])    
 
 ## DOCUMENTS ROUTES
 @app.get("/documents", tags=['Document'], response_model=List[Document])

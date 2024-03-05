@@ -7,3 +7,4 @@ from .cobie_spreadsheet import COBieSpreadsheet
 from .device import Device
 from .point import Point, PointReading
 from .chat_session import ChatSession, Message, LLMChatResponse
+from .component import Component
