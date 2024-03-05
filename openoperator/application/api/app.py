@@ -224,10 +224,11 @@ async def delete_document(
 @app.get("/devices", tags=['Devices'], response_model=List[Device])
 async def list_devices(
   facility_uri: str,
+  component_uri: str | None = None,
   current_user: User = Security(get_current_user)
 ) -> JSONResponse:
   try:
-    devices = device_service.get_devices(facility_uri=facility_uri)
+    devices = device_service.get_devices(facility_uri=facility_uri, component_uri=component_uri)
     # for device in devices: # Remove the embedding from the response
     #   device.pop('embedding', None)
     devices = [device.model_dump() for device in devices]
@@ -297,11 +298,11 @@ async def list_points(
     point.pop('embedding', None)
   return JSONResponse(points)
 
-@app.get("/points/history", tags=['Points'])
+@app.post("/points/history", tags=['Points'])
 async def get_points_history(
   start_time: str,
   end_time: str,
-  point_uris: List[str] = Query(...),
+  point_uris: List[str],
   current_user: User = Security(get_current_user)
 ) -> JSONResponse:
   return JSONResponse(point_service.get_points_history(start_time=start_time, end_time=end_time, point_uris=point_uris))

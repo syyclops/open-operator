@@ -11,11 +11,14 @@ class DeviceRepository:
     self.embeddings = embeddings
     self.blob_store = blob_store
   
-  def get_devices(self, facility_uri: str) -> list[Device]:
-    query = "MATCH (d:Device)-[:objectOf]-(p:Point) where d.uri starts with $facility_uri with d, collect(p) AS points RETURN d as device, points"
+  def get_devices(self, facility_uri: str, component_uri: str | None = None) -> list[Device]:
+    query = "MATCH (d:Device)-[:objectOf]-(p:Point) where d.uri starts with $facility_uri"
+    if component_uri:
+      query += " MATCH (d)-[:isDeviceOf]->(c:Component {uri: $component_uri})"
+    query += " with d, collect(p) AS points RETURN d as device, points"
     try:
       with self.kg.create_session() as session:
-        result = session.run(query, facility_uri=facility_uri)
+        result = session.run(query, facility_uri=facility_uri, component_uri=component_uri)
         data = result.data()
         devices = []
         for record in data:

@@ -7,8 +7,8 @@ class DeviceService:
     self.device_repository = device_repository
     self.point_repository = point_repository
   
-  def get_devices(self, facility_uri: str) -> list[Device]:
-    return self.device_repository.get_devices(facility_uri)
+  def get_devices(self, facility_uri: str, component_uri: str | None = None) -> list[Device]:
+    return self.device_repository.get_devices(facility_uri, component_uri)
 
   def update(self, device_uri: str, new_details: dict) -> None:
     return self.device_repository.update(device_uri, new_details)
