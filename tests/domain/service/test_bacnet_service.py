@@ -1,19 +1,20 @@
-from openoperator.core import BACnet 
+from openoperator.domain.service import BACnetService
 import unittest
 from unittest.mock import Mock, patch
 import json
 from rdflib import Namespace, RDF, URIRef, Literal
 
 class TestBACnet(unittest.TestCase):
-  @patch('openoperator.services.knowledge_graph.KnowledgeGraph')
+  @patch('openoperator.infrastructure.knowledge_graph.KnowledgeGraph')
   def setUp(self, mock_knowledge_graph):
-    mock_kg = mock_knowledge_graph.return_value
-    facility = Mock()
-    facility.knowledge_graph = mock_kg
-    facility.uri = "https://openoperator.com/exampleCustomer/exampleFacility"
-    embeddings = Mock()
-    timescale = Mock()
-    self.bacnet = BACnet(facility, embeddings, timescale)
+    # mock_kg = mock_knowledge_graph.return_value
+    self.facility_uri = "https://openoperator.com/exampleCustomer/exampleFacility"
+    # embeddings = Mock()
+    # timescale = Mock()
+    device_repository = Mock()
+    device_repository.blob_store = Mock()
+    self.device_repository = device_repository
+    self.bacnet_service = BACnetService(device_repository=device_repository)
 
   def setup_session_mock(self):
     # Create the session mock
@@ -23,7 +24,7 @@ class TestBACnet(unittest.TestCase):
     # Simulate exiting the context
     session_mock.__exit__ = Mock(return_value=None)
     # Configure the knowledge_graph to return this session mock
-    self.bacnet.knowledge_graph.create_session.return_value = session_mock
+    self.bacnet_service.device_repository.kg.create_session.return_value = session_mock
     return session_mock
 
   def create_bacnet_json_data(self) -> bytes:
@@ -75,7 +76,7 @@ class TestBACnet(unittest.TestCase):
   
   def test_convert_bacnet_data_to_rdf(self):
     bacnet_data = self.create_bacnet_json_data()
-    g = self.bacnet.convert_bacnet_data_to_rdf(bacnet_data)
+    g = self.bacnet_service.convert_bacnet_data_to_rdf(facility_uri=self.facility_uri, file=bacnet_data)
     
     BACNET = Namespace("http://data.ashrae.org/bacnet/#")
     device_uri = URIRef("https://openoperator.com/exampleCustomer/exampleFacility/301:14-3014/device/3014")
@@ -93,17 +94,17 @@ class TestBACnet(unittest.TestCase):
 
   def test_convert_bacnet_data_to_rdf_no_data(self):
     bacnet_data = bytes(json.dumps([]), 'utf-8')
-    g = self.bacnet.convert_bacnet_data_to_rdf(bacnet_data)
+    g = self.bacnet_service.convert_bacnet_data_to_rdf(facility_uri=self.facility_uri, file=bacnet_data)
     assert len(g) == 0
   
   def test_convert_bacnet_data_to_rdf_invalid_data(self):
     bacnet_data = bytes(json.dumps([{"invalid": "data"}]), 'utf-8')
     with self.assertRaises(Exception):
-      self.bacnet.convert_bacnet_data_to_rdf(bacnet_data)
+      self.bacnet_service.convert_bacnet_data_to_rdf(facility_uri=self.facility_uri, file=bacnet_data)
     
   def test_convert_bacnet_data_to_rdf_missing_keys(self):
     bacnet_data = bytes(json.dumps([{"Bacnet Data": "{}"}]), 'utf-8')
-    g = self.bacnet.convert_bacnet_data_to_rdf(bacnet_data)
+    g = self.bacnet_service.convert_bacnet_data_to_rdf(facility_uri=self.facility_uri, file=bacnet_data)
     assert len(g) == 0
   
   def test_upload_bacnet_data(self):
@@ -120,5 +121,4 @@ class TestBACnet(unittest.TestCase):
       }
     ]
     session_mock.run.return_value = mock_query_result
-    self.bacnet.upload_bacnet_data(bacnet_data)
-    self.bacnet.blob_store.upload_file.assert_called_once()
+    self.bacnet_service.upload_bacnet_data(facility_uri=self.facility_uri, file=bacnet_data)

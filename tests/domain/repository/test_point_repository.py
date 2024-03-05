@@ -1,17 +1,15 @@
-from openoperator.core.point import PointManager
+from openoperator.domain.repository import PointRepository
 import unittest
 from unittest.mock import Mock, patch
 
 class TestPointManager(unittest.TestCase):
-  @patch('openoperator.services.knowledge_graph.KnowledgeGraph')
+  @patch('openoperator.infrastructure.knowledge_graph.KnowledgeGraph')
   def setUp(self, mock_knowledge_graph):
     mock_kg = mock_knowledge_graph.return_value
-    facility = Mock()
-    facility.knowledge_graph = mock_kg
-    facility.uri = "https://openoperator.com/exampleCustomer/exampleFacility"
-    embeddings = Mock()
+    self.facility_uri = "https://openoperator.com/exampleCustomer/exampleFacility"
+    # embeddings = Mock()
     timescale = Mock()
-    self.point_manager = PointManager(facility, embeddings, timescale)
+    self.point_repository = PointRepository(kg=mock_kg, ts=timescale)
 
   def setup_session_mock(self):
     # Create the session mock
@@ -21,7 +19,7 @@ class TestPointManager(unittest.TestCase):
     # Simulate exiting the context
     session_mock.__exit__ = Mock(return_value=None)
     # Configure the knowledge_graph to return this session mock
-    self.point_manager.knowledge_graph.create_session.return_value = session_mock
+    self.point_repository.kg.create_session.return_value = session_mock
     return session_mock
   
   def test_points_with_device_uri(self):
@@ -57,9 +55,9 @@ class TestPointManager(unittest.TestCase):
     mock_reading = Mock()
     mock_reading.timeseriesid = "example/example/301:14-3014/analogInput/1"
     mock_reading.value = 123
-    self.point_manager.timescale.get_latest_values.return_value = [mock_reading]
+    self.point_repository.ts.get_latest_values.return_value = [mock_reading]
 
-    points = self.point_manager.points(device_uri="https://openoperator.com/facility/device")
+    points = self.point_repository.get_points(device_uri="https://openoperator.com/facility/device", facility_uri=self.facility_uri)
 
     assert len(points) == 2
     assert points[0].object_name == "test_point"

@@ -1,5 +1,5 @@
-from openoperator.core import Documents
-from openoperator.types import DocumentModel
+from openoperator.domain.repository import DocumentRepository
+from openoperator.domain.model import Document, DocumentQuery
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 from uuid import uuid4
@@ -10,9 +10,9 @@ class TestDocuments(unittest.TestCase):
     self.document_loader = Mock()
     self.vector_store = Mock()
     self.knowledge_graph = Mock()
-    self.facility = Mock()
-    self.facility.uri = "http://example.com/facility"
-    self.documents = Documents(self.facility, self.knowledge_graph, self.blob_store, self.document_loader, self.vector_store)
+    self.portfolio_uri = "http://example.com/portfolio"
+    self.facility_uri = "http://example.com/facility"
+    self.document_repository = DocumentRepository(kg=self.knowledge_graph, blob_store=self.blob_store, document_loader=self.document_loader, vector_store=self.vector_store)
 
   def setup_session_mock(self):
     # Create the session mock
@@ -41,7 +41,7 @@ class TestDocuments(unittest.TestCase):
     ]
     session_mock.run.return_value = mock_query_result
 
-    documents = self.documents.list()
+    documents = self.document_repository.list(facility_uri=self.facility_uri)
 
     assert len(documents) == 1
     assert documents[0].url == "test_url"
@@ -55,7 +55,7 @@ class TestDocuments(unittest.TestCase):
     mock_query_result.data.return_value = []
     session_mock.run.return_value = mock_query_result
 
-    documents = self.documents.list()
+    documents = self.document_repository.list(facility_uri=self.facility_uri)
 
     assert len(documents) == 0
 
@@ -77,9 +77,9 @@ class TestDocuments(unittest.TestCase):
 
     # Execute the upload method
     mock_uuid = uuid4()
-    with patch('openoperator.core.documents.uuid4', return_value=mock_uuid):
-      result_document = self.documents.upload(file_content, file_name, file_type)
-    expected_document = DocumentModel(extractionStatus="pending", name=file_name, uri=f"{self.facility.uri}/document/{str(mock_uuid)}", url=file_url, thumbnailUrl=None)
+    with patch('openoperator.domain.repository.document_repository.uuid4', return_value=mock_uuid):
+      result_document = self.document_repository.upload(facility_uri=self.facility_uri, file_content=file_content, file_name=file_name, file_type=file_type)
+    expected_document = Document(extractionStatus="pending", name=file_name, uri=f"{self.facility_uri}/document/{str(mock_uuid)}", url=file_url, thumbnailUrl=None)
   
     # Verify the result
     self.assertEqual(result_document, expected_document)
@@ -112,9 +112,9 @@ class TestDocuments(unittest.TestCase):
 
     # Mock fitz.open and execute the upload method
     mock_uuid = uuid4()
-    with patch('openoperator.core.documents.fitz.open', return_value=fitz_mock), patch('openoperator.core.documents.uuid4', return_value=mock_uuid):
-      result_document = self.documents.upload(file_content, file_name, file_type)
-    expected_result = DocumentModel(extractionStatus="pending", name=file_name, uri=f"{self.facility.uri}/document/{str(mock_uuid)}", url=file_url, thumbnailUrl=thumbnail_url)
+    with patch('openoperator.domain.repository.document_repository.fitz.open', return_value=fitz_mock), patch('openoperator.domain.repository.document_repository.uuid4', return_value=mock_uuid):
+      result_document = self.document_repository.upload(facility_uri=self.facility_uri, file_content=file_content, file_name=file_name, file_type=file_type)
+    expected_result = Document(extractionStatus="pending", name=file_name, uri=f"{self.facility_uri}/document/{str(mock_uuid)}", url=file_url, thumbnailUrl=thumbnail_url)
 
     # Verify the result
     self.assertEqual(result_document, expected_result)
@@ -124,7 +124,7 @@ class TestDocuments(unittest.TestCase):
 
   def test_update_extraction_status(self):
     url = "http://example.com/file.docx"
-    uri = f"{self.facility.uri}/document/120930128301-232132213"
+    uri = f"{self.facility_uri}/document/120930128301-232132213"
     status = "success"
 
     session_mock = self.setup_session_mock()
@@ -135,7 +135,7 @@ class TestDocuments(unittest.TestCase):
     session_mock.run.return_value = mock_query_result
 
     # Execute the update_extraction_status method
-    result_document = self.documents.update_extraction_status(url, status)
+    result_document = self.document_repository.update_extraction_status(url, status)
 
     # Verify the result
     self.assertEqual(result_document, document_node)
@@ -148,7 +148,7 @@ class TestDocuments(unittest.TestCase):
     file_content = b'file_content'
     file_name = 'file_name.pdf'
     file_url = 'http://example.com/file.pdf'
-    file_uri = f"{self.facility.uri}/document/120930128301-232132213"
+    file_uri = f"{self.facility_uri}/document/120930128301-232132213"
 
     # Mock the document_loader.load method
     mock_document = MagicMock()
@@ -166,7 +166,7 @@ class TestDocuments(unittest.TestCase):
     session_mock.run.return_value = mock_query_result
 
     # Execute the run_extraction_process method
-    result_document = self.documents.run_extraction_process(file_content, file_name, file_uri, file_url)
+    result_document = self.document_repository.run_extraction_process(portfolio_uri=self.portfolio_uri, facility_uri=self.facility_uri, file_content=file_content, file_name=file_name, doc_uri=file_uri, doc_url=file_url)
 
     # Verify the result
     self.assertEqual(result_document, document_node)
@@ -188,7 +188,7 @@ class TestDocuments(unittest.TestCase):
     session_mock.run.return_value = mock_query_result
 
     # Execute the delete method
-    self.documents.delete(uri)
+    self.document_repository.delete(uri)
 
     # Verify the result
     session_mock.run.assert_called_once()
@@ -198,16 +198,16 @@ class TestDocuments(unittest.TestCase):
     assert "DETACH DELETE d" in session_mock.run.call_args[0][0]
 
   def test_search(self):
-    params = {"query": "test_query"}
+    params = DocumentQuery(query="test_query", portfolio_uri=self.portfolio_uri, facility_uri=self.facility_uri)
 
     # Mock the vector_store.search method
     self.vector_store.similarity_search.return_value = []
 
     # Execute the search method
-    documents = self.documents.search(params)
+    documents = self.document_repository.search(params)
 
     # Verify the result
-    self.vector_store.similarity_search.assert_called_once_with(query=params["query"], limit=25, filter={"facility_uri": self.facility.uri})
+    self.vector_store.similarity_search.assert_called_once_with(query=params.query, limit=25, filter={"facility_uri": self.facility_uri})
     assert documents == []
         
 

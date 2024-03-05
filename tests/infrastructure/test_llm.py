@@ -129,7 +129,7 @@ def test_openai_chat_with_tools(mock_openai):
 
   print(responses[0])
 
-  assert responses[0] == LLMChatResponse(type="tool_selected", tool_name="test_function", tool_id="test", content=None)
+  assert responses[0] == LLMChatResponse(type="tool_selected", tool_name="test_function", tool_id="test", content=None, tool_args={"query": "test"})
   assert responses[1] == LLMChatResponse(type="tool_finished", tool_name="test_function", tool_response=[{"content": "Test function"}], tool_id="test")
   assert responses[2] == LLMChatResponse(type="content", content="Test function")
   assert len(responses) == 3

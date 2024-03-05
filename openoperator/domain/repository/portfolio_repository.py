@@ -16,7 +16,7 @@ class PortfolioRepository:
     
   def create_portfolio(self, portfolio: Portfolio, user_email: str) -> Portfolio:
     with self.kg.create_session() as session:
-      result = session.run("MATCH (u:User {email: $email}) CREATE (p:Customer {name: $name, uri: $uri}) CREATE (u)-[:HAS_ACCESS_TO]->(p) RETURN p", name=portfolio.name, uri=portfolio.uri, email=user_email)
+      result = session.run("MATCH (u:User {email: $email}) CREATE (p:Customer:Resource {name: $name, uri: $uri}) CREATE (u)-[:HAS_ACCESS_TO]->(p) RETURN p", name=portfolio.name, uri=portfolio.uri, email=user_email)
       record = result.single()
       if record is None:
         raise ValueError(f"Error creating portfolio {portfolio.uri}")

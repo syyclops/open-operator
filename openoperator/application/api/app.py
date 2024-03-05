@@ -112,7 +112,7 @@ async def chat(
 
   async def event_stream() -> Generator[str, None, None]:
     for response in ai_assistant_service.chat(portfolio_uri=portfolio_uri, messages=messages, facility_uri=facility_uri, document_uri=document_uri, verbose=False):
-      yield json.dumps(response.model_dump()) + "\n"
+      yield f"event: message\ndata: {json.dumps(response.model_dump())}\n\n"
 
   return StreamingResponse(event_stream(), media_type="text/event-stream")
 
