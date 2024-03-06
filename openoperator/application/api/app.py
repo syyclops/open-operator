@@ -10,9 +10,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale, OpenaiLLM, OpenaiAudio
-from openoperator.domain.repository import PortfolioRepository, UserRepository, FacilityRepository, DocumentRepository, COBieRepository, DeviceRepository, PointRepository, ComponentRepository
-from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService, ComponentService
-from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, Message, LLMChatResponse, Component
+from openoperator.domain.repository import PortfolioRepository, UserRepository, FacilityRepository, DocumentRepository, COBieRepository, DeviceRepository, PointRepository, ComponentRepository, TypeRepository
+from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService, ComponentService, TypeService
+from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, Message, LLMChatResponse, Component, Type
 
 # System prompt for the AI Assistant
 llm_system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
@@ -42,6 +42,7 @@ cobie_repository = COBieRepository(kg=knowledge_graph, blob_store=blob_store)
 point_repository = PointRepository(kg=knowledge_graph, ts=timescale)
 device_repository = DeviceRepository(kg=knowledge_graph, embeddings=embeddings, blob_store=blob_store)
 component_repository = ComponentRepository(kg=knowledge_graph)
+type_repository = TypeRepository(kg=knowledge_graph)
 
 # Services
 base_uri = "https://syyclops.com/"
@@ -55,6 +56,7 @@ point_service = PointService(point_repository=point_repository)
 bacnet_service = BACnetService(device_repository=device_repository)
 ai_assistant_service = AIAssistantService(llm=llm, document_repository=document_repository)
 component_service = ComponentService(component_repository=component_repository)
+type_service = TypeService(type_repository=type_repository)
 
 api_secret = os.getenv("API_TOKEN_SECRET")
 
@@ -185,6 +187,23 @@ async def create_component(
     return JSONResponse(component.model_dump())
   except HTTPException as e:
     return JSONResponse(content={"message": f"Unable to create Component: {e}"}, status_code=500)
+
+## TYPE ROUTES
+@app.get("/type", tags=['Type'], response_model=Type)
+async def get_types(portfolio_uri: str, current_user: User = Security(get_current_user)) -> JSONResponse:
+  return JSONResponse([type.model_dump() for type in type_service.get_types(portfolio_uri)])    
+
+@app.post("/type/create", tags=['Type'], response_model=Type)
+async def create_type(
+  type: Type,
+  portfolio_uri: str,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    type = type_service.create_type(type, portfolio_uri)
+    return JSONResponse(type.model_dump())
+  except HTTPException as e:
+    return JSONResponse(content={"message": f"Unable to create Type: {e}"}, status_code=500)
 
 ## DOCUMENTS ROUTES
 @app.get("/documents", tags=['Document'], response_model=List[Document])
