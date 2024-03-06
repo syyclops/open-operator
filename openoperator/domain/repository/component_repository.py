@@ -35,14 +35,13 @@ class ComponentRepository:
   def create_component(self, component: Component, space_uri: str) -> Component:
     with self.kg.create_session() as session:
       params = {
-            'space_uri': space_uri,
             'uri': component.uri,
             'name': component.name,
+            'space_uri': component.space_uri,
             'installation_date': component.installation_date,
             'portfolio_name': component.portfolio_name,
             'facility_name': component.facility_name,
             'discipline': component.discipline,
-            'parent_uri': component.parent_uri,
             'space_uri': component.space_uri,
             'description': component.description,
         }
@@ -52,8 +51,9 @@ class ComponentRepository:
       query += " RETURN c"
       result = session.run(query, params)
       record = result.single()
+      print("FAAAA", record)
       if record is None:
         raise ValueError(f"Error creating component {component.uri}")
-        
+
       return Component(**record['c'])
 
