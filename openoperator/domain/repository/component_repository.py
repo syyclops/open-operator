@@ -1,5 +1,6 @@
 from openoperator.infrastructure import KnowledgeGraph
 from openoperator.domain.model import Component
+from typing import List
 
 class ComponentRepository:
   def __init__(self, kg: KnowledgeGraph):
@@ -16,7 +17,7 @@ class ComponentRepository:
       return Component(**component_record)
 
 #GET COMPONENT LIST FOR A FACILITY
-  def list_components_for_facility(self, facility_uri: str) -> List[Component]:
+  def list_components_for_facility(self, facility_uri: str) -> list[Component]:
     with self.kg.create_session() as session:
       result = session.run("MATCH (f:Facility {uri: $uri})-[:HAS_COMPONENT]->(c:Component) RETURN c", uri=facility_uri)
       data = result.data()

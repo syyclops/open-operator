@@ -9,7 +9,7 @@ class ComponentService:
   def get_component(self, component_uri: str) -> Component:
     return self.component_repository.get_component(component_uri)
 
-  def list_components_for_facility(self, facility_uri: str) -> List[Component]:
+  def list_components_for_facility(self, facility_uri: str) -> list[Component]:
       return self.component_repository.list_components_for_facility(facility_uri)
 
   def create_component(self, component: Component, facility_uri: str) -> Component:
