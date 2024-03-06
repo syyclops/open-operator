@@ -9,11 +9,11 @@ class ComponentService:
   def get_component(self, component_uri: str) -> Component:
     return self.component_repository.get_component(component_uri)
 
-  def list_components_for_facility(self, facility_uri: str) -> list[Component]:
-      return self.component_repository.list_components_for_facility(facility_uri)
+  def list_components(self, portfolio_uri: str) -> list[Component]:
+      return self.component_repository.list_components(portfolio_uri)
 
   def create_component(self, component: Component, facility_uri: str) -> Component:
-    component_uri = f"{facility_uri}/{create_uri(component.name)}"
+    component_uri = f"{facility_uri}/component/{create_uri(component.name)}"
     # Assuming 'installation_date', 'type_uri', 'portfolio_name', 'facility_name', and 'discipline' are required fields for Component
     component = Component(
         uri=component_uri, 

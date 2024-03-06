@@ -10,7 +10,7 @@ class TypeRepository:
   def get_types(self, portfolio_uri: str) -> list[Type]:
     with self.kg.create_session() as session:
       result = session.run("MATCH (p:Portfolio {uri: $uri})-[:HAS_TYPE]->(t:Type) RETURN t", uri=portfolio_uri)
-      data = result.data()
+      record = result.single()
       if record is None:
         raise ValueError(f"Portfolio {portfolio_uri} not found")
       type_record = record['t']
@@ -25,29 +25,19 @@ class TypeRepository:
         return [Type(**t['t']) for t in data]
     
 #CREATE NEW TYPE
-  def create_type(self, type: Type) -> Type:
+  def create_type(self, type: Type, portfolio_uri: str) -> Type:
     with self.kg.create_session() as session:
         params = {
-            'facility_uri': facility_uri,
-            'uri': component.uri,
-            'name': component.name,
-            'installation_date': component.installation_date,
-            'type_uri': component.type_uri,
-            'portfolio_name': component.portfolio_name,
-            'facility_name': component.facility_name,
-            'discipline': component.discipline,
-            'parent_uri': component.parent_uri,
-            'space_uri': component.space_uri,
-            'description': component.description,
+            'portfolio_uri': portfolio_uri,
+            'category_name': type.category_name,
+            'name': type.name,
+            'portfolio_name': type.portfolio_name,
+            'facility_name': type.facility_name,
+            'uri': type.uri,
+            'category_uri': type.category_uri,
         }
 
-        query = "MATCH (f:Facility {uri: $facility_uri}) CREATE (c:Component:Resource {name: $name, uri: $uri}) CREATE (f)-[:HAS_COMPONENT]->(c) SET c.name = $name"
-        if params['parent_uri']:
-            query += ", c.parent_uri = $parent_uri"
-        if params['description']:
-            query += ", c.description = $description"
-        if params['space_uri']:
-            query += ", c.space_uri = $space_uri"
+        query = "MATCH (p:Portfolio {uri: $portfolio_uri}) CREATE (t:Type:Resource {name: $name, uri: $uri}) CREATE (p)-[:HAS_TYPE]->(t) SET t.name = $name"
         query += " RETURN c"
 
         result = session.run(query, params)

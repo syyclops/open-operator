@@ -12,8 +12,8 @@ class TypeService:
   def list_types_facility(self, facility_uris: list[str]) -> list[Type]:
       return self.type_repository.list_types_facility(facility_uris)
 
-  def create_type(self, type: Type, portfolio_uri) -> Type:
-    type_uri = f"{portfolio_uri}/{create_uri(type.name)}"
+  def create_type(self, type: Type, facillity_uri) -> Type:
+    type_uri = f"{facillity_uri}/type/{create_uri(type.name)}"
     type = Type(
         uri=type_uri, 
         name=type.name, 

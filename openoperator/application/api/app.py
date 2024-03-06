@@ -167,14 +167,14 @@ async def create_facility(
   except HTTPException as e:
     return JSONResponse(content={"message": f"Unable to create facility: {e}"}, status_code=500)
 
-@app.get("/facility/components", tags=['Facility'], response_model=List[Component])
-async def list_components_for_facility(facility_uri: str, current_user: User = Security(get_current_user)) -> JSONResponse:
-  return JSONResponse([component.model_dump() for component in component_service.list_components_for_facility(facility_uri)])    
-
 ## COMPONENT ROUTES
 @app.get("/component", tags=['Component'], response_model=Component)
 async def get_component(component_uri: str, current_user: User = Security(get_current_user)) -> JSONResponse:
   return JSONResponse([component.model_dump() for component in component_service.get_component(component_uri)])    
+
+@app.get("/component/list", tags=['Component'], response_model=List[Component])
+async def list_components(portfolio_uri: str, current_user: User = Security(get_current_user)) -> JSONResponse:
+  return JSONResponse([component.model_dump() for component in component_service.list_components(portfolio_uri)])    
 
 @app.post("/component/create", tags=['Component'], response_model=Component)
 async def create_component(
