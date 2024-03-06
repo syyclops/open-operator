@@ -8,3 +8,4 @@ from .point_service import PointService
 from .bacnet_service import BACnetService
 from .ai_assistant_service import AIAssistantService
 from .component_service import ComponentService
+from .type_service import TypeService

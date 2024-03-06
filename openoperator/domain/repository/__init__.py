@@ -6,3 +6,4 @@ from .cobie_repository import COBieRepository
 from .device_repository import DeviceRepository
 from .point_repository import PointRepository
 from .component_repository import ComponentRepository
+from .type_repository import TypeRepository

@@ -9,7 +9,7 @@ class TypeService:
   def get_types(self, portfolio_uri: str) -> list[Type]:
     return self.type_repository.get_types(portfolio_uri)
 
-  def list_types_facility(self, facility_uris: List[str]) -> list[Type]:
+  def list_types_facility(self, facility_uris: list[str]) -> list[Type]:
       return self.type_repository.list_types_facility(facility_uris)
 
   def create_type(self, type: Type, portfolio_uri) -> Type:
@@ -20,6 +20,6 @@ class TypeService:
         category_name= type.category_name,
         portfolio_name=type.portfolio_name,
         facility_name=type.facility_name, 
-        category_name= type.category_uri,
+        category_uri= type.category_uri,
     )
     return self.type_repository.create_type(type, portfolio_uri)

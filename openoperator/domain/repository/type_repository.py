@@ -17,7 +17,7 @@ class TypeRepository:
       return Type(**type_record)
 
 #GET TYPES - FACILITY
-  def list_types_facility(self, facility_uris: List[str]) -> list[Type]:
+  def list_types_facility(self, facility_uris: list[str]) -> list[Type]:
     with self.kg.create_session() as session:
         query = "MATCH (f:Facility)-[:HAS_TYPE]->(t:Type) WHERE f.uri IN $uris RETURN t"
         result = session.run(query, uris=facility_uris)
