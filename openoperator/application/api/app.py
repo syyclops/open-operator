@@ -174,6 +174,18 @@ async def list_components_for_facility(facility_uri: str, current_user: User = S
 async def get_component(component_uri: str, current_user: User = Security(get_current_user)) -> JSONResponse:
   return JSONResponse([component.model_dump() for component in component_service.get_component(component_uri)])    
 
+@app.post("/component/create", tags=['Component'], response_model=Component)
+async def create_component(
+  component: Component,
+  facility_uri: str,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    component = component_service.create_component(component, facility_uri)
+    return JSONResponse(component.model_dump())
+  except HTTPException as e:
+    return JSONResponse(content={"message": f"Unable to create Component: {e}"}, status_code=500)
+
 ## DOCUMENTS ROUTES
 @app.get("/documents", tags=['Document'], response_model=List[Document])
 async def list_documents(

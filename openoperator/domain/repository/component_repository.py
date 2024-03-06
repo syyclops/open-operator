@@ -27,15 +27,17 @@ class ComponentRepository:
   def create_component(self, component: Component, facility_uri: str) -> Component:
     with self.kg.create_session() as session:
         params = {
-            'name': component['name'],
-            'installation_date': component.get('installation_date'),
-            'type_uri': component.get('type_uri'),
-            'portfolio_name': component.get('portfolio_name'),
-            'facility_name': component.get('facility_name'),
-            'discipline': component.get('discipline'),
-            'parent_uri': component.get('parent_uri'),
-            'space_uri': component.get('space_uri'),
-            'description': component.get('description'),
+            'facility_uri': facility_uri,
+            'uri': component.uri,
+            'name': component.name,
+            'installation_date': component.installation_date,
+            'type_uri': component.type_uri,
+            'portfolio_name': component.portfolio_name,
+            'facility_name': component.facility_name,
+            'discipline': component.discipline,
+            'parent_uri': component.parent_uri,
+            'space_uri': component.space_uri,
+            'description': component.description,
         }
 
         query = "MATCH (f:Facility {uri: $facility_uri}) CREATE (c:Component:Resource {name: $name, uri: $uri}) CREATE (f)-[:HAS_COMPONENT]->(c) SET c.name = $name"
@@ -51,26 +53,5 @@ class ComponentRepository:
         record = result.single()
         if record is None:
             raise ValueError(f"Error creating component {component['uri']}")
-
-        # Create the new space relationship
-        if component.get('space_uri'):
-            session.run(
-                "MATCH (c:Component {uri: $uri}) MATCH (s:Space {uri: $space_uri}) CREATE (c)-[:space]->(s)",
-                uri=component['uri'], space_uri=component['space_uri']
-            )
-
-        # Create the new type relationship
-        if component.get('type_uri'):
-            session.run(
-                "MATCH (c:Component {uri: $uri}) MATCH (t:Type {uri: $type_uri}) CREATE (c)-[:typeName]->(t)",
-                uri=component['uri'], type_uri=component['type_uri']
-            )
-
-        # Create subcomponent relationship
-        if component.get('parent_uri'):
-            session.run(
-                "MATCH (pc:Component {uri: $parent_uri}) MATCH (sc:Component {uri: $uri}) CREATE (pc)-[:hasSubcomponent]->(sc)",
-                uri=component['uri'], parent_uri=component['parent_uri']
-            )
 
         return Component(**record['c'])
