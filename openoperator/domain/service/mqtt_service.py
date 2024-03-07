@@ -2,7 +2,7 @@ from openoperator.infrastructure import MQTTClient, Timescale
 from openoperator.domain.model import PointReading
 import re
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from threading import Lock, Timer
 from typing import List
 class MQTTService:
@@ -53,7 +53,7 @@ class MQTTService:
       # Ensure safe decoding of the message payload from bytes to str, then load as JSON
       try:
         data = json.loads(message.payload.decode())
-        ts = datetime.fromtimestamp(data["params"]["ts"] , tz=timezone.utc).isoformat() # Extract the timestamp
+        ts = datetime.fromtimestamp(data["params"]["ts"]).isoformat() # Extract the timestamp
         
         # Dynamically handle extraction of other parameters if needed
         # Iterate through each key in "params" to find "switch:X" objects
@@ -81,7 +81,7 @@ class MQTTService:
         data = json.loads(message.payload.decode())
         # Extracting 'minute_ts' from 'aenergy' as timestamp
         ts = data["aenergy"]["minute_ts"]
-        ts = datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+        ts = datetime.fromtimestamp(ts).isoformat()
         output = data["output"]
         
         # Construct the timeseries ID
