@@ -13,7 +13,7 @@ class PointRepository:
       query += "-[:objectOf]->(d:Device {uri: $device_uri})"
     elif component_uri: 
       query += "-[:objectOf]-(d:Device)-[:isDeviceOf]-(c:Component {uri: $component_uri})"
-    query += " WHERE p.uri STARTS WITH $uri RETURN p"
+    query += " WHERE p.uri STARTS WITH $uri RETURN p ORDER BY p.object_name"
     try:
       with self.kg.create_session() as session:
         result = session.run(query, component_uri=component_uri, uri=facility_uri, collect_enabled=collect_enabled, device_uri=device_uri)
