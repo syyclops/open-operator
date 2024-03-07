@@ -12,11 +12,7 @@ class ComponentService:
   def list_components(self, portfolio_uri: str) -> list[Component]:
       return self.component_repository.list_components(portfolio_uri)
 
-  def create_component(self, name: str, facility_uri: str, space_uri:str) -> Component:
+  def create_component(self, name: str, facility_uri: str) -> Component:
     component_uri = f"{facility_uri}/component/{create_uri(name)}"
-    component = Component(
-        uri=component_uri, 
-        name=name, 
-        space_uri=space_uri,
-    )
-    return self.component_repository.create_component(component, space_uri)
+    component = Component(uri=component_uri, name=name)
+    return self.component_repository.create_component(component, facility_uri)

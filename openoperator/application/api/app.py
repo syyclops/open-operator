@@ -178,13 +178,12 @@ async def list_components(portfolio_uri: str, current_user: User = Security(get_
 
 @app.post("/component/create", tags=['Component'], response_model=Component)
 async def create_component(
-  space_uri: str,
   facility_uri: str,
   name: str,
   current_user: User = Security(get_current_user)
 ) -> JSONResponse:
   try:
-    component = component_service.create_component(name, facility_uri, space_uri)
+    component = component_service.create_component(name, facility_uri)
     return JSONResponse(component.model_dump())
   except HTTPException as e:
     return JSONResponse(content={"message": f"Unable to create Component: {e}"}, status_code=500)

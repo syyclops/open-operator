@@ -8,9 +8,9 @@ from .space import Space
 class Component(BaseModel):
   uri: str
   name: str
-  space_uri: str
+  #space_uri: Optional[Space] = None
   description: Optional[str] = None
-  type_name: Type = None
+  #type_name: Optional[Type] = None
   portfolio_name: Portfolio = None
   facility_name: Facility = None
   installation_date: Optional[str] = None

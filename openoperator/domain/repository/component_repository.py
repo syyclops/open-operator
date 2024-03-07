@@ -27,33 +27,31 @@ class ComponentRepository:
       if not facilities:
           raise ValueError("No facilities found for the given portfolio URI")
       for facility in facilities:
-          result = session.run("MATCH (f:Facility {uri: $uri})-[:HAS_COMPONENT]->(c:Component) RETURN c", uri=facility.uri)
+          result = session.run("MATCH (c:Component) WHERE c.uri CONTAINS $uri RETURN c", uri=facility.uri)
           data = result.data()
           return ([Component(**c['c']) for c in data])
     
 #CREATE COMPONENT     
-  def create_component(self, component: Component, space_uri: str) -> Component:
+  def create_component(self, component: Component, facility_uri: str) -> Component:
     with self.kg.create_session() as session:
-      params = {
+        params = {
             'uri': component.uri,
             'name': component.name,
-            'space_uri': component.space_uri,
             'installation_date': component.installation_date,
             'portfolio_name': component.portfolio_name,
             'facility_name': component.facility_name,
             'discipline': component.discipline,
-            'space_uri': component.space_uri,
             'description': component.description,
+            'facility_uri': facility_uri,  # Add this line
         }
-      query = "MATCH (s:Space {uri: $space_uri}) CREATE (c:Component:Resource {name: $name, uri: $uri}) CREATE (c)-[:space]->(s) SET c.name = $name"
-      if params['description']:
-          query += ", c.description = $description"
-      query += " RETURN c"
-      result = session.run(query, params)
-      record = result.single()
-      print("FAAAA", record)
-      if record is None:
-        raise ValueError(f"Error creating component {component.uri}")
+        query = "MATCH (f:Facility {uri: $facility_uri}) CREATE (c:Component:Resource {name: $name, uri: $uri})"
+        if params['description']:
+            query += ", c.description = $description"
+        query += " RETURN c"
+        result = session.run(query, params)
+        record = result.single()
+        if record is None:
+            raise ValueError(f"Error creating component {component.uri}")
 
-      return Component(**record['c'])
+        return Component(**record['c'])
 
