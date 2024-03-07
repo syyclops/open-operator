@@ -7,3 +7,4 @@ from .device_service import DeviceService
 from .point_service import PointService
 from .bacnet_service import BACnetService
 from .ai_assistant_service import AIAssistantService
+from .mqtt_service import MQTTService

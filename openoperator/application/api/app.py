@@ -4,7 +4,6 @@ import os
 import jwt
 import json
 from io import BytesIO
-from datetime import datetime, timezone
 from fastapi import FastAPI, UploadFile, Depends, Security, HTTPException, BackgroundTasks
 from fastapi.responses import Response, JSONResponse, StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -12,8 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale, OpenaiLLM, OpenaiAudio, MQTTClient
 from openoperator.domain.repository import PortfolioRepository, UserRepository, FacilityRepository, DocumentRepository, COBieRepository, DeviceRepository, PointRepository
-from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService
-from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, Message, LLMChatResponse, PointReading
+from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService, MQTTService
+from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, Message, LLMChatResponse
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -36,6 +35,7 @@ vector_store = PGVectorStore(postgres=postgres, embeddings=embeddings)
 timescale = Timescale(postgres=postgres)
 llm = OpenaiLLM(model_name="gpt-4-0125-preview", system_prompt=llm_system_prompt)
 audio = OpenaiAudio()
+mqtt_client = MQTTClient()
 
 # Repositories
 portfolio_repository = PortfolioRepository(kg=knowledge_graph)
@@ -57,67 +57,11 @@ device_service = DeviceService(device_repository=device_repository, point_reposi
 point_service = PointService(point_repository=point_repository)
 bacnet_service = BACnetService(device_repository=device_repository)
 ai_assistant_service = AIAssistantService(llm=llm, document_repository=document_repository)
+mqtt_service = MQTTService(mqtt_client=mqtt_client, ts=timescale)
 
-# MQTT Subscriber
-def on_mqtt_message(client, userdata, message):
-  import re
-  topic = message.topic
-  print(f"Received message on topic {topic}")
-  print(f"Message payload: {message.payload}")
-  # shelly iot plug pattern
-  shelly_plug_pattern = r"shellyplugus.*events/rpc"
-  shelly_status_switch_pattern = r"shellyplugus.*status/switch:0"
-
-  if re.match(shelly_plug_pattern, topic):
-    # Ensure safe decoding of the message payload from bytes to str, then load as JSON
-    try:
-      data = json.loads(message.payload.decode())
-      ts = datetime.fromtimestamp(data["params"]["ts"] , tz=timezone.utc).isoformat() # Extract the timestamp
-      
-      # Dynamically handle extraction of other parameters if needed
-      # Iterate through each key in "params" to find "switch:X" objects
-      for key, value in data["params"].items():
-        if key.startswith("switch"):
-          # Extract the "id" and iterate over each measurement key within the switch object
-          switch_id = value["id"]
-          for measurement_key in value:
-            if measurement_key in ["current", "voltage"]:
-              # Construct the timeseries ID
-              timeseriesId = f"{data['src']}-switch-{switch_id}-{measurement_key}"
-              measurement_value = value[measurement_key]
-              point_reading = PointReading(ts=ts, value=measurement_value, timeseriesid=timeseriesId)
-              print(f"Inserting timeseries: {point_reading}")
-              timescale.insert_timeseries([point_reading])
-    except json.JSONDecodeError as e:
-      print(f"Error decoding JSON: {e}")
-    except KeyError as e:
-      print(f"Missing expected key in data: {e}")
-  elif re.match(shelly_status_switch_pattern, topic):
-    print("Shelly switch status message received")
-    try:
-      data = json.loads(message.payload.decode())
-      # Extracting 'minute_ts' from 'aenergy' as timestamp
-      ts = data["aenergy"]["minute_ts"]
-      ts = datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
-      output = data["output"]
-      
-      # Construct the timeseries ID
-      timeseriesId = topic
-      point_reading = PointReading(ts=ts, value=output, timeseriesid=timeseriesId)
-      print(f"Inserting timeseries: {point_reading}")
-      timescale.insert_timeseries([point_reading])
-    except json.JSONDecodeError as e:
-      print(f"Error decoding JSON: {e}")
-    except KeyError as e:
-      print(f"Missing expected key in data: {e}")
+# Start mqtt service to subscribe to topics and store in timescale
+mqtt_service.start()
   
-broker_address = os.getenv("MQTT_BROKER_ADDRESS")
-username = os.getenv("MQTT_USERNAME")
-password = os.getenv("MQTT_PASSWORD")
-print(f"Connecting to MQTT broker {broker_address}")
-subscriber = MQTTClient(host=broker_address, username=username, password=password, on_message=on_mqtt_message)
-subscriber.start()
-
 api_secret = os.getenv("API_TOKEN_SECRET")
 
 app = FastAPI(title="Open Operator API")
