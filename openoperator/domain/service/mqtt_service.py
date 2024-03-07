@@ -3,15 +3,43 @@ from openoperator.domain.model import PointReading
 import re
 import json
 from datetime import datetime, timezone
-
+from threading import Lock, Timer
+from typing import List
 class MQTTService:
-  def __init__(self, mqtt_client: MQTTClient, ts: Timescale):
+  def __init__(self, mqtt_client: MQTTClient, ts: Timescale, batch_size=100, flush_interval=30):
     self.mqtt_client = mqtt_client
     self.ts = ts
     self.mqtt_client.client.on_message = self.on_mqtt_message
+    self.batch_size = batch_size
+    self.flush_interval = flush_interval
+    self.batch: List[PointReading] = []
+    self.batch_lock = Lock()
+    self.flush_timer = None
+    self.reset_flush_timer()
 
   def start(self):
     self.mqtt_client.start()
+
+  def stop(self):
+    if self.flush_timer:
+      self.flush_timer.cancel()
+    self.flush_batch()
+    self.mqtt_client.stop()
+
+  def reset_flush_timer(self):
+    if self.flush_timer:
+      self.flush_timer.cancel()
+    self.flush_timer = Timer(self.flush_interval, self.flush_batch)
+    self.flush_timer.start()
+
+  def flush_batch(self):
+    with self.batch_lock:
+      if self.batch:
+        # Insert the batch into the database
+        self.ts.insert_timeseries(self.batch)
+        print(f"Flushed {len(self.batch)} messages to the database.")
+        self.batch.clear()
+      self.reset_flush_timer()
 
   def on_mqtt_message(self, client, userdata, message):
     topic = message.topic
@@ -39,8 +67,10 @@ class MQTTService:
                 timeseriesId = f"{data['src']}-switch-{switch_id}-{measurement_key}"
                 measurement_value = value[measurement_key]
                 point_reading = PointReading(ts=ts, value=measurement_value, timeseriesid=timeseriesId)
-                print(f"Inserting timeseries: {point_reading}")
-                self.ts.insert_timeseries([point_reading])
+                with self.batch_lock:
+                  self.batch.append(point_reading)
+                  if len(self.batch) >= self.batch_size:
+                    self.flush_batch()
       except json.JSONDecodeError as e:
         print(f"Error decoding JSON: {e}")
       except KeyError as e:
@@ -57,8 +87,10 @@ class MQTTService:
         # Construct the timeseries ID
         timeseriesId = topic
         point_reading = PointReading(ts=ts, value=output, timeseriesid=timeseriesId)
-        print(f"Inserting timeseries: {point_reading}")
-        self.ts.insert_timeseries([point_reading])
+        with self.batch_lock:
+          self.batch.append(point_reading)
+          if len(self.batch) >= self.batch_size:
+            self.flush_batch()
       except json.JSONDecodeError as e:
         print(f"Error decoding JSON: {e}")
       except KeyError as e:
