@@ -9,13 +9,10 @@ from fastapi.responses import Response, JSONResponse, StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale, OpenaiLLM, OpenaiAudio, MQTTClient
+from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale, OpenaiLLM, OpenaiAudio
 from openoperator.domain.repository import PortfolioRepository, UserRepository, FacilityRepository, DocumentRepository, COBieRepository, DeviceRepository, PointRepository
-from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService, MQTTService
+from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService
 from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, Message, LLMChatResponse
-
-from dotenv import load_dotenv
-load_dotenv()
 
 # System prompt for the AI Assistant
 llm_system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
@@ -35,7 +32,6 @@ vector_store = PGVectorStore(postgres=postgres, embeddings=embeddings)
 timescale = Timescale(postgres=postgres)
 llm = OpenaiLLM(model_name="gpt-4-0125-preview", system_prompt=llm_system_prompt)
 audio = OpenaiAudio()
-mqtt_client = MQTTClient()
 
 # Repositories
 portfolio_repository = PortfolioRepository(kg=knowledge_graph)
@@ -57,13 +53,8 @@ device_service = DeviceService(device_repository=device_repository, point_reposi
 point_service = PointService(point_repository=point_repository)
 bacnet_service = BACnetService(device_repository=device_repository)
 ai_assistant_service = AIAssistantService(llm=llm, document_repository=document_repository)
-mqtt_service = MQTTService(mqtt_client=mqtt_client, ts=timescale)
-
-# Start mqtt service to subscribe to topics and store in timescale
-mqtt_service.start()
   
 api_secret = os.getenv("API_TOKEN_SECRET")
-
 app = FastAPI(title="Open Operator API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 security = HTTPBearer(auto_error=False)
