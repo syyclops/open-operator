@@ -70,5 +70,12 @@ services:
     networks:
       - local
 
+  mqtt-broker:
+    image: hivemq/hivemq4
+    ports:
+      - 8100:8080
+      - 1883:1883
+      - 8883:8883
+
 networks:
   local:
