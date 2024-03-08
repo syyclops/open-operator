@@ -71,11 +71,13 @@ services:
       - local
 
   mqtt-broker:
-    image: hivemq/hivemq4
+    image: emqx/emqx:5.1.6
     ports:
-      - 8100:8080
       - 1883:1883
       - 8883:8883
+      - 8083:8083
+      - 8084:8084
+      - 18083:18083
 
 networks:
   local:

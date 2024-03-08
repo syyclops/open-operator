@@ -1,8 +1,8 @@
 from openoperator.domain.model import Device, Point
 from openoperator.infrastructure import KnowledgeGraph, Embeddings, BlobStore
+from openoperator.utils import dbscan_cluster
 import os
 import numpy as np
-from openoperator.utils import dbscan_cluster
 from uuid import uuid4
 
 class DeviceRepository:
@@ -15,7 +15,7 @@ class DeviceRepository:
     query = "MATCH (d:Device)-[:objectOf]-(p:Point) where d.uri starts with $facility_uri"
     if component_uri:
       query += " MATCH (d)-[:isDeviceOf]->(c:Component {uri: $component_uri})"
-    query += " with d, collect(p) AS points RETURN d as device, points"
+    query += " with d, collect(p) AS points RETURN d as device, points ORDER BY d.device_name DESC"
     try:
       with self.kg.create_session() as session:
         result = session.run(query, facility_uri=facility_uri, component_uri=component_uri)
@@ -59,12 +59,9 @@ class DeviceRepository:
         record = result.single()
         if record is None: raise ValueError("Graphic not found")
         template_id = record['d']['template_id']
-      # points = self.point_repository.get_points(facility_uri, device_uri=device_uri)
       svg_graphic = os.path.join(os.path.dirname(__file__), "svg_templates", f"{template_id}.svg") # Search the device_graphcs directory for the device graphic
       if os.path.exists(svg_graphic):
         return svg_graphic
-      else:
-        return None
     except Exception as e:
       raise e
     
