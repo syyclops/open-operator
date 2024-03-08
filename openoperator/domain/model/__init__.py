@@ -5,5 +5,5 @@ from .document import Document, DocumentMetadataChunk, DocumentQuery, DocumentMe
 from .tool import Tool, ToolParametersSchema
 from .cobie_spreadsheet import COBieSpreadsheet
 from .device import Device
-from .point import Point, PointReading
+from .point import Point, PointReading, PointUpdates
 from .chat_session import ChatSession, Message, LLMChatResponse

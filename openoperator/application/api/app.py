@@ -12,7 +12,7 @@ import uvicorn
 from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale, OpenaiLLM, OpenaiAudio
 from openoperator.domain.repository import PortfolioRepository, UserRepository, FacilityRepository, DocumentRepository, COBieRepository, DeviceRepository, PointRepository
 from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService
-from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, Message, LLMChatResponse
+from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, PointUpdates, Message, LLMChatResponse
 
 # System prompt for the AI Assistant
 llm_system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
@@ -289,9 +289,10 @@ async def update_device(
 async def list_points(
   facility_uri: str,
   component_uri: str | None = None,
+  collect_enabled: bool | None = None,
   current_user: User = Security(get_current_user)
 ) -> JSONResponse:
-  points = point_service.get_points(facility_uri=facility_uri, component_uri=component_uri)
+  points = point_service.get_points(facility_uri=facility_uri, component_uri=component_uri, collect_enabled=collect_enabled)
   points = [point.model_dump() for point in points]
   for point in points: # Remove the embedding from the response
     point.pop('embedding', None)
@@ -305,7 +306,23 @@ async def get_points_history(
   current_user: User = Security(get_current_user)
 ) -> JSONResponse:
   return JSONResponse(point_service.get_points_history(start_time=start_time, end_time=end_time, point_uris=point_uris))
-  
+
+@app.put("/point/update", tags=['Points'])
+async def update_point(
+  point_uri: str,
+  updates: PointUpdates | None = None,
+  brick_class_uri: str | None = None,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    point_service.update_point(point_uri=point_uri, updates=updates, new_brick_class_uri=brick_class_uri)
+    return JSONResponse(content={"message": "Point updated successfully"})
+  except HTTPException as e:
+    return JSONResponse(
+        content={"message": f"Unable to update point: {e}"},
+        status_code=500
+    )
+
 ## COBie ROUTES
 @app.post("/cobie/import", tags=['COBie'])
 async def import_cobie_spreadsheet(

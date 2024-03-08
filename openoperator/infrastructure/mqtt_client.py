@@ -14,7 +14,7 @@ class MQTTClient:
       username = os.environ['MQTT_USERNAME']
     if password is None:
       password = os.environ['MQTT_PASSWORD']
-    self.client = paho.Client(paho.CallbackAPIVersion.VERSION1, client_id="", userdata=None, protocol=paho.MQTTv5)
+    self.client = paho.Client(paho.CallbackAPIVersion.VERSION2, client_id="", userdata=None, protocol=paho.MQTTv5)
     self.client.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
     self.client.username_pw_set(username, password)
     self.client.on_connect = self.on_connect

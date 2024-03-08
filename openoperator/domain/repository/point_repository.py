@@ -1,5 +1,5 @@
 from openoperator.infrastructure import KnowledgeGraph, Timescale
-from openoperator.domain.model import Point
+from openoperator.domain.model import Point, PointUpdates
 from collections import OrderedDict
 
 class PointRepository:
@@ -7,17 +7,27 @@ class PointRepository:
     self.kg = kg
     self.ts = ts
 
-  def get_points(self, facility_uri: str, component_uri: str | None = None, device_uri: str | None = None, collect_enabled: bool = True) -> list[Point]:
-    query = "MATCH (p:Point {collect_enabled: $collect_enabled})"
+  def get_points(self, facility_uri: str, component_uri: str | None = None, device_uri: str | None = None, collect_enabled: bool = None) -> list[Point]:
+    query = "MATCH (p:Point"
+    if collect_enabled is not None:
+      query += "{collect_enabled: $collect_enabled}"
+    query += ")"
     if device_uri: 
       query += "-[:objectOf]->(d:Device {uri: $device_uri})"
     elif component_uri: 
       query += "-[:objectOf]-(d:Device)-[:isDeviceOf]-(c:Component {uri: $component_uri})"
-    query += " WHERE p.uri STARTS WITH $uri RETURN p ORDER BY p.object_name"
+    query += " OPTIONAL MATCH (p)-[:hasBrickClass]-(b:Class)"
+    query += " WHERE p.uri STARTS WITH $uri RETURN p, b as brick_class ORDER BY p.object_name DESC"
     try:
       with self.kg.create_session() as session:
         result = session.run(query, component_uri=component_uri, uri=facility_uri, collect_enabled=collect_enabled, device_uri=device_uri)
-        points = [Point(**record['p']) for record in result.data()]
+        data = result.data()
+        points = []
+        for record in data:
+          point = Point(**record['p'])
+          if record['brick_class']:
+            point.brick_class = record['brick_class']
+          points.append(point)
 
       ids = [point.timeseriesId for point in points]
       if len(ids) > 0:
@@ -28,9 +38,40 @@ class PointRepository:
           if point.timeseriesId in readings_dict:
             point.value = readings_dict[point.timeseriesId]['value']
             point.ts = readings_dict[point.timeseriesId]['ts']
-        return points
+      return points
     except Exception as e:
       raise e
+  
+  def update_point(self, point_uri: str, updates: PointUpdates = None, new_brick_class_uri: str = None):
+    """
+    Update properties of a point and optionally its brick class relationship.
+
+    :param point_uri: The URI of the point to update.
+    :param updates: A dictionary of property updates (e.g., {"object_name": "new_name"}).
+    :param new_brick_class_uri: Optional. The URI of the new brick class to associate with the point.
+    """
+    try:
+      with self.kg.create_session() as session:
+        # Update point properties
+        if updates:
+          update_props_query = "MATCH (p:Point {uri: $point_uri}) SET "
+          update_props_query += ", ".join(f"p.{k} = ${k}" for k in updates.keys())
+          session.run(update_props_query, point_uri=point_uri, **updates)
+
+        # Update brick class relationship if specified
+        if new_brick_class_uri:
+          update_brick_class_query = """
+          MATCH (p:Point {uri: $point_uri})
+          OPTIONAL MATCH (p)-[r:hasBrickClass]->(:Class)
+          DELETE r
+          WITH p
+          MATCH (b:Class {uri: $new_brick_class_uri})
+          MERGE (p)-[:hasBrickClass]->(b)
+          """
+          session.run(update_brick_class_query, point_uri=point_uri, new_brick_class_uri=new_brick_class_uri)
+    except Exception as e:
+      raise e
+
     
   def points_history(self, start_time: str, end_time: str, point_uris: list[str]):
     query = "MATCH (p:Point) WHERE p.uri in $point_uris RETURN p"
