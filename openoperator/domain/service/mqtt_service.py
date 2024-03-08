@@ -5,7 +5,14 @@ import json
 from datetime import datetime
 from threading import Lock, Timer
 from typing import List
+
 class MQTTService:
+  """
+  This service is responsible for:
+  - message processing
+  - batch processing
+  - flushing the batch to the database
+  """
   def __init__(self, mqtt_client: MQTTClient, ts: Timescale, batch_size=100, flush_interval=30):
     self.mqtt_client = mqtt_client
     self.ts = ts
@@ -17,16 +24,33 @@ class MQTTService:
     self.flush_timer = None
     self.reset_flush_timer()
 
-  def start(self):
-    self.mqtt_client.start()
+  def start_message_listener(self, topic: str):
+    """
+    Used to start listening to messages then store them in the database.
+    """
+    self.mqtt_client.connect()
+    self.mqtt_client.subscribe(topic)
+    self.mqtt_client.loop_forever()
+
+  def publish(self, topic: str, payload: str):
+    """
+    Used to publish a message to the broker.
+    """
+    self.mqtt_client.publish(topic, payload)
 
   def stop(self):
+    """
+    Used to stop the message listener and flush the batch to the database.
+    """
     if self.flush_timer:
       self.flush_timer.cancel()
     self.flush_batch()
     self.mqtt_client.stop()
 
   def reset_flush_timer(self):
+    """
+    Used to reset the flush timer.
+    """
     if self.flush_timer:
       self.flush_timer.cancel()
     self.flush_timer = Timer(self.flush_interval, self.flush_batch)
@@ -42,6 +66,9 @@ class MQTTService:
       self.reset_flush_timer()
 
   def on_mqtt_message(self, client, userdata, message):
+    """
+    Process the message and store it in the batch.
+    """
     topic = message.topic
     print(f"Received message on topic {topic}")
     print(f"Message payload: {message.payload}")

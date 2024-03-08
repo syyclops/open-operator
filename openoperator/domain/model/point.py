@@ -10,12 +10,12 @@ class PointReading(BaseModel):
 
 class Point(BaseModel):
   uri: str
-  object_type: str
-  object_index: str
-  object_units: str
   timeseriesId: str
-  collect_enabled: bool
   object_name: str
+  object_type: Optional[str] = None
+  object_index: Optional[str] = None
+  object_units: Optional[str] = None
+  collect_enabled: Optional[bool] = None
   object_description: Optional[str] = None
   value: Optional[float] = None
   ts: Optional[str] = None
