@@ -19159,14 +19159,14 @@ sBZxzFAi1Y17fgAAAABJRU5ErkJggg==">
 </g>
 
 <g id="points">
-    <text id="Voltage L1 to N A title" x="100" y="150" style="font-size:45px; fill: white;  font-family: 'Inter';" text-anchor="start" dominant-baseline="middle">Voltage L1 to N A:</text>
-    <text id="Voltage L1 to N A" x="100" y="200" style="font-size:45px; fill: white;  font-family: 'Inter'; font-weight: bold;" text-anchor="start" dominant-baseline="middle"></text>
+    <text id="Voltage L1 to N A title" x="50" y="150" style="font-size:45px; fill: white;  font-family: 'Inter';" text-anchor="start" dominant-baseline="middle">Voltage L1 to N A:</text>
+    <text id="Voltage L1 to N A" x="50" y="200" style="font-size:45px; fill: white;  font-family: 'Inter'; font-weight: bold;" text-anchor="start" dominant-baseline="middle"></text>
 
     <text id="Voltage L2 to N A title" x="600" y="150" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="middle" dominant-baseline="middle">Voltage L2 to N A:</text>
     <text id="Voltage L2 to N A" x="600" y="200" style="font-size:45px; fill: white; font-family: 'Inter'; font-weight: bold;" text-anchor="middle" dominant-baseline="middle"></text>
 
-    <text id="Voltage L3 to N A title" x="1100" y="150" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="end" dominant-baseline="middle">Voltage L3 to N A:</text>
-    <text id="Voltage L3 to N A" x="1100" y="200" style="font-size:45px; fill: white; font-family: 'Inter'; font-weight: bold;" text-anchor="end" dominant-baseline="middle"></text>
+    <text id="Voltage L3 to N A title" x="1150" y="150" style="font-size:45px; fill: white; font-family: 'Inter';" text-anchor="end" dominant-baseline="middle">Voltage L3 to N A:</text>
+    <text id="Voltage L3 to N A" x="1150" y="200" style="font-size:45px; fill: white; font-family: 'Inter'; font-weight: bold;" text-anchor="end" dominant-baseline="middle"></text>
 
     <text id="Current CH1 A title" x="50" y="1000" style="font-size:45px; fill: white;  font-family: 'Inter';" text-anchor="start" dominant-baseline="middle">Current CH1 A:</text>
     <text id="Current CH1 A" x="50" y="1050" style="font-size:45px; fill: white;  font-family: 'Inter'; font-weight: bold;" text-anchor="start" dominant-baseline="middle"></text>
