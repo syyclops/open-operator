@@ -1,12 +1,14 @@
-from openoperator.domain.model import Point, PointUpdates
-from openoperator.domain.repository import PointRepository
+from openoperator.domain.model import Point, PointUpdates, PointCreateParams
+from openoperator.domain.repository import PointRepository, DeviceRepository
 from openoperator.infrastructure import MQTTClient
 from typing import List
 import time
+from uuid import uuid4
 
 class PointService:
-  def __init__(self, point_repository: PointRepository, mqtt_client: MQTTClient):
+  def __init__(self, point_repository: PointRepository, device_repository: DeviceRepository, mqtt_client: MQTTClient):
     self.point_repository = point_repository
+    self.device_repository = device_repository
     self.mqtt_client = mqtt_client
 
   def get_points(self, facility_uri: str, collect_enabled: bool = None, component_uri: str | None = None) -> list[Point]:
@@ -14,6 +16,12 @@ class PointService:
   
   def get_point(self, point_uri: str) -> Point:
     return self.point_repository.get_point(point_uri=point_uri)
+  
+  def create_point(self, facility_uri: str, device_uri: str, point: PointCreateParams, brick_class_uri: str | None = None) -> Point:
+    device = self.device_repository.get_device(device_uri)
+    point_uri = f"{facility_uri}/point/{str(uuid4())}"
+    point = Point(uri=point_uri, **point.model_dump())
+    return self.point_repository.create_point(device=device, point=point, brick_class_uri=brick_class_uri)
   
   def update_point(self, point_uri: str, updates: PointUpdates, new_brick_class_uri: str | None = None):
     self.point_repository.update_point(point_uri=point_uri, updates=updates, new_brick_class_uri=new_brick_class_uri)

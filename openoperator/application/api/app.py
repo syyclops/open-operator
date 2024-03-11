@@ -12,7 +12,7 @@ import uvicorn
 from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale, OpenaiLLM, OpenaiAudio, MQTTClient
 from openoperator.domain.repository import PortfolioRepository, UserRepository, FacilityRepository, DocumentRepository, COBieRepository, DeviceRepository, PointRepository
 from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService
-from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, PointUpdates, Message, LLMChatResponse, DeviceCreateParams
+from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, PointUpdates, PointCreateParams, Message, LLMChatResponse, DeviceCreateParams
 
 # System prompt for the AI Assistant
 llm_system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
@@ -51,7 +51,7 @@ facility_service = FacilityService(facility_repository=facility_repository)
 document_service = DocumentService(document_repository=document_repository)
 cobie_service = COBieService(cobie_repository=cobie_repository)
 device_service = DeviceService(device_repository=device_repository, point_repository=point_repository)
-point_service = PointService(point_repository=point_repository, mqtt_client=mqtt_client)
+point_service = PointService(point_repository=point_repository, device_repository=device_repository, mqtt_client=mqtt_client)
 bacnet_service = BACnetService(device_repository=device_repository)
 ai_assistant_service = AIAssistantService(llm=llm, document_repository=document_repository)
   
@@ -321,6 +321,23 @@ async def get_point(
 ) -> JSONResponse:
   point = point_service.get_point(point_uri=point_uri)
   return JSONResponse(point.model_dump())
+
+@app.post("/point/create", tags=['Points'], response_model=Point)
+async def create_point(
+  facility_uri: str,
+  device_uri: str,
+  point: PointCreateParams,
+  brick_class_uri: str | None = None,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    point = point_service.create_point(facility_uri=facility_uri, device_uri=device_uri, point=point, brick_class_uri=brick_class_uri)
+    return JSONResponse(point.model_dump())
+  except HTTPException as e:
+    return JSONResponse(
+        content={"message": f"Unable to create point: {e}"},
+        status_code=500
+    )
 
 @app.post("/point/command", tags=['Points'])
 async def command_point(

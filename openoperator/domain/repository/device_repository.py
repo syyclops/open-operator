@@ -31,6 +31,21 @@ class DeviceRepository:
         return devices
     except Exception as e:
       raise e
+    
+  def get_device(self, device_uri: str) -> Device:
+    query = "MATCH (d:Device {uri: $device_uri}) OPTIONAL MATCH (d)-[:objectOf]-(p:Point) RETURN d as device, collect(p) as points"
+    try:
+      with self.kg.create_session() as session:
+        result = session.run(query, device_uri=device_uri)
+        data = result.data()
+        device_data = data[0]['device']
+        points_data = data[0]['points']
+        device = Device(**device_data)
+        points = [Point(**point_data) for point_data in points_data]
+        device.points = points
+        return device
+    except Exception as e:
+      raise e
   
   def create_device(self, facility_uri: str, device: DeviceCreateParams) -> Device:
     uri = f"{facility_uri}/device/{device.device_address}-{device.device_id}"

@@ -1,5 +1,5 @@
 from openoperator.infrastructure import KnowledgeGraph, Timescale
-from openoperator.domain.model import Point, PointUpdates, BrickClass
+from openoperator.domain.model import Point, PointUpdates, BrickClass, Device
 from collections import OrderedDict
 
 class PointRepository:
@@ -63,6 +63,22 @@ class PointRepository:
     except Exception as e:
       raise e
   
+  def create_point(self, device: Device, point: Point, brick_class_uri: str | None = None) -> Point:
+    query = """
+    MATCH (d:Device {uri: $device_uri})
+    CREATE (p:Point:Resource $point) 
+    MERGE (p)-[:objectOf]->(d)
+    """
+    if brick_class_uri:
+      query += " MERGE (p)-[:hasBrickClass]->(b:Class {uri: $brick_class_uri})"
+    query += " RETURN p"
+    try:
+      with self.kg.create_session() as session:
+        result = session.run(query, device_uri=device.uri, point=point.model_dump(), brick_class_uri=brick_class_uri)
+        return Point(**result.data()[0]['p'])
+    except Exception as e:
+      raise e
+  
   def update_point(self, point_uri: str, updates: PointUpdates = None, new_brick_class_uri: str = None):
     """
     Update properties of a point and optionally its brick class relationship.
@@ -93,7 +109,6 @@ class PointRepository:
     except Exception as e:
       raise e
 
-    
   def points_history(self, start_time: str, end_time: str, point_uris: list[str]):
     query = "MATCH (p:Point) WHERE p.uri in $point_uris RETURN p"
     try:
