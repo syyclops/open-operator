@@ -1,0 +1,16 @@
+FROM python:3.10-slim
+
+# Install libpq
+RUN apt-get update && apt-get install -y libpq-dev
+
+WORKDIR /usr/src/app
+
+COPY openoperator/ openoperator/
+COPY setup.py setup.py
+COPY README.md README.md
+
+RUN python3 -m pip install -e . && \
+    pip install python-dotenv && \
+    rm -rf /root/.cache/pip
+
+CMD ["python", "openoperator/application/mqtt/mqtt2timescale.py"]

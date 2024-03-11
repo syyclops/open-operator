@@ -3,16 +3,21 @@ from typing import Optional, List
 from .point import Point
 
 class Device(BaseModel):
+  uri: str  # https://syyclops.com/{portfolio}/{facility}/device/{device_address}-{device_id}
   device_name: str
   device_id: str
-  object_type: str
-  object_name: str
-  device_description: str
-  object_description: str
-  object_index: str
-  device_address: str
-  scrape_interval: str
-  object_units: str
-  uri: str
+  device_description: Optional[str] = None
+  device_address: Optional[str] = None
+  object_units: Optional[str] = None
+  object_type: Optional[str] = None
   points: List[Point] = []
+  template_id: Optional[str] = None
+
+class DeviceCreateParams(BaseModel):
+  device_name: str
+  device_address: str
+  device_id: str
+  device_description: Optional[str] = None
+  object_units: Optional[str] = None
+  object_type: Optional[str] = None
   template_id: Optional[str] = None

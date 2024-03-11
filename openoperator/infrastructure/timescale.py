@@ -45,3 +45,16 @@ class Timescale:
         return [PointReading(ts=row[0].isoformat(), value=row[1], timeseriesid=row[2]) for row in cur.fetchall()]
     except Exception as e:
       raise e
+    
+  def insert_timeseries(self, data: List[PointReading]) -> None:
+    """
+    Insert a list of timeseries data into the timeseries table.
+    """
+    query = "INSERT INTO timeseries (ts, value, timeseriesid) VALUES (%s, %s, %s)"
+    values = [(reading.ts, reading.value, reading.timeseriesid) for reading in data]
+    try:
+      with self.postgres.cursor() as cur:
+        cur.executemany(query, values)
+        cur.execute('COMMIT')
+    except Exception as e:
+      raise e

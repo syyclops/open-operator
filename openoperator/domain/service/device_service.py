@@ -1,5 +1,5 @@
 from openoperator.domain.repository import DeviceRepository, PointRepository
-from openoperator.domain.model import Device
+from openoperator.domain.model import Device, DeviceCreateParams
 import xml.etree.ElementTree as ET
 
 class DeviceService:
@@ -9,6 +9,9 @@ class DeviceService:
   
   def get_devices(self, facility_uri: str, component_uri: str | None = None) -> list[Device]:
     return self.device_repository.get_devices(facility_uri, component_uri)
+  
+  def create_device(self, facility_uri: str, device: DeviceCreateParams) -> Device:
+    return self.device_repository.create_device(facility_uri=facility_uri, device=device)
 
   def update(self, device_uri: str, new_details: dict) -> None:
     return self.device_repository.update(device_uri, new_details)

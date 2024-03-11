@@ -10,3 +10,4 @@ __pycache__/
 openoperator.egg-info/
 .DS_Store
 scripts/
+emqx/

@@ -9,10 +9,10 @@ from fastapi.responses import Response, JSONResponse, StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale, OpenaiLLM, OpenaiAudio
+from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale, OpenaiLLM, OpenaiAudio, MQTTClient
 from openoperator.domain.repository import PortfolioRepository, UserRepository, FacilityRepository, DocumentRepository, COBieRepository, DeviceRepository, PointRepository
 from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService
-from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, Message, LLMChatResponse
+from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, PointUpdates, PointCreateParams, Message, LLMChatResponse, DeviceCreateParams
 
 # System prompt for the AI Assistant
 llm_system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
@@ -32,6 +32,7 @@ vector_store = PGVectorStore(postgres=postgres, embeddings=embeddings)
 timescale = Timescale(postgres=postgres)
 llm = OpenaiLLM(model_name="gpt-4-0125-preview", system_prompt=llm_system_prompt)
 audio = OpenaiAudio()
+mqtt_client = MQTTClient()
 
 # Repositories
 portfolio_repository = PortfolioRepository(kg=knowledge_graph)
@@ -50,12 +51,11 @@ facility_service = FacilityService(facility_repository=facility_repository)
 document_service = DocumentService(document_repository=document_repository)
 cobie_service = COBieService(cobie_repository=cobie_repository)
 device_service = DeviceService(device_repository=device_repository, point_repository=point_repository)
-point_service = PointService(point_repository=point_repository)
+point_service = PointService(point_repository=point_repository, device_repository=device_repository, mqtt_client=mqtt_client)
 bacnet_service = BACnetService(device_repository=device_repository)
 ai_assistant_service = AIAssistantService(llm=llm, document_repository=document_repository)
-
+  
 api_secret = os.getenv("API_TOKEN_SECRET")
-
 app = FastAPI(title="Open Operator API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 security = HTTPBearer(auto_error=False)
@@ -255,6 +255,21 @@ async def get_device_graphic(
         content={"message": f"Unable to get device graphic: {e}"},
         status_code=500
     )
+
+@app.post("/device/create", tags=['Devices'], response_model=Device)
+async def create_device(
+  facility_uri: str,
+  device: DeviceCreateParams,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    device = device_service.create_device(facility_uri=facility_uri, device=device)
+    return JSONResponse(device.model_dump())
+  except HTTPException as e:
+    return JSONResponse(
+        content={"message": f"Unable to create device: {e}"},
+        status_code=500
+    )
   
 @app.post("/device/link", tags=['Devices'])
 async def link_to_component(
@@ -290,13 +305,61 @@ async def update_device(
 async def list_points(
   facility_uri: str,
   component_uri: str | None = None,
+  collect_enabled: bool | None = None,
   current_user: User = Security(get_current_user)
 ) -> JSONResponse:
-  points = point_service.get_points(facility_uri=facility_uri, component_uri=component_uri)
+  points = point_service.get_points(facility_uri=facility_uri, component_uri=component_uri, collect_enabled=collect_enabled)
   points = [point.model_dump() for point in points]
   for point in points: # Remove the embedding from the response
     point.pop('embedding', None)
   return JSONResponse(points)
+
+@app.get("/point", tags=['Points'], response_model=Point)
+async def get_point(
+  point_uri: str,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  point = point_service.get_point(point_uri=point_uri)
+  return JSONResponse(point.model_dump())
+
+@app.get("/point/live", tags=['Points'])
+async def get_live_reading(
+  point_uri: str,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  return JSONResponse(point_service.get_live_reading(point_uri))
+
+@app.post("/point/create", tags=['Points'], response_model=Point)
+async def create_point(
+  facility_uri: str,
+  device_uri: str,
+  point: PointCreateParams,
+  brick_class_uri: str | None = None,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    point = point_service.create_point(facility_uri=facility_uri, device_uri=device_uri, point=point, brick_class_uri=brick_class_uri)
+    return JSONResponse(point.model_dump())
+  except HTTPException as e:
+    return JSONResponse(
+        content={"message": f"Unable to create point: {e}"},
+        status_code=500
+    )
+
+@app.post("/point/command", tags=['Points'])
+async def command_point(
+  point_uri: str,
+  command: str,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    point_service.command_point(point_uri=point_uri, command=command)
+    return JSONResponse(content={"message": "Command sent successfully"})
+  except HTTPException as e:
+    return JSONResponse(
+        content={"message": f"Unable to send command to point: {e}"},
+        status_code=500
+    )
 
 @app.post("/points/history", tags=['Points'])
 async def get_points_history(
@@ -306,7 +369,23 @@ async def get_points_history(
   current_user: User = Security(get_current_user)
 ) -> JSONResponse:
   return JSONResponse(point_service.get_points_history(start_time=start_time, end_time=end_time, point_uris=point_uris))
-  
+
+@app.put("/point/update", tags=['Points'])
+async def update_point(
+  point_uri: str,
+  updates: PointUpdates | None = None,
+  brick_class_uri: str | None = None,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    point_service.update_point(point_uri=point_uri, updates=updates, new_brick_class_uri=brick_class_uri)
+    return JSONResponse(content={"message": "Point updated successfully"})
+  except HTTPException as e:
+    return JSONResponse(
+        content={"message": f"Unable to update point: {e}"},
+        status_code=500
+    )
+
 ## COBie ROUTES
 @app.post("/cobie/import", tags=['COBie'])
 async def import_cobie_spreadsheet(

@@ -1,8 +1,8 @@
-from openoperator.domain.model import Device, Point
+from openoperator.domain.model import Device, Point, DeviceCreateParams
 from openoperator.infrastructure import KnowledgeGraph, Embeddings, BlobStore
+from openoperator.utils import dbscan_cluster
 import os
 import numpy as np
-from openoperator.utils import dbscan_cluster
 from uuid import uuid4
 
 class DeviceRepository:
@@ -12,10 +12,10 @@ class DeviceRepository:
     self.blob_store = blob_store
   
   def get_devices(self, facility_uri: str, component_uri: str | None = None) -> list[Device]:
-    query = "MATCH (d:Device)-[:objectOf]-(p:Point) where d.uri starts with $facility_uri"
+    query = "MATCH (d:Device) where d.uri starts with $facility_uri OPTIONAL MATCH (d)-[:objectOf]-(p:Point)"
     if component_uri:
       query += " MATCH (d)-[:isDeviceOf]->(c:Component {uri: $component_uri})"
-    query += " with d, collect(p) AS points RETURN d as device, points"
+    query += " with d, collect(p) AS points RETURN d as device, points ORDER BY d.device_name DESC"
     try:
       with self.kg.create_session() as session:
         result = session.run(query, facility_uri=facility_uri, component_uri=component_uri)
@@ -29,6 +29,33 @@ class DeviceRepository:
           device.points = points
           devices.append(device)
         return devices
+    except Exception as e:
+      raise e
+    
+  def get_device(self, device_uri: str) -> Device:
+    query = "MATCH (d:Device {uri: $device_uri}) OPTIONAL MATCH (d)-[:objectOf]-(p:Point) RETURN d as device, collect(p) as points"
+    try:
+      with self.kg.create_session() as session:
+        result = session.run(query, device_uri=device_uri)
+        data = result.data()
+        device_data = data[0]['device']
+        points_data = data[0]['points']
+        device = Device(**device_data)
+        points = [Point(**point_data) for point_data in points_data]
+        device.points = points
+        return device
+    except Exception as e:
+      raise e
+  
+  def create_device(self, facility_uri: str, device: DeviceCreateParams) -> Device:
+    uri = f"{facility_uri}/device/{device.device_address}-{device.device_id}"
+    device = Device(uri=uri, **device.model_dump())
+    query = "CREATE (d:Device:Resource $device) RETURN d"
+    try:
+      with self.kg.create_session() as session:
+        result = session.run(query, device=device.model_dump())
+        data = result.data()
+        return Device(**data[0]['d'])
     except Exception as e:
       raise e
     
@@ -59,12 +86,9 @@ class DeviceRepository:
         record = result.single()
         if record is None: raise ValueError("Graphic not found")
         template_id = record['d']['template_id']
-      # points = self.point_repository.get_points(facility_uri, device_uri=device_uri)
       svg_graphic = os.path.join(os.path.dirname(__file__), "svg_templates", f"{template_id}.svg") # Search the device_graphcs directory for the device graphic
       if os.path.exists(svg_graphic):
         return svg_graphic
-      else:
-        return None
     except Exception as e:
       raise e
     
