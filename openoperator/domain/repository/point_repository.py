@@ -1,5 +1,5 @@
 from openoperator.infrastructure import KnowledgeGraph, Timescale
-from openoperator.domain.model import Point, PointUpdates
+from openoperator.domain.model import Point, PointUpdates, BrickClass
 from collections import OrderedDict
 
 class PointRepository:
@@ -39,6 +39,27 @@ class PointRepository:
             point.value = readings_dict[point.timeseriesId]['value']
             point.ts = readings_dict[point.timeseriesId]['ts']
       return points
+    except Exception as e:
+      raise e
+    
+  def get_point(self, point_uri: str) -> Point:
+    query = """MATCH (p:Point {uri: $point_uri})
+              OPTIONAL MATCH (p)-[:hasBrickClass]->(b:Class)
+              OPTIONAL MATCH path=(b)-[:SCO*]->(parent:Class)
+              WITH p, b, COLLECT(parent) AS parents
+              RETURN p, b AS brick_class, parents"""
+    try:
+      with self.kg.create_session() as session:
+        result = session.run(query, point_uri=point_uri)
+        data = result.data()
+        point = Point(**data[0]['p'])
+        if data[0]['brick_class']:
+          parents = [BrickClass(**parent) for parent in data[0]['parents']]
+          brick_class = BrickClass(**data[0]['brick_class'])
+          brick_class.parents = parents
+          point.brick_class = brick_class
+          
+      return point
     except Exception as e:
       raise e
   

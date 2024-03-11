@@ -9,7 +9,7 @@ from fastapi.responses import Response, JSONResponse, StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
-from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale, OpenaiLLM, OpenaiAudio
+from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale, OpenaiLLM, OpenaiAudio, MQTTClient
 from openoperator.domain.repository import PortfolioRepository, UserRepository, FacilityRepository, DocumentRepository, COBieRepository, DeviceRepository, PointRepository
 from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService
 from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, PointUpdates, Message, LLMChatResponse
@@ -32,6 +32,7 @@ vector_store = PGVectorStore(postgres=postgres, embeddings=embeddings)
 timescale = Timescale(postgres=postgres)
 llm = OpenaiLLM(model_name="gpt-4-0125-preview", system_prompt=llm_system_prompt)
 audio = OpenaiAudio()
+mqtt_client = MQTTClient()
 
 # Repositories
 portfolio_repository = PortfolioRepository(kg=knowledge_graph)
@@ -50,7 +51,7 @@ facility_service = FacilityService(facility_repository=facility_repository)
 document_service = DocumentService(document_repository=document_repository)
 cobie_service = COBieService(cobie_repository=cobie_repository)
 device_service = DeviceService(device_repository=device_repository, point_repository=point_repository)
-point_service = PointService(point_repository=point_repository)
+point_service = PointService(point_repository=point_repository, mqtt_client=mqtt_client)
 bacnet_service = BACnetService(device_repository=device_repository)
 ai_assistant_service = AIAssistantService(llm=llm, document_repository=document_repository)
   
@@ -297,6 +298,29 @@ async def list_points(
   for point in points: # Remove the embedding from the response
     point.pop('embedding', None)
   return JSONResponse(points)
+
+@app.get("/point", tags=['Points'], response_model=Point)
+async def get_point(
+  point_uri: str,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  point = point_service.get_point(point_uri=point_uri)
+  return JSONResponse(point.model_dump())
+
+@app.post("/point/command", tags=['Points'])
+async def command_point(
+  point_uri: str,
+  command: str,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    point_service.command_point(point_uri=point_uri, command=command)
+    return JSONResponse(content={"message": "Command sent successfully"})
+  except HTTPException as e:
+    return JSONResponse(
+        content={"message": f"Unable to send command to point: {e}"},
+        status_code=500
+    )
 
 @app.post("/points/history", tags=['Points'])
 async def get_points_history(
