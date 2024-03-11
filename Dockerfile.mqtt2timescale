@@ -13,6 +13,4 @@ RUN python3 -m pip install -e . && \
     pip install python-dotenv && \
     rm -rf /root/.cache/pip
 
-EXPOSE 8100
-
 CMD ["python", "openoperator/application/mqtt/mqtt2timescale.py"]

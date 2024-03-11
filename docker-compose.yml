@@ -6,83 +6,83 @@ services:
       dockerfile: ./Dockerfile.server
     volumes:
       - .:/usr/src/app
-    command: [
-        "sh",
-        "-c",
-        "sleep 15; python openoperator/application/api/app.py",
-      ] # wait for neo4j to start
+    # command: [
+    #     "sh",
+    #     "-c",
+    #     "sleep 15; python openoperator/application/api/app.py",
+    #   ] # wait for neo4j to start
     ports:
       - 8080:8080
     env_file:
-      - .env
-    environment:
-      - NEO4J_URI=bolt://neo4j:7687
-      - POSTGRES_CONNECTION_STRING=postgresql://postgres:postgres@postgres:5432/postgres
-      - UNSTRUCTURED_URL=http://unstructured:8000
-    networks:
-      - local
-    depends_on:
-      - neo4j
-      - postgres
+      - .env.beta
+#     environment:
+#       - NEO4J_URI=bolt://neo4j:7687
+#       - POSTGRES_CONNECTION_STRING=postgresql://postgres:postgres@postgres:5432/postgres
+#       - UNSTRUCTURED_URL=http://unstructured:8000
+#     networks:
+#       - local
+#     depends_on:
+#       - neo4j
+#       - postgres
 
-  unstructured:
-    image: quay.io/unstructured-io/unstructured-api:latest
-    ports:
-      - 8000:8000
-    networks:
-      - local
+#   unstructured:
+#     image: quay.io/unstructured-io/unstructured-api:latest
+#     ports:
+#       - 8000:8000
+#     networks:
+#       - local
 
-  postgres:
-    build:
-      context: .
-      dockerfile: ./Dockerfile.pg
-    environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-    volumes:
-      - ./.postgresql/data:/var/lib/postgresql/data
-    ports:
-      - 5432:5432
-    networks:
-      - local
+#   postgres:
+#     build:
+#       context: .
+#       dockerfile: ./Dockerfile.pg
+#     environment:
+#       - POSTGRES_PASSWORD=postgres
+#       - POSTGRES_USER=postgres
+#       - POSTGRES_DB=postgres
+#     volumes:
+#       - ./.postgresql/data:/var/lib/postgresql/data
+#     ports:
+#       - 5432:5432
+#     networks:
+#       - local
 
-  neo4j:
-    build:
-      context: .
-      dockerfile: ./Dockerfile.neo4j
-    volumes:
-      - $HOME/neo4j/data:/data
-      - $HOME/neo4j/logs:/logs
-      - $HOME/neo4j/import:/var/lib/neo4j/import
-      - $HOME/neo4j/plugins:/plugins
-    environment:
-      NEO4J_AUTH: ${NEO4J_USER}/${NEO4J_PASSWORD}
-      NEO4J_apoc_export_file_enabled: true
-      NEO4J_apoc_import_file_enabled: true
-      NEO4J_apoc_import_file_use__neo4j__config: true
-      NEO4J_dbms_security_procedures_unrestricted: apoc.*,semantics.*
-      NEO4J_PLUGINS: '["apoc", "n10s"]'
-      dbms.directories.import: "/"
-    ports:
-      - 7474:7474
-      - 7687:7687
-    networks:
-      - local
+#   neo4j:
+#     build:
+#       context: .
+#       dockerfile: ./Dockerfile.neo4j
+#     volumes:
+#       - $HOME/neo4j/data:/data
+#       - $HOME/neo4j/logs:/logs
+#       - $HOME/neo4j/import:/var/lib/neo4j/import
+#       - $HOME/neo4j/plugins:/plugins
+#     environment:
+#       NEO4J_AUTH: ${NEO4J_USER}/${NEO4J_PASSWORD}
+#       NEO4J_apoc_export_file_enabled: true
+#       NEO4J_apoc_import_file_enabled: true
+#       NEO4J_apoc_import_file_use__neo4j__config: true
+#       NEO4J_dbms_security_procedures_unrestricted: apoc.*,semantics.*
+#       NEO4J_PLUGINS: '["apoc", "n10s"]'
+#       dbms.directories.import: "/"
+#     ports:
+#       - 7474:7474
+#       - 7687:7687
+#     networks:
+#       - local
 
-  mqtt-broker:
-    image: emqx/emqx:5.1.6
-    ports:
-      - 1883:1883
-      - 8883:8883
-      - 8083:8083
-      - 8084:8084
-      - 18083:18083
-    volumes:
-      - ./emqx/data:/opt/emqx/data
-      - ./emqx/log:/opt/emqx/log
-    networks:
-      - local
+#   mqtt-broker:
+#     image: emqx/emqx:5.1.6
+#     ports:
+#       - 1883:1883
+#       - 8883:8883
+#       - 8083:8083
+#       - 8084:8084
+#       - 18083:18083
+#     volumes:
+#       - ./emqx/data:/opt/emqx/data
+#       - ./emqx/log:/opt/emqx/log
+#     networks:
+#       - local
 
-networks:
-  local:
+# networks:
+#   local:

@@ -322,6 +322,13 @@ async def get_point(
   point = point_service.get_point(point_uri=point_uri)
   return JSONResponse(point.model_dump())
 
+@app.get("/point/live", tags=['Points'])
+async def get_live_reading(
+  point_uri: str,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  return JSONResponse(point_service.get_live_reading(point_uri))
+
 @app.post("/point/create", tags=['Points'], response_model=Point)
 async def create_point(
   facility_uri: str,

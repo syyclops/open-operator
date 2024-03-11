@@ -70,7 +70,7 @@ class PointRepository:
     MERGE (p)-[:objectOf]->(d)
     """
     if brick_class_uri:
-      query += "  MATCH (b:Class {uri: $brick_class_uri}) MERGE (p)-[:hasBrickClass]->(b)"
+      query += " WITH p MATCH (b:Class {uri: $brick_class_uri}) MERGE (p)-[:hasBrickClass]->(b)"
     query += " RETURN p"
     try:
       with self.kg.create_session() as session:
