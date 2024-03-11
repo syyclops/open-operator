@@ -78,6 +78,11 @@ services:
       - 8083:8083
       - 8084:8084
       - 18083:18083
+    volumes:
+      - ./emqx/data:/opt/emqx/data
+      - ./emqx/log:/opt/emqx/log
+    networks:
+      - local
 
 networks:
   local:
