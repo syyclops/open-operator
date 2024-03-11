@@ -44,7 +44,7 @@ class PointRepository:
     
   def get_point(self, point_uri: str) -> Point:
     query = """MATCH (p:Point {uri: $point_uri})
-              OPTIONAL MATCH (p)-[:hasBrickClass]->(b:Class)
+              OPTIONAL MATCH (p)-[:hasBrickClass]->(b:Class:Resource)
               OPTIONAL MATCH path=(b)-[:SCO*]->(parent:Class)
               WITH p, b, COLLECT(parent) AS parents
               RETURN p, b AS brick_class, parents"""
@@ -70,7 +70,7 @@ class PointRepository:
     MERGE (p)-[:objectOf]->(d)
     """
     if brick_class_uri:
-      query += " MERGE (p)-[:hasBrickClass]->(b:Class {uri: $brick_class_uri})"
+      query += "  MATCH (b:Class {uri: $brick_class_uri}) MERGE (p)-[:hasBrickClass]->(b)"
     query += " RETURN p"
     try:
       with self.kg.create_session() as session:
