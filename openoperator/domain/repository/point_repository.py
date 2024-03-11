@@ -25,7 +25,7 @@ class PointRepository:
         points = []
         for record in data:
           point = Point(**record['p'])
-          if record['brick_class']:
+          if 'brick_class' in record.keys():
             point.brick_class = record['brick_class']
           points.append(point)
 

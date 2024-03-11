@@ -79,13 +79,13 @@ class TestBACnet(unittest.TestCase):
     g = self.bacnet_service.convert_bacnet_data_to_rdf(facility_uri=self.facility_uri, file=bacnet_data)
     
     BACNET = Namespace("http://data.ashrae.org/bacnet/#")
-    device_uri = URIRef("https://openoperator.com/exampleCustomer/exampleFacility/301:14-3014/device/3014")
+    device_uri = URIRef("https://openoperator.com/exampleCustomer/exampleFacility/device/301:14-3014")
     assert (device_uri, RDF.type, BACNET.Device) in g
     assert (device_uri, BACNET.device_id, Literal("3014")) in g
     assert (device_uri, BACNET.device_name, Literal("VAV-D2-37")) in g
     assert (device_uri, BACNET.device_address, Literal("301:14")) in g
 
-    point_uri = URIRef("https://openoperator.com/exampleCustomer/exampleFacility/301:14-3014/analogInput/1")
+    point_uri = URIRef("https://openoperator.com/exampleCustomer/exampleFacility/point/301:14-3014/analogInput/1")
     assert (point_uri, RDF.type, BACNET.Point) in g
     assert (point_uri, BACNET.objectOf, device_uri) in g
     assert (point_uri, BACNET.object_name, Literal("3A14-Space-Co2")) in g

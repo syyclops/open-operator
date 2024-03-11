@@ -12,7 +12,7 @@ import uvicorn
 from openoperator.infrastructure import KnowledgeGraph, AzureBlobStore, PGVectorStore, UnstructuredDocumentLoader, OpenAIEmbeddings, Postgres, Timescale, OpenaiLLM, OpenaiAudio, MQTTClient
 from openoperator.domain.repository import PortfolioRepository, UserRepository, FacilityRepository, DocumentRepository, COBieRepository, DeviceRepository, PointRepository
 from openoperator.domain.service import PortfolioService, UserService, FacilityService, DocumentService, COBieService, DeviceService, PointService, BACnetService, AIAssistantService
-from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, PointUpdates, Message, LLMChatResponse
+from openoperator.domain.model import Portfolio, User, Facility, Document, DocumentQuery, DocumentMetadataChunk, Device, Point, PointUpdates, Message, LLMChatResponse, DeviceCreateParams
 
 # System prompt for the AI Assistant
 llm_system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
@@ -253,6 +253,21 @@ async def get_device_graphic(
   except HTTPException as e:
     return JSONResponse(
         content={"message": f"Unable to get device graphic: {e}"},
+        status_code=500
+    )
+
+@app.post("/device/create", tags=['Devices'], response_model=Device)
+async def create_device(
+  facility_uri: str,
+  device: DeviceCreateParams,
+  current_user: User = Security(get_current_user)
+) -> JSONResponse:
+  try:
+    device = device_service.create_device(facility_uri=facility_uri, device=device)
+    return JSONResponse(device.model_dump())
+  except HTTPException as e:
+    return JSONResponse(
+        content={"message": f"Unable to create device: {e}"},
         status_code=500
     )
   

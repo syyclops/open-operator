@@ -1,4 +1,4 @@
-from openoperator.domain.model import Device, Point
+from openoperator.domain.model import Device, Point, DeviceCreateParams
 from openoperator.infrastructure import KnowledgeGraph, Embeddings, BlobStore
 from openoperator.utils import dbscan_cluster
 import os
@@ -12,7 +12,7 @@ class DeviceRepository:
     self.blob_store = blob_store
   
   def get_devices(self, facility_uri: str, component_uri: str | None = None) -> list[Device]:
-    query = "MATCH (d:Device)-[:objectOf]-(p:Point) where d.uri starts with $facility_uri"
+    query = "MATCH (d:Device) where d.uri starts with $facility_uri OPTIONAL MATCH (d)-[:objectOf]-(p:Point)"
     if component_uri:
       query += " MATCH (d)-[:isDeviceOf]->(c:Component {uri: $component_uri})"
     query += " with d, collect(p) AS points RETURN d as device, points ORDER BY d.device_name DESC"
@@ -29,6 +29,18 @@ class DeviceRepository:
           device.points = points
           devices.append(device)
         return devices
+    except Exception as e:
+      raise e
+  
+  def create_device(self, facility_uri: str, device: DeviceCreateParams) -> Device:
+    uri = f"{facility_uri}/device/{device.device_address}-{device.device_id}"
+    device = Device(uri=uri, **device.model_dump())
+    query = "CREATE (d:Device:Resource $device) RETURN d"
+    try:
+      with self.kg.create_session() as session:
+        result = session.run(query, device=device.model_dump())
+        data = result.data()
+        return Device(**data[0]['d'])
     except Exception as e:
       raise e
     

@@ -40,7 +40,7 @@ class BACnetService:
         if bacnet_data['device_name'] == None or bacnet_data['device_name'] == "":
           continue
 
-        device_uri = URIRef(facility_uri + "/" + bacnet_data['device_address'] + "-" + bacnet_data['device_id'] + "/device/" + bacnet_data['device_id'])
+        device_uri = URIRef(facility_uri + "/device/" + bacnet_data['device_address'] + "-" + bacnet_data['device_id'])
         # Check if its a bacnet device or a bacnet object
         if bacnet_data['object_type'] == "device":
           # Create the bacnet device and add it to the graph
@@ -52,7 +52,7 @@ class BACnetService:
             g.add((device_uri, BACNET[key], Literal(str(value))))
         else:
           # Create the bacnet point and add it to the graph
-          point_uri = URIRef(facility_uri + '/' + bacnet_data['device_address'] + '-' + bacnet_data['device_id'] + '/' + bacnet_data['object_type'] + '/' + bacnet_data['object_index'])
+          point_uri = URIRef(facility_uri + '/point/' + bacnet_data['device_address'] + '-' + bacnet_data['device_id'] + '/' + bacnet_data['object_type'] + '/' + bacnet_data['object_index'])
           g.add((point_uri, A, BACNET.Point))
           g.add((point_uri, BACNET.timeseriesId, Literal(name)))
           g.add((point_uri, BACNET.objectOf, device_uri)) # Create relationship between the device and the point
