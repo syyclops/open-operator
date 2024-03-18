@@ -79,7 +79,7 @@ class TestDocuments(unittest.TestCase):
     mock_uuid = uuid4()
     with patch('openoperator.domain.repository.document_repository.uuid4', return_value=mock_uuid):
       result_document = self.document_repository.upload(facility_uri=self.facility_uri, file_content=file_content, file_name=file_name, file_type=file_type)
-    expected_document = Document(extractionStatus="pending", name=file_name, uri=f"{self.facility_uri}/document/{str(mock_uuid)}", url=file_url, thumbnailUrl=None)
+    expected_document = Document(extractionStatus="pending", name=file_name, uri=f"{self.facility_uri}/document/{str(mock_uuid)}", url=file_url, thumbnailUrl=None, discipline=None)
   
     # Verify the result
     self.assertEqual(result_document, expected_document)
