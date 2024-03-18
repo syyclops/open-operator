@@ -64,6 +64,7 @@ class TestDocuments(unittest.TestCase):
     file_name = 'file_name.docx'
     file_type = 'test_type'
     file_url = 'http://example.com/file.docx'
+    discipline = None
 
     # Mock the blob_store.upload_file method to return a file_url or a thumbnail_url
     self.blob_store.upload_file.side_effect = [file_url]
@@ -71,14 +72,14 @@ class TestDocuments(unittest.TestCase):
     session_mock = self.setup_session_mock()
     # Mock the session.run method to simulate a successful query execution for creating a document
     mock_query_result = Mock()
-    document_node = {"name": file_name, "url": file_url, "extractionStatus": "pending"}
+    document_node = {"name": file_name, "url": file_url, "extractionStatus": "pending", "discipline":None}
     mock_query_result.data.return_value = [ {"d": document_node} ]
     session_mock.run.return_value = mock_query_result
 
     # Execute the upload method
     mock_uuid = uuid4()
     with patch('openoperator.domain.repository.document_repository.uuid4', return_value=mock_uuid):
-      result_document = self.document_repository.upload(facility_uri=self.facility_uri, file_content=file_content, file_name=file_name, file_type=file_type)
+      result_document = self.document_repository.upload(facility_uri=self.facility_uri, file_content=file_content, file_name=file_name, file_type=file_type, discipline=discipline)
     expected_document = Document(extractionStatus="pending", name=file_name, uri=f"{self.facility_uri}/document/{str(mock_uuid)}", url=file_url, thumbnailUrl=None, discipline=None)
   
     # Verify the result
