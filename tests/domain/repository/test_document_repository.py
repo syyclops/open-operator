@@ -107,15 +107,15 @@ class TestDocuments(unittest.TestCase):
     session_mock = self.setup_session_mock()
     # Mock the session.run method to simulate a successful query execution for creating a document
     mock_query_result = Mock()
-    document_node = {"name": file_name, "url": file_url, "extractionStatus": "pending", "thumbnailUrl": thumbnail_url}  
+    document_node = {"name": file_name, "url": file_url, "extractionStatus": "pending", "thumbnailUrl": thumbnail_url, "discipline":None}
     mock_query_result.data.return_value = [ {"d": document_node} ]
     session_mock.run.return_value = mock_query_result
 
     # Mock fitz.open and execute the upload method
     mock_uuid = uuid4()
     with patch('openoperator.domain.repository.document_repository.fitz.open', return_value=fitz_mock), patch('openoperator.domain.repository.document_repository.uuid4', return_value=mock_uuid):
-      result_document = self.document_repository.upload(facility_uri=self.facility_uri, file_content=file_content, file_name=file_name, file_type=file_type)
-    expected_result = Document(extractionStatus="pending", name=file_name, uri=f"{self.facility_uri}/document/{str(mock_uuid)}", url=file_url, thumbnailUrl=thumbnail_url)
+      result_document = self.document_repository.upload(facility_uri=self.facility_uri, file_content=file_content, file_name=file_name, file_type=file_type, discipline=None)
+    expected_result = Document(extractionStatus="pending", name=file_name, uri=f"{self.facility_uri}/document/{str(mock_uuid)}", url=file_url, thumbnailUrl=thumbnail_url, discipline=None)
 
     # Verify the result
     self.assertEqual(result_document, expected_result)
