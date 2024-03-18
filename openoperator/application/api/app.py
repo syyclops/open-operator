@@ -1,4 +1,4 @@
-from typing import List, Generator
+from typing import List, Generator, Literal
 import mimetypes
 import os
 import jwt
@@ -185,6 +185,7 @@ async def upload_files(
   portfolio_uri: str,
   facility_uri: str,
   background_tasks: BackgroundTasks,
+  discipline: Literal['Architectural', 'Plumbing', 'Electrical', 'Mechanical'] = None,
   current_user: User = Security(get_current_user),
 ):
   uploaded_files_info = []  # To store info about uploaded files
@@ -193,7 +194,7 @@ async def upload_files(
     try:
       file_content = await file.read()
       file_type = mimetypes.guess_type(file.filename)[0]
-      document = document_service.upload_document(facility_uri=facility_uri, file_content=file_content, file_name=file.filename, file_type=file_type)
+      document = document_service.upload_document(facility_uri=facility_uri, file_content=file_content, file_name=file.filename, file_type=file_type, discipline=discipline)
       background_tasks.add_task(document_service.run_extraction_process, portfolio_uri, facility_uri, file_content, file.filename, document.uri, document.url)
       uploaded_files_info.append({"filename": file.filename, "uri": document.uri})
     except Exception as e:  

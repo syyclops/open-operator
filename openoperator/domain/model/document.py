@@ -28,3 +28,4 @@ class Document(BaseModel):
   url: str
   extractionStatus: Optional[Literal['pending', 'success', 'failed']] = None
   thumbnailUrl: Optional[str] = None
+  discipline: Optional[Literal['Architectural', 'Plumbing', 'Electrical', 'Mechanical']] = None
