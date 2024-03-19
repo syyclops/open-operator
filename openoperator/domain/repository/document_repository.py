@@ -3,7 +3,7 @@ from openoperator.infrastructure import KnowledgeGraph, BlobStore, DocumentLoade
 import fitz
 import io
 from uuid import uuid4
-from typing import List
+from typing import List, Literal
 
 class DocumentRepository:
   def __init__(self, kg: KnowledgeGraph, blob_store: BlobStore, document_loader: DocumentLoader, vector_store: VectorStore):
@@ -18,7 +18,7 @@ class DocumentRepository:
       data = result.data()
       return [Document(**record['d']) for record in data]
   
-  def upload(self, facility_uri: str, file_content: bytes, file_name: str, file_type: str) -> Document:
+  def upload(self, facility_uri: str, file_content: bytes, file_name: str, file_type: str, discipline: Literal['Architectural', 'Plumbing', 'Electrical', 'Mechanical']) -> Document:
     """
     Upload a file for a facility.
 
@@ -40,10 +40,10 @@ class DocumentRepository:
     try:
       with self.kg.create_session() as session:
         doc_uri = f"{facility_uri}/document/{str(uuid4())}"
-        query = """CREATE (d:Document:Resource {name: $name, url: $url, extractionStatus: 'pending', thumbnailUrl: $thumbnail_url, uri: $doc_uri})
+        query = """CREATE (d:Document:Resource {name: $name, url: $url, extractionStatus: 'pending', thumbnailUrl: $thumbnail_url, uri: $doc_uri, discipline: $discipline})
                     CREATE (d)-[:documentTo]->(:Facility {uri: $facility_uri})
                     RETURN d"""
-        result = session.run(query, name=file_name, url=file_url, facility_uri=facility_uri, thumbnail_url=thumbnail_url, doc_uri=doc_uri)
+        result = session.run(query, name=file_name, url=file_url, facility_uri=facility_uri, thumbnail_url=thumbnail_url, doc_uri=doc_uri, discipline=discipline)
         data = result.data()
         if len(data) == 0: raise ValueError("Document not created")
         return Document(extractionStatus="pending", name=file_name, uri=doc_uri, url=file_url, thumbnailUrl=thumbnail_url)
