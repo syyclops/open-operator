@@ -19,8 +19,7 @@ llm_system_prompt = """You are an an AI Assistant that specializes in building o
 Your goal is to help facility owners, managers, and operators manage their facilities and buildings more efficiently.
 Make sure to always follow ASHRAE guildelines.
 Don't be too wordy. Don't be too short. Be just right.
-Don't make up information. If you don't know, say you don't know.
-Always respond with markdown formatted text and provide sources for your information."""
+Always provide sources for your information."""
 
 # Infrastructure
 knowledge_graph = KnowledgeGraph()
@@ -30,7 +29,7 @@ embeddings = OpenAIEmbeddings()
 postgres = Postgres()
 vector_store = PGVectorStore(postgres=postgres, embeddings=embeddings)
 timescale = Timescale(postgres=postgres)
-llm = OpenaiLLM(model_name="gpt-4-0125-preview", system_prompt=llm_system_prompt)
+llm = OpenaiLLM(model_name="gpt-4-turbo-preview", system_prompt=llm_system_prompt)
 audio = OpenaiAudio()
 mqtt_client = MQTTClient()
 
@@ -53,7 +52,7 @@ cobie_service = COBieService(cobie_repository=cobie_repository)
 device_service = DeviceService(device_repository=device_repository, point_repository=point_repository)
 point_service = PointService(point_repository=point_repository, device_repository=device_repository, mqtt_client=mqtt_client)
 bacnet_service = BACnetService(device_repository=device_repository)
-ai_assistant_service = AIAssistantService(llm=llm, document_repository=document_repository)
+ai_assistant_service = AIAssistantService(llm=llm, document_repository=document_repository, vector_store=vector_store)
   
 api_secret = os.getenv("API_TOKEN_SECRET")
 app = FastAPI(title="Open Operator API")
@@ -109,6 +108,8 @@ async def chat(
 ) -> StreamingResponse:
   if document_uri and not facility_uri:
     raise HTTPException(status_code=400, detail="If a document_uri is provided, a facility_uri must also be provided.")
+
+  # messages = [Message(**message) for message in messages]
 
   async def event_stream() -> Generator[str, None, None]:
     for response in ai_assistant_service.chat(portfolio_uri=portfolio_uri, messages=messages, facility_uri=facility_uri, document_uri=document_uri, verbose=False):

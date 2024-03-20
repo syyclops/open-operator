@@ -85,7 +85,7 @@ class PGVectorStore(VectorStore):
     query += " ORDER BY embedding <=> %s LIMIT %s"
     params.append(embedding)
     params.append(limit)
-    
+
     # Query postgres
     with self.postgres.cursor() as cur:
       register_vector(self.postgres.conn)
@@ -96,10 +96,46 @@ class PGVectorStore(VectorStore):
         filename=record[1]['filename'],
         portfolio_uri=record[1]['portfolio_uri'],
         facility_uri=record[1]['facility_uri'],
-        document_uri=record[1]['document_uri'],
+        document_uri=record[1]['document_uri'] if 'document_uri' in record[1] else None,
+        document_url=record[1]['document_url'] if 'document_url' in record[1] else None,
+        filetype=record[1]['filetype'] if 'filetype' in record[1] else None,
+        page_number=record[1]['page_number']  if 'page_number' in record[1] else None 
+      )) for record in records]
+
+      return data
+    
+  def list_documents(self, filter: dict | None = None) -> list[DocumentMetadataChunk]:
+    """
+    List all documents in the vector store.
+    """
+    # Prepare base SQL query
+    query  = f"SELECT content, metadata FROM {self.collection_name} "
+    params = []
+
+    # Add filter to query
+    if filter is not None:
+      query += " WHERE "
+      for i, (key, value) in enumerate(filter.items()):
+        # Ensure the value is a string
+        value_str = str(value)
+        query += f"metadata->>'{key}' = %s"
+        params.append(value_str)
+        if i != len(filter) - 1:
+          query += " AND "
+
+    # Query postgres
+    with self.postgres.cursor() as cur:
+      records = cur.execute(query, params).fetchall()
+      
+      # Convert the list of tuples to a list of dicts
+      data = [DocumentMetadataChunk(content=record[0], metadata=DocumentMetadata(
+        filename=record[1]['filename'],
+        portfolio_uri=record[1]['portfolio_uri'],
+        facility_uri=record[1]['facility_uri'],
+        document_uri=record[1]['document_uri'] ,
         document_url=record[1]['document_url'],
         filetype=record[1]['filetype'],
-        page_number=record[1]['page_number']  
+        page_number=record[1]['page_number'] if 'page_number' in record[1] else None 
       )) for record in records]
 
       return data

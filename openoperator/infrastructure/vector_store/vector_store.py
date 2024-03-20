@@ -24,7 +24,11 @@ class VectorStore(ABC):
     """
     Deletes documents from the vector store.
     """
-  
+  def list_documents(self, filter: dict | None = None) -> list[DocumentMetadataChunk]:
+    """
+    List documents in the vector store.
+    """
+    
   def similarity_search(self, query: str, limit: int, filter: dict | None = None) -> list:
     """
     Search for similar documents in the vector store.

@@ -4,6 +4,7 @@ from sklearn.cluster import DBSCAN
 from sklearn.neighbors import NearestNeighbors
 from kneed import KneeLocator
 import numpy as np
+import tiktoken
 
 def split_string_with_limit(text: str, limit: int, encoding) -> List[str]:
   """
@@ -29,6 +30,12 @@ def split_string_with_limit(text: str, limit: int, encoding) -> List[str]:
   text_parts = [encoding.decode(part) for part in parts]
 
   return text_parts
+
+def num_tokens_from_string(string: str, encoding_name: str) -> int:
+    """Returns the number of tokens in a text string."""
+    encoding = tiktoken.get_encoding(encoding_name)
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
 
 def create_uri(name: str) -> str:
   """

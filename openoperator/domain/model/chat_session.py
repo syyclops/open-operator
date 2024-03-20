@@ -3,7 +3,7 @@ from typing import List, Optional, Literal
 
 class Message(BaseModel): 
   content: str
-  role: Literal['user', 'assistant']
+  role: Literal['user', 'assistant', 'system']
 
 class LLMChatResponse(BaseModel):
   type: Literal['tool_selected', 'tool_finished', 'content']

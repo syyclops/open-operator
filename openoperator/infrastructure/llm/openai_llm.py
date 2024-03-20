@@ -3,7 +3,7 @@ import os
 import tiktoken
 import json
 from typing import Generator, List
-from openoperator.utils import split_string_with_limit
+from openoperator.utils import split_string_with_limit, num_tokens_from_string
 from openoperator.domain.model import LLMChatResponse, Tool, Message
 from .llm import LLM
 
@@ -26,21 +26,27 @@ class OpenaiLLM(LLM):
 
   def chat(self, messages: List[Message], tools: List[Tool] | None = None, verbose: bool = False) -> Generator[LLMChatResponse, None, None]:
     # Add the system message to be the first message
-    messages.insert(0, {
-      "role": "system",
-      "content": self.system_prompt
-    })
+    messages.insert(0, Message(role="system", content=self.system_prompt))
 
     available_functions = {tool.name: tool.function for tool in tools} if tools else {}
     formatted_tools = [tool.get_json_schema() for tool in tools] if tools else None
+
+    # Check messages to make sure it doesn't exceed the token limit
+    messages_string = "".join([message.content for message in messages])
+    messages_token_count = num_tokens_from_string(string=messages_string, encoding_name="cl100k_base")
+    print("TOKEN COUNT:")
+    print(messages_token_count)
+
+    if messages_token_count > 120000:
+      raise ValueError(f"The combined messages token count exceeds the limit of 120,000 tokens with {messages_token_count} tokens. Please reduce the number of messages.")
     
     while True:
       # Send the conversation and available functions to the model
       stream = self.openai.chat.completions.create(
         model=self.model_name,
-        messages=messages,
+        messages=[message.model_dump() for message in messages],
         tools=formatted_tools,
-        tool_choice="auto",
+        tool_choice="auto" if tools else None,
         stream=True,
         temperature=self.temperature
       )
@@ -96,7 +102,6 @@ class OpenaiLLM(LLM):
             function_response = function_to_call(function_args)
             yield LLMChatResponse(type="tool_finished", tool_id=tool_call['id'], tool_name=function_name, tool_response=function_response)
 
-            encoding = tiktoken.get_encoding("cl100k_base")
             limit = {
               "gpt-4-0125-preview": 40000,
               "gpt-4": 7000,
