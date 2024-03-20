@@ -12,11 +12,11 @@ class DocumentQuery(BaseModel):
 class DocumentMetadata(TypedDict, total=False):
   portfolio_uri: str
   facility_uri: str
-  document_uri: str
-  document_url: str
   filename: str
-  filetype: str
-  page_number: int
+  document_uri: Optional[str]
+  document_url: Optional[str]
+  filetype: Optional[str]
+  page_number: Optional[int] 
 
 class DocumentMetadataChunk(BaseModel):
   content: str

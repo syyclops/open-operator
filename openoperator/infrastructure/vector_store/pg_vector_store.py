@@ -96,10 +96,10 @@ class PGVectorStore(VectorStore):
         filename=record[1]['filename'],
         portfolio_uri=record[1]['portfolio_uri'],
         facility_uri=record[1]['facility_uri'],
-        document_uri=record[1]['document_uri'],
-        document_url=record[1]['document_url'],
-        filetype=record[1]['filetype'],
-        page_number=record[1]['page_number']  
+        document_uri=record[1]['document_uri'] if 'document_uri' in record[1] else None,
+        document_url=record[1]['document_url'] if 'document_url' in record[1] else None,
+        filetype=record[1]['filetype'] if 'filetype' in record[1] else None,
+        page_number=record[1]['page_number'] if 'page_number' in record[1] else None, 
       )) for record in records]
 
       return data
