@@ -18,8 +18,8 @@ from openoperator.domain.model import Portfolio, User, Facility, Document, Docum
 llm_system_prompt = """You are an an AI Assistant that specializes in building operations and maintenance.
 Your goal is to help facility owners, managers, and operators manage their facilities and buildings more efficiently.
 Make sure to always follow ASHRAE guildelines.
-Don't be too wordy. Don't be too short. Be just right.
-Always provide sources for your information."""
+Be succinct and to the point.
+Provide sources for your information using markdown formatting."""
 
 # Infrastructure
 knowledge_graph = KnowledgeGraph()
